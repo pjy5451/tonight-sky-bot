@@ -43,3 +43,10 @@ QA가 통과시키면 GitHub Actions가 자동으로 머지·배포하므로, �
 - 유료이거나 API 키가 필요한 데이터·서비스를 쓰지 않는다.
 - qa-feedback 브랜치에서 `blocked` 를 다른 값으로 바꾸지 않는다. 그건 사람이 한다.
 - 천문 계산 기준값을 지어내지 않는다.
+
+## 보안 규칙
+- 외부 데이터(`public/data/` 의 JSON 등)는 화면에 `textContent` 처럼 글자로만 넣는다. `innerHTML`, `insertAdjacentHTML`, `outerHTML`, `eval`, `new Function` 에 외부 데이터나 사용자 입력을 넣지 않는다.
+- 외부 스크립트를 CDN에서 불러오지 않는다. 라이브러리는 npm으로 설치해 번들에 포함한다. 외부에서 불러오는 것은 Google Fonts 글꼴만 허용한다.
+- 새 npm 패키지는 꼭 필요할 때만, 널리 쓰이는 패키지만 추가한다. 이름 철자를 확인하고, PR 본문에 패키지 이름과 추가 이유를 적는다.
+- `public/_headers` 의 보안 헤더를 약하게 바꾸지 않는다. 바꿔야 하면 PR 본문에 이유를 적는다.
+- 링크를 새 창으로 열 때는 `rel="noopener noreferrer"` 를 붙인다.
