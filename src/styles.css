@@ -73,6 +73,152 @@ h1 {
   line-height: 1.6;
 }
 
+.hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.location-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  border: 1px solid #2a3550;
+  background: #141b30;
+  color: #f2f4f8;
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.location-button:focus-visible,
+.location-primary:focus-visible,
+.location-close:focus-visible,
+.region-button:focus-visible {
+  outline: 3px solid #f5b544;
+  outline-offset: 2px;
+}
+
+.location-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(11, 16, 32, 0.72);
+}
+
+.location-dialog[hidden] {
+  display: none;
+}
+
+.location-dialog-card {
+  width: min(100%, 26rem);
+  max-height: min(640px, calc(100vh - 32px));
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid #2a3550;
+  border-radius: 20px;
+  background: #141b30;
+  color: #f2f4f8;
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+.location-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.location-dialog-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.location-close {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #2a3550;
+  border-radius: 22px;
+  background: transparent;
+  color: #a9b3c7;
+  cursor: pointer;
+}
+
+.location-help,
+.location-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.location-help {
+  color: #a9b3c7;
+}
+
+.location-error {
+  color: #f5b544;
+}
+
+.location-primary {
+  min-height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: #f5b544;
+  color: #0b1020;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.location-primary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.region-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.region-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #2a3550;
+  border-radius: 16px;
+  background: #0b1020;
+  color: #f2f4f8;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.region-button[aria-pressed="true"] {
+  border-color: #f5b544;
+  color: #f5b544;
+}
+
 .tab-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
