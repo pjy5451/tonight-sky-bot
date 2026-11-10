@@ -1,7 +1,16 @@
-# 오늘 밤 하늘 — 설계서
+# Argonova — 설계서
+
+| 항목 | 값 |
+|---|---|
+| 서비스 이름 | **Argonova** (한국어 표기: 아르고노바) |
+| 한 줄 소개 | 영어 "Explore tonight's sky." / 한국어 "오늘 밤, 하늘을 탐험하다" |
+| 이름의 뜻 | Argo(신화 속 탐험선, 아르고자리) + Nova(새로 빛나는 별) |
+| 주소 | https://argonova.pages.dev |
+
+사이트 `<title>`, 상단 로고 문구, 웹 앱 매니페스트의 name·short_name, og 태그는 모두 "Argonova"를 쓴다.
 
 폰 브라우저로 열면 내 위치 기준 오늘 밤 하늘, 실시간 위성 지구본, 로켓 발사 일정을 보여 주는 우주 웹앱.
-개발은 Cursor 클라우드 에이전트가 하고, 배포는 GitHub Pages, 진행 알림은 텔레그램으로 받는다.
+개발은 Cursor 클라우드 에이전트가 하고, 배포는 Cloudflare Pages, 진행 알림은 텔레그램으로 받는다.
 
 ## 1. 화면
 
@@ -26,9 +35,9 @@
 | 천문 계산 | astronomy-engine (해·달·행성), satellite.js (위성 궤도) |
 | 지구본 | globe.gl (three.js) |
 | 데이터 | CelesTrak GP(stations), Launch Library 2 (The Space Devs) |
-| 배포 | GitHub Pages (`.github/workflows/deploy-site.yml`) |
+| 배포 | Cloudflare Pages (GitHub 연결, main 변경 시 자동 빌드). 매일 데이터 갱신은 `.github/workflows/deploy-site.yml` 이 배포 훅을 호출 |
 
-npm 스크립트 약속: `npm ci` → `npm run fetch-data` → `npm run build` 결과가 `dist/`. 배포 워크플로가 이 순서에 의존한다.
+npm 스크립트 약속: `npm ci` → `npm run fetch-data` → `npm run build` 결과가 `dist/`. Cloudflare 빌드 명령이 `npm run fetch-data && npm run build` 이므로 `fetch-data` 는 실패해도 종료 코드 0으로 끝나야 한다.
 
 ## 4. 자동화 구성 (완전 자동 모드)
 
@@ -38,7 +47,7 @@ npm 스크립트 약속: `npm ci` → `npm run fetch-data` → `npm run build` �
 | QA | Cursor Automation "QA" | PR 열림·푸시 | 테스트·완료 기준 대조 → `[QA] 통과/반려` 코멘트 |
 | PR 검사 | GitHub Actions ci.yml | PR | 테스트·빌드 |
 | 자동 머지 | GitHub Actions auto-merge.yml | QA 코멘트 | 통과+CI 성공 → 머지·배포. 반려 → qa-feedback 브랜치에 기록, 3회면 보류하고 사람 호출 |
-| 배포 | GitHub Actions deploy-site.yml | main 변경, 자동 머지 후, 매일 03:00 KST | 데이터 수집 → 빌드 → GitHub Pages |
+| 배포 | Cloudflare Pages + deploy-site.yml | main 변경 시 자동, 매일 03:00 KST 배포 훅 | 데이터 수집 → 빌드 → *.pages.dev |
 | 알림 | GitHub Actions telegram-notify.yml | PR 열림, QA 코멘트 | 텔레그램 |
 | 아침 보고 | GitHub Actions morning-report.yml | 매일 07:30 KST | 진행 상황 |
 | 사람 | 텔레그램 | 🛑 알림이 올 때만 | 보류된 작업 판단, 로드맵 수정 |
@@ -75,13 +84,14 @@ npm 스크립트 약속: `npm ci` → `npm run fetch-data` → `npm run build` �
 
 ## 6. 원칙
 - 상태는 GitHub에 둔다. 작업 목록은 BACKLOG.md, 결과물은 PR, 판정은 PR 코멘트.
-- PR 하나는 작업 하나. 진행 중 브랜치가 2개 이상이면 개발 자동화는 새 작업을 시작하지 않는다.
-- QA 반려 후 자동 재수정은 하지 않는다. 사람이 판단해 수정을 지시한다.
+- PR 하나는 작업 하나. 검사·머지를 기다리는 작업 브랜치가 있으면 새 작업을 시작하지 않는다(한 번에 하나).
+- QA 반려는 qa-feedback 브랜치에 기록되고 다음 개발 실행이 자동으로 고친다. 3번 반려되면 보류하고 사람을 부른다.
 - 데이터 출처(CelesTrak, The Space Devs)를 화면 하단에 표기한다.
 
 ## 7. 로드맵 (기획 자동화가 새 작업을 만들 수 있는 범위)
 
 허용하는 방향 (위에서부터 우선):
+0. **영어 지원 (최우선)**: 브라우저 언어가 한국어면 한국어, 그 밖에는 영어로 표시. 화면의 모든 문구를 번역 파일로 분리하고 언어 전환 버튼 제공. 시각은 사용자 기기의 시간대로 표시(한국이면 KST). 시·도 목록 대신 위치 권한·도시 검색으로 해외 사용자도 위치를 고를 수 있게 한다.
 1. 기존 화면 다듬기: 목업과 다른 부분 맞추기, 로딩·오류 상태, 접근성, 모바일 성능.
 2. 오늘 밤 탭 확장: 구름량에 따른 "관측 가능성" 표시(Open-Meteo처럼 키가 필요 없는 무료 예보), 달 뜨고 지는 시각, 행성 고도 그래프.
 3. 위성 지구본 확장: 다른 밝은 위성(중국 우주정거장 등) 통과 예측, 위성 검색, 궤도 1바퀴 미리보기.
