@@ -1,7 +1,7 @@
 name: auto-merge
 
 # QA 코멘트를 보고 자동으로 처리한다.
-#  - "[QA] 통과": CI가 성공하면 PR을 스쿼시 머지하고, 브랜치를 지우고, 사이트 배포를 실행한다.
+#  - "[QA] 통과": CI가 성공하면 PR을 스쿼시 머지하고 브랜치를 지운다. 사이트는 main 변경을 보고 Cloudflare Pages가 배포한다.
 #  - "[QA] 반려", CI 실패, 머지 충돌: qa-feedback 브랜치에 수정 요청을 기록한다.
 #    같은 작업이 3번 반려되면 blocked로 표시하고 텔레그램으로 사람을 부른다.
 on:
@@ -87,7 +87,6 @@ jobs:
           fi
           if gh pr merge "$PR" --repo "$REPO" --squash --delete-branch; then
             echo "outcome=merged" >> "$GITHUB_OUTPUT"
-            gh workflow run deploy-site.yml --repo "$REPO" --ref main || true
           else
             echo "outcome=merge_failed" >> "$GITHUB_OUTPUT"
             { echo "note<<NOTE_END"; echo "main과 충돌 등으로 머지 실패. 이 브랜치에 main을 머지해 충돌을 해결하고 테스트·빌드를 다시 통과시킬 것."; echo "NOTE_END"; } >> "$GITHUB_OUTPUT"
@@ -97,8 +96,9 @@ jobs:
         if: steps.merge.outputs.outcome == 'merged'
         env:
           TITLE: ${{ steps.pr.outputs.title }}
+          SITE_URL: ${{ vars.SITE_URL }}
         run: |
-          text=$(printf '🤖 자동 머지됨 #%s\n%s\n사이트 배포를 시작합니다.' "$PR" "$TITLE")
+          text=$(printf '🤖 자동 머지됨 #%s\n%s\nCloudflare가 1~2분 안에 사이트를 갱신합니다.\n%s' "$PR" "$TITLE" "$SITE_URL")
           curl -sS -o /dev/null "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TG_CHAT}" --data-urlencode "text=${text}"
 
