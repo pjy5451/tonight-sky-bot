@@ -1,0 +1,61 @@
+name: morning-report
+
+# 매일 아침 07:30(한국시간)에 열린 PR, 지난 24시간 머지된 PR, 남은 작업 수를 텔레그램으로 보낸다.
+# GitHub 예약 실행은 몇 분 늦게 시작될 수 있다.
+on:
+  schedule:
+    - cron: "30 22 * * *"   # UTC 22:30 = 한국시간 07:30
+  workflow_dispatch:         # Actions 탭에서 수동 실행(테스트용)
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build report
+        id: msg
+        env:
+          LANG: C.UTF-8
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          since=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          open_prs=$(gh pr list --repo "$REPO" --state open --json number,title \
+            --jq '.[] | "· #\(.number) \(.title)"')
+          merged_prs=$(gh pr list --repo "$REPO" --state merged --search "merged:>=$since" \
+            --json number,title --jq '.[] | "· #\(.number) \(.title)"')
+          remaining=$(grep -c '^- \[ \]' BACKLOG.md || true)
+          done_cnt=$(grep -c '^- \[x\]' BACKLOG.md || true)
+          {
+            echo "text<<TG_MSG_END"
+            echo "☀️ 아침 보고 — $(TZ=Asia/Seoul date +%m/%d)"
+            echo ""
+            echo "머지 대기 PR:"
+            if [ -n "$open_prs" ]; then echo "$open_prs"; else echo "· 없음"; fi
+            echo ""
+            echo "지난 24시간 머지:"
+            if [ -n "$merged_prs" ]; then echo "$merged_prs"; else echo "· 없음"; fi
+            echo ""
+            echo "백로그: 완료 ${done_cnt} / 남음 ${remaining}"
+            echo "https://github.com/${REPO}/pulls"
+            echo "TG_MSG_END"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send to Telegram
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TEXT: ${{ steps.msg.outputs.text }}
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${TEXT}" \
+            -d "disable_web_page_preview=true")
+          echo "Telegram HTTP ${code}"
+          [ "$code" = "200" ]
