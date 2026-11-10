@@ -3,7 +3,7 @@
 에이전트는 위에서부터 `- [ ]` 항목을 하나씩 처리한다. 완료되면 같은 PR에서 `- [x]`로 바꾼다.
 사람은 새 작업을 맨 아래에 같은 형식으로 추가한다.
 
-- [ ] **01 프로젝트 골격** — Vite + TypeScript 정적 웹앱. vitest. package-lock.json 커밋. npm 스크립트 `dev`, `build`(결과물 `dist/`), `test`, `fetch-data`(지금은 `public/data/`에 빈 JSON을 쓰는 스텁)를 만든다. vite `base: './'`. PR용 CI `.github/workflows/ci.yml`(npm ci → test → build, pull_request 트리거). 모바일 우선 어두운 테마 레이아웃과 탭 3개(오늘 밤 / 위성 지구본 / 발사 일정) 빈 화면. 하단에 데이터 출처 표기 자리. / 완료 기준: CI 통과, `npm run build` 후 `dist/index.html` 생성, 탭 전환 테스트.
+- [x] **01 프로젝트 골격** — Vite + TypeScript 정적 웹앱. vitest. package-lock.json 커밋. npm 스크립트 `dev`, `build`(결과물 `dist/`), `test`, `fetch-data`(지금은 `public/data/`에 빈 JSON을 쓰는 스텁)를 만든다. vite `base: './'`. PR용 CI `.github/workflows/ci.yml`(npm ci → test → build, pull_request 트리거). 모바일 우선 어두운 테마 레이아웃과 탭 3개(오늘 밤 / 위성 지구본 / 발사 일정) 빈 화면. 하단에 데이터 출처 표기 자리. / 완료 기준: CI 통과, `npm run build` 후 `dist/index.html` 생성, 탭 전환 테스트.
 - [ ] **02 위치 선택** — 브라우저 위치 권한으로 위도·경도 받기, 거부 시 시·도 17개 목록에서 선택(시·도청 위치를 대표 좌표로, 출처 주석). 좌표는 소수점 1자리로 반올림해 localStorage에 저장하고 다음 방문 때 재사용. 위치를 서버로 보내지 않는다. / 완료 기준: 반올림·저장·불러오기 단위 테스트.
 - [ ] **03 데이터 수집** — `npm run fetch-data`가 CelesTrak GP JSON(GROUP=stations)을 `public/data/tle.json`으로, Launch Library 2(The Space Devs) 공개 API의 다가오는 발사 20개를 `public/data/launches.json`으로 저장. 각 파일에 `fetched_at` 기록. 요청 실패 시 `{"error": "...", "items": []}`를 쓰고 종료 코드 0으로 끝낸다(빌드를 막지 않음). 브라우저는 외부 API를 직접 부르지 않고 이 JSON만 읽는다. / 완료 기준: fetch를 모킹한 성공·실패 테스트.
 - [ ] **04 오늘 밤 패널** — astronomy-engine으로 선택 위치의 일몰·일출 시각, 달 위상(%)과 모양, 지평선 위에 있는 금성·화성·목성·토성과 16방위 한글 방향. 시각은 한국시간 표시. / 완료 기준: 고정 날짜·좌표 테스트로 일몰 ±2분 이내.
