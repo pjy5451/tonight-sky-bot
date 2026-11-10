@@ -11,29 +11,16 @@ type TabId = "tonight" | "satellites" | "launches";
 type Tab = {
   id: TabId;
   label: string;
-  title: string;
-  description: string;
 };
 
+const BRAND_NAME = "Argonova";
+const BRAND_TAGLINE = "오늘 밤, 하늘을 탐험하다";
+const PENDING_LABEL = "준비 중";
+
 const tabs: Tab[] = [
-  {
-    id: "tonight",
-    label: "오늘 밤",
-    title: "오늘 밤",
-    description: "일몰, 달, 행성, ISS 통과 정보를 이곳에 표시합니다.",
-  },
-  {
-    id: "satellites",
-    label: "위성 지구본",
-    title: "위성 지구본",
-    description: "ISS와 우주정거장 위성의 실시간 위치를 이곳에 표시합니다.",
-  },
-  {
-    id: "launches",
-    label: "발사 일정",
-    title: "발사 일정",
-    description: "다가오는 로켓 발사 일정과 카운트다운을 이곳에 표시합니다.",
-  },
+  { id: "tonight", label: "오늘 밤" },
+  { id: "satellites", label: "위성 지구본" },
+  { id: "launches", label: "발사 일정" },
 ];
 
 const GEOLOCATION_OPTIONS: PositionOptions = {
@@ -42,46 +29,54 @@ const GEOLOCATION_OPTIONS: PositionOptions = {
   maximumAge: 60_000,
 };
 
-function createTabButton(tab: Tab): HTMLButtonElement {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.id = `tab-${tab.id}`;
-  button.className = "tab-button";
-  button.role = "tab";
-  button.textContent = tab.label;
-  button.setAttribute("aria-controls", `panel-${tab.id}`);
-  button.dataset.tab = tab.id;
-  return button;
-}
-
-function createTabPanel(tab: Tab): HTMLElement {
-  const panel = document.createElement("section");
-  panel.id = `panel-${tab.id}`;
-  panel.className = "panel";
-  panel.role = "tabpanel";
-  panel.setAttribute("aria-labelledby", `tab-${tab.id}`);
-
-  const heading = document.createElement("h2");
-  heading.textContent = tab.title;
-
-  const description = document.createElement("p");
-  description.textContent = tab.description;
-
-  panel.append(heading, description);
-  return panel;
-}
-
-function createPinIcon(): SVGSVGElement {
+function createSvg(): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("width", "16");
-  svg.setAttribute("height", "16");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "#F5B544");
+  svg.setAttribute("stroke", "currentColor");
   svg.setAttribute("stroke-width", "2");
   svg.setAttribute("stroke-linecap", "round");
   svg.setAttribute("stroke-linejoin", "round");
   svg.setAttribute("aria-hidden", "true");
+  return svg;
+}
+
+function createTabIcon(tabId: TabId): SVGSVGElement {
+  const svg = createSvg();
+  svg.setAttribute("width", "22");
+  svg.setAttribute("height", "22");
+
+  const addPath = (d: string) => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  };
+
+  if (tabId === "tonight") {
+    addPath("M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z");
+    return svg;
+  }
+
+  if (tabId === "satellites") {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", "12");
+    circle.setAttribute("cy", "12");
+    circle.setAttribute("r", "9");
+    svg.append(circle);
+    addPath("M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18");
+    return svg;
+  }
+
+  addPath("M12 2c3 3 4.5 7 4 12H8c-.5-5 1-9 4-12z");
+  addPath("M8 14l-3 4h4M16 14l3 4h-4M10 18l2 4 2-4");
+  return svg;
+}
+
+function createPinIcon(): SVGSVGElement {
+  const svg = createSvg();
+  svg.setAttribute("width", "16");
+  svg.setAttribute("height", "16");
+  svg.setAttribute("stroke", "#F5B544");
 
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", "M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z");
@@ -95,9 +90,186 @@ function createPinIcon(): SVGSVGElement {
   return svg;
 }
 
+function createPanel(tab: Tab): HTMLElement {
+  const panel = document.createElement("section");
+  panel.id = `panel-${tab.id}`;
+  panel.className = "panel";
+  panel.role = "tabpanel";
+  panel.setAttribute("aria-labelledby", `tab-${tab.id}`);
+  return panel;
+}
+
+function createPendingText(): HTMLParagraphElement {
+  const pending = document.createElement("p");
+  pending.className = "pending";
+  pending.textContent = PENDING_LABEL;
+  return pending;
+}
+
+function createCard(className: string): HTMLElement {
+  const card = document.createElement("article");
+  card.className = className;
+  return card;
+}
+
+function createCardTitle(text: string): HTMLHeadingElement {
+  const title = document.createElement("h2");
+  title.className = "card-title";
+  title.textContent = text;
+  return title;
+}
+
+function createStatCard(label: string): HTMLElement {
+  const card = createCard("stat-card");
+  const labelElement = document.createElement("span");
+  labelElement.className = "stat-label";
+  labelElement.textContent = label;
+
+  const value = document.createElement("span");
+  value.className = "stat-value";
+  value.textContent = PENDING_LABEL;
+
+  card.append(labelElement, value);
+  return card;
+}
+
+function createTonightPanel(tab: Tab): HTMLElement {
+  const panel = createPanel(tab);
+
+  const stats = document.createElement("div");
+  stats.className = "stat-grid";
+  stats.append(createStatCard("일몰"), createStatCard("일출"), createStatCard("달"));
+
+  const iss = createCard("card card-highlight");
+  iss.append(createCardTitle("ISS 통과"), createPendingText());
+
+  const planets = createCard("card");
+  planets.append(createCardTitle("밝게 보이는 행성"), createPendingText());
+
+  const meteor = createCard("card card-row");
+  const meteorCopy = document.createElement("div");
+  meteorCopy.className = "card-copy";
+  const meteorLabel = document.createElement("span");
+  meteorLabel.className = "stat-label";
+  meteorLabel.textContent = "다음 유성우";
+  meteorCopy.append(meteorLabel, createCardTitle("준비 중"));
+  meteor.append(meteorCopy);
+
+  panel.append(stats, iss, planets, meteor);
+  return panel;
+}
+
+function createLegendItem(className: string, label: string): HTMLElement {
+  const item = document.createElement("span");
+  item.className = "legend-item";
+
+  const dot = document.createElement("span");
+  dot.className = `legend-dot ${className}`;
+  dot.setAttribute("aria-hidden", "true");
+
+  const text = document.createElement("span");
+  text.textContent = label;
+
+  item.append(dot, text);
+  return item;
+}
+
+function createSatellitesPanel(tab: Tab): HTMLElement {
+  const panel = createPanel(tab);
+
+  const globe = createCard("globe-placeholder");
+  globe.append(createPendingText());
+
+  const legend = document.createElement("div");
+  legend.className = "legend";
+  legend.append(
+    createLegendItem("legend-dot-iss", "ISS"),
+    createLegendItem("legend-dot-other", "다른 우주정거장·위성"),
+  );
+
+  const iss = createCard("card card-highlight");
+  iss.append(createCardTitle("국제우주정거장 (ISS)"), createPendingText());
+
+  panel.append(globe, legend, iss);
+  return panel;
+}
+
+function createCountdown(): HTMLElement {
+  const grid = document.createElement("div");
+  grid.className = "countdown";
+
+  for (const unit of ["일", "시간", "분", "초"]) {
+    const cell = document.createElement("div");
+    cell.className = "countdown-cell";
+
+    const value = document.createElement("span");
+    value.className = "countdown-value";
+    value.textContent = PENDING_LABEL;
+
+    const label = document.createElement("span");
+    label.className = "stat-label";
+    label.textContent = unit;
+
+    cell.append(value, label);
+    grid.append(cell);
+  }
+
+  return grid;
+}
+
+function createLaunchesPanel(tab: Tab): HTMLElement {
+  const panel = createPanel(tab);
+
+  const next = createCard("card card-highlight");
+  const badge = document.createElement("span");
+  badge.className = "badge";
+  badge.textContent = "다음 발사";
+  next.append(badge, createPendingText(), createCountdown());
+
+  const laterLabel = document.createElement("h2");
+  laterLabel.className = "section-label";
+  laterLabel.textContent = "이후 일정";
+
+  const later = createCard("card card-compact");
+  later.append(createPendingText());
+
+  panel.append(next, laterLabel, later);
+  return panel;
+}
+
+function createTabButton(tab: Tab): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.id = `tab-${tab.id}`;
+  button.className = "tab-button";
+  button.role = "tab";
+  button.setAttribute("aria-controls", `panel-${tab.id}`);
+  button.dataset.tab = tab.id;
+
+  const label = document.createElement("span");
+  label.textContent = tab.label;
+  button.append(createTabIcon(tab.id), label);
+  return button;
+}
+
+function createTabPanel(tab: Tab): HTMLElement {
+  if (tab.id === "tonight") {
+    return createTonightPanel(tab);
+  }
+  if (tab.id === "satellites") {
+    return createSatellitesPanel(tab);
+  }
+  return createLaunchesPanel(tab);
+}
+
 export function createApp(): HTMLElement {
+  document.title = BRAND_NAME;
+
   const root = document.createElement("div");
   root.className = "app-shell";
+
+  const screen = document.createElement("div");
+  screen.className = "screen-body";
 
   const header = document.createElement("header");
   header.className = "hero";
@@ -110,10 +282,10 @@ export function createApp(): HTMLElement {
 
   const eyebrow = document.createElement("p");
   eyebrow.className = "eyebrow";
-  eyebrow.textContent = "Tonight Sky";
+  eyebrow.textContent = BRAND_TAGLINE;
 
   const title = document.createElement("h1");
-  title.textContent = "오늘 밤 하늘";
+  title.textContent = BRAND_NAME;
 
   heroCopy.append(eyebrow, title);
 
@@ -130,12 +302,7 @@ export function createApp(): HTMLElement {
   locationButton.append(createPinIcon(), locationLabel);
 
   heroTop.append(heroCopy, locationButton);
-
-  const subtitle = document.createElement("p");
-  subtitle.className = "subtitle";
-  subtitle.textContent = "내 위치 기준 밤하늘 정보를 한 화면에서 확인합니다.";
-
-  header.append(heroTop, subtitle);
+  header.append(heroTop);
 
   const dialog = document.createElement("div");
   dialog.id = "location-dialog";
@@ -348,11 +515,12 @@ export function createApp(): HTMLElement {
     });
   });
 
-  const footer = document.createElement("footer");
+  const footer = document.createElement("p");
   footer.className = "source-footer";
-  footer.textContent = "데이터 출처: CelesTrak, The Space Devs";
+  footer.textContent = "데이터: CelesTrak · The Space Devs";
 
-  root.append(header, tabList, panels, footer, dialog);
+  screen.append(header, panels, footer);
+  root.append(screen, tabList, dialog);
   setActiveTab("tonight");
   setLocationLabel(loadLocation(localStorage)?.label ?? null);
 
