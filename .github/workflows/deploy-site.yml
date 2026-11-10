@@ -1,0 +1,98 @@
+name: deploy-site
+
+# main에 머지될 때, 그리고 매일 03:00(한국시간)에 데이터를 새로 받아 GitHub Pages에 배포한다.
+# 배포가 끝나면(매일 예약 실행 제외) 텔레그램으로 사이트 주소를 보낸다.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 18 * * *"   # UTC 18:00 = 한국시간 03:00
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check project
+        id: check
+        run: |
+          if [ -f package.json ] && [ -f package-lock.json ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "아직 웹 프로젝트(package.json, package-lock.json)가 없어 배포를 건너뜁니다."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        if: steps.check.outputs.ready == 'true'
+        run: npm ci
+
+      - name: Fetch data
+        if: steps.check.outputs.ready == 'true'
+        continue-on-error: true
+        run: npm run fetch-data
+
+      - name: Build
+        if: steps.check.outputs.ready == 'true'
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+        if: steps.check.outputs.ready == 'true'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.check.outputs.ready == 'true'
+        with:
+          path: dist
+
+      - id: deployment
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/deploy-pages@v4
+
+      - name: Notify success
+        if: steps.check.outputs.ready == 'true' && github.event_name != 'schedule'
+        env:
+          LANG: C.UTF-8
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          first_line=$(printf '%s' "$COMMIT_MSG" | head -n 1)
+          text=$(printf '🌐 사이트 갱신됨\n%s\n%s' "$first_line" "$PAGE_URL")
+          curl -sS -o /dev/null -w "Telegram HTTP %{http_code}\n" \
+            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${text}"
+
+      - name: Notify failure
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          text=$(printf '⚠️ 사이트 배포 실패\n%s' "$RUN_URL")
+          curl -sS -o /dev/null \
+            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${text}"
