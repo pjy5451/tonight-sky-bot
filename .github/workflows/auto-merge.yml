@@ -40,7 +40,7 @@ jobs:
       - name: Read verdict
         id: v
         run: |
-          first=$(printf '%s\n' "$BODY" | sed '/^[[:space:]]*$/d' | head -n 1 | sed -E 's/^[[:space:]>*#`_-]*//')
+          first=$(printf '%s\n' "$BODY" | perl -0pe 's/<!--.*?-->//gs' | sed '/^[[:space:]]*$/d' | head -n 1 | sed -E 's/^[[:space:]>*#`_-]*//')
           case "$first" in
             "[QA] 통과"*) echo "verdict=pass" >> "$GITHUB_OUTPUT" ;;
             "[QA] 반려"*) echo "verdict=fail" >> "$GITHUB_OUTPUT" ;;
