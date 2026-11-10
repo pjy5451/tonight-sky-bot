@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argonova PC 대시보드 (목업)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap">
+<style>
+/* PC 1440px 기준 목업. 수치는 예시. DESIGN.md 5-1 참고 */
+body{margin:0;background:#0B1020;color:#F2F4F8;font-family:'Noto Sans KR',sans-serif}
+a{color:#F5B544}a:hover{color:#FFD58A}
+.num{font-family:'Space Grotesk',sans-serif;font-weight:700}
+.sub{color:#A9B3C7}
+.wrap{max-width:1280px;margin:0 auto;padding-left:32px;padding-right:32px}
+header{border-bottom:1px solid #2A3550;background:#0E1428}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:16px 28px;padding-top:14px;padding-bottom:14px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#F2F4F8}
+.logo span{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-.3px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav a{min-height:44px;display:flex;align-items:center;padding:0 16px;border-radius:22px;color:#A9B3C7;font-size:15px;text-decoration:none}
+nav a.on{background:#F5B54522;color:#F5B544;font-weight:700}
+.tools{margin-left:auto;display:flex;gap:10px}
+.pill{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border-radius:22px;border:1px solid #2A3550;background:#141B30;color:#F2F4F8;font-family:inherit;font-size:14px}
+main{display:flex;flex-direction:column;gap:20px;padding-top:28px;padding-bottom:40px}
+h1{margin:4px 0 0;font-size:34px;font-weight:700;letter-spacing:-.5px}
+.row{display:flex;flex-wrap:wrap;gap:20px;align-items:stretch}
+.left{flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.right{flex:999 1 560px;min-width:0}
+.card{background:#141B30;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.hl{border:1px solid #F5B54455}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.mini{background:#141B30;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.lbl{font-size:12px;color:#A9B3C7}
+.big{font-size:24px}
+.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.badge{font-size:12px;color:#0B1020;background:#F5B544;border-radius:10px;padding:3px 10px;font-weight:700}
+.t{font-size:16px;font-weight:700}
+.line{height:1px;background:#2A3550}
+.list{display:flex;flex-direction:column;gap:8px;font-size:14px}
+.dark{background:#0B1020;border-radius:16px;padding:16px}
+.globe{flex-grow:1;min-height:360px;display:flex;align-items:center;justify-content:center}
+.cd{text-align:center;gap:8px}
+.cd div{background:#0B1020;border-radius:12px;padding:10px 0;display:flex;flex-direction:column;gap:2px}
+.cd .num{font-size:24px}
+.cd small{font-size:11px;color:#A9B3C7}
+.btn{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;background:#F5B544;color:#0B1020;font-size:15px;font-weight:700;text-decoration:none}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #2A3550}
+.item b{display:block;font-size:15px}
+.item .sub{font-size:13px}
+.item .d{font-family:'Space Grotesk',sans-serif;font-size:14px;color:#6CC4FF;min-width:40px;text-align:right;margin-left:16px}
+.foot{font-size:12px;color:#8D97AD;text-align:center}
+</style>
+</head>
+<body>
+<header>
+<div class="wrap bar">
+<a href="#" class="logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"></path></svg><span>Argonova</span></a>
+<nav aria-label="주요 메뉴"><a href="#" class="on">오늘 밤</a><a href="#">위성 지구본</a><a href="#">발사 일정</a></nav>
+<div class="tools">
+<button class="pill"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>서울</button>
+<button class="pill num" aria-label="언어 바꾸기">KO · EN</button>
+</div>
+</div>
+</header>
+<main class="wrap">
+<div><span class="sub" style="font-size:14px">11월 12일 (수) · 서울 · 예시</span><h1>오늘 밤, 하늘을 탐험하다</h1></div>
+<div class="row">
+<section class="left" aria-label="오늘 밤 요약">
+<div class="g3">
+<div class="mini"><span class="lbl">일몰</span><span class="num big">17:24</span></div>
+<div class="mini"><span class="lbl">일출</span><span class="num big">07:05</span></div>
+<div class="mini"><span class="lbl">달</span><span class="num big">38%</span></div>
+</div>
+<div class="card hl">
+<div class="between"><span class="t">ISS 통과</span><span class="badge">맨눈으로 아주 밝음</span></div>
+<span class="num" style="font-size:38px;letter-spacing:-1px">18:42 – 18:48</span>
+<span class="sub" style="font-size:14px">남서 → 북동 · 최고 62°</span>
+<div class="line"></div>
+<div class="list">
+<div class="between"><span class="sub">내일</span><span>19:30 – 19:34 · 서 → 북 · 28°</span></div>
+<div class="between"><span class="sub">모레</span><span>18:41 – 18:47 · 서 → 동 · 45°</span></div>
+</div>
+</div>
+<div class="g2">
+<div class="card" style="gap:10px;padding:18px"><span class="t" style="font-size:15px">밝은 행성</span>
+<span style="font-size:14px"><span style="color:#F5B544">●</span> 목성 <span class="sub">· 20시 동쪽</span></span>
+<span style="font-size:14px"><span style="color:#E8D3A0">●</span> 토성 <span class="sub">· 저녁 남쪽</span></span></div>
+<div class="card" style="gap:6px;padding:18px"><span class="lbl">다음 유성우</span><span class="t" style="font-size:15px">사자자리 극대</span><span class="num" style="font-size:28px;color:#6CC4FF">D-5</span></div>
+</div>
+</section>
+<section class="right card" style="border-radius:24px;padding:24px;gap:16px" aria-label="위성 지구본">
+<div class="between" style="flex-wrap:wrap">
+<div><div class="t">위성 지구본</div><div class="sub" style="font-size:13px">실시간 · 5초마다 갱신</div></div>
+<div class="sub" style="display:flex;gap:16px;font-size:13px"><span><span style="color:#F5B544">●</span> ISS</span><span><span style="color:#6CC4FF">●</span> 다른 정거장·위성</span></div>
+</div>
+<div class="globe">
+<svg viewBox="0 0 340 340" style="width:100%;max-width:440px;height:auto" role="img" aria-label="지구본 위 ISS 궤도와 현재 위치">
+<defs>
+<radialGradient id="earthD" cx="38%" cy="35%" r="70%"><stop offset="0%" stop-color="#2E6FB0"></stop><stop offset="60%" stop-color="#173E6E"></stop><stop offset="100%" stop-color="#0B1E3A"></stop></radialGradient>
+<radialGradient id="glowD" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#F5B544" stop-opacity="0.9"></stop><stop offset="100%" stop-color="#F5B544" stop-opacity="0"></stop></radialGradient>
+</defs>
+<circle cx="170" cy="170" r="132" fill="#6CC4FF" opacity="0.08"></circle>
+<circle cx="170" cy="170" r="120" fill="url(#earthD)"></circle>
+<path d="M110 120c18-14 44-10 52 6s-6 30-24 34-34-6-36-18 2-16 8-22z" fill="#3E8F6A" opacity="0.8"></path>
+<path d="M188 92c22 0 40 16 36 34s-24 18-34 32-6 36-22 40-20-22-14-40 8-28 6-40 10-26 28-26z" fill="#3E8F6A" opacity="0.8"></path>
+<path d="M150 210c14-6 30 2 32 16s-12 30-26 30-18-14-18-26 4-16 12-20z" fill="#3E8F6A" opacity="0.8"></path>
+<ellipse cx="170" cy="170" rx="150" ry="58" transform="rotate(-24 170 170)" fill="none" stroke="#F5B544" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.8"></ellipse>
+<circle cx="236" cy="96" r="16" fill="url(#glowD)"></circle>
+<circle cx="236" cy="96" r="5" fill="#F5B544"></circle>
+<circle cx="92" cy="226" r="3.5" fill="#6CC4FF"></circle>
+<circle cx="268" cy="196" r="3.5" fill="#6CC4FF"></circle>
+<circle cx="132" cy="78" r="3.5" fill="#6CC4FF"></circle>
+</svg>
+</div>
+<div class="g4 dark">
+<div><div class="lbl">ISS 위치</div><div style="font-size:15px;font-weight:500">태평양 상공</div></div>
+<div><div class="lbl">고도</div><div class="num">약 420 km</div></div>
+<div><div class="lbl">속도</div><div class="num">27,600 km/h</div></div>
+<div><div class="lbl">다음 한국 통과</div><div class="num">1시간 12분 뒤</div></div>
+</div>
+</section>
+</div>
+<section class="row" aria-label="발사 일정">
+<div class="left card hl">
+<div class="between"><span class="badge">다음 발사</span><span class="sub" style="font-size:13px">11/14 (금) 21:05</span></div>
+<div><div style="font-size:19px;font-weight:700">Falcon 9 · Starlink 위성</div><div class="sub" style="font-size:14px">SpaceX · 미국 케이프커내버럴</div></div>
+<div class="g4 cd">
+<div><span class="num">02</span><small>일</small></div>
+<div><span class="num">03</span><small>시간</small></div>
+<div><span class="num">27</span><small>분</small></div>
+<div><span class="num" style="color:#F5B544">41</span><small>초</small></div>
+</div>
+<a href="#" class="btn">생중계 보기</a>
+</div>
+<div class="right card" style="gap:4px">
+<span style="font-size:15px;font-weight:700;padding-bottom:8px">이후 일정</span>
+<div class="item"><div><b>Electron</b><span class="sub">Rocket Lab · 뉴질랜드</span></div><div style="font-size:14px">11/16 (일) 09:30<span class="d">D-4</span></div></div>
+<div class="item"><div><b>창정 5호</b><span class="sub">CASC · 중국 원창</span></div><div style="font-size:14px">11/19 (수) 22:10<span class="d">D-7</span></div></div>
+<div class="item"><div><b>Ariane 6</b><span class="sub">Arianespace · 프랑스령 기아나</span></div><div style="font-size:14px">11/24 (월) 05:45<span class="d">D-12</span></div></div>
+</div>
+</section>
+<span class="foot">데이터: CelesTrak · The Space Devs · 03:00 갱신 · 예시 화면</span>
+</main>
+</body>
+</html>
