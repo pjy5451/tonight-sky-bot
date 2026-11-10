@@ -43,7 +43,7 @@ npm 스크립트 약속: `npm ci` → `npm run fetch-data` → `npm run build` �
 
 ## 5. 화면 디자인 (확정)
 
-목업: `design/mockup-today.html`, `design/mockup-globe.html`, `design/mockup-launches.html`.
+목업(저장소 맨 위 폴더): `mockup-today.html`, `mockup-globe.html`, `mockup-launches.html`.
 목업 안의 `<x-dc>`, `<helmet>`, `support.js` 는 디자인 도구용 껍데기이므로 무시하고, 레이아웃·색·글꼴·간격만 따른다. 목업의 숫자와 발사 일정은 예시다.
 
 | 요소 | 값 |

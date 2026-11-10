@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>위성 지구본</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#F5B544}a:hover{color:#FFD58A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0B1020; color: #F2F4F8; font-family: 'Noto Sans KR', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 28px 20px 16px">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 13px; color: #A9B3C7">실시간 · 5초마다 갱신</span>
+        <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px">위성 지구본</h1>
+      </div>
+      <button style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #2A3550; background: #141B30; color: #F2F4F8; font-family: inherit; font-size: 14px">내 위치로</button>
+    </div>
+
+    <div style="display: flex; justify-content: center; align-items: center; height: 340px; position: relative">
+      <svg width="340" height="340" viewBox="0 0 340 340" role="img" aria-label="지구본 위 ISS 궤도와 현재 위치">
+        <defs>
+          <radialGradient id="earth" cx="38%" cy="35%" r="70%">
+            <stop offset="0%" stop-color="#2E6FB0"></stop>
+            <stop offset="60%" stop-color="#173E6E"></stop>
+            <stop offset="100%" stop-color="#0B1E3A"></stop>
+          </radialGradient>
+          <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#F5B544" stop-opacity="0.9"></stop>
+            <stop offset="100%" stop-color="#F5B544" stop-opacity="0"></stop>
+          </radialGradient>
+        </defs>
+        <circle cx="170" cy="170" r="132" fill="#6CC4FF" opacity="0.08"></circle>
+        <circle cx="170" cy="170" r="120" fill="url(#earth)"></circle>
+        <path d="M110 120c18-14 44-10 52 6s-6 30-24 34-34-6-36-18 2-16 8-22z" fill="#3E8F6A" opacity="0.8"></path>
+        <path d="M188 92c22 0 40 16 36 34s-24 18-34 32-6 36-22 40-20-22-14-40 8-28 6-40 10-26 28-26z" fill="#3E8F6A" opacity="0.8"></path>
+        <path d="M150 210c14-6 30 2 32 16s-12 30-26 30-18-14-18-26 4-16 12-20z" fill="#3E8F6A" opacity="0.8"></path>
+        <ellipse cx="170" cy="170" rx="150" ry="58" transform="rotate(-24 170 170)" fill="none" stroke="#F5B544" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.8"></ellipse>
+        <circle cx="236" cy="96" r="16" fill="url(#glow)"></circle>
+        <circle cx="236" cy="96" r="5" fill="#F5B544"></circle>
+        <circle cx="92" cy="226" r="3.5" fill="#6CC4FF"></circle>
+        <circle cx="268" cy="196" r="3.5" fill="#6CC4FF"></circle>
+        <circle cx="132" cy="78" r="3.5" fill="#6CC4FF"></circle>
+      </svg>
+    </div>
+
+    <div style="display: flex; gap: 16px; justify-content: center; font-size: 12px; color: #A9B3C7">
+      <div style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #F5B544"></span>ISS</div>
+      <div style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #6CC4FF"></span>다른 우주정거장·위성</div>
+    </div>
+
+    <div style="background: #141B30; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #F5B54455">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="font-size: 15px; font-weight: 700">국제우주정거장 (ISS)</span>
+        <span style="font-size: 12px; color: #A9B3C7">지금</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 12px; color: #A9B3C7">위치</span>
+          <span style="font-size: 14px; font-weight: 500">태평양 상공</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 12px; color: #A9B3C7">고도</span>
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">약 420 km</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 12px; color: #A9B3C7">속도</span>
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">27,600 km/h</span>
+        </div>
+      </div>
+      <span style="font-size: 13px; color: #A9B3C7">다음 한국 상공 통과까지 1시간 12분</span>
+    </div>
+
+    <span style="font-size: 11px; color: #8D97AD; text-align: center">궤도 데이터: CelesTrak · 03:00 갱신 · 예시 화면</span>
+  </div>
+
+  <nav style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #2A3550; background: #0E1428; padding: 6px 8px 22px">
+    <a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 52px; justify-content: center; text-decoration: none; color: #A9B3C7; font-size: 12px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+      오늘 밤
+    </a>
+    <a href="Globe.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 52px; justify-content: center; text-decoration: none; color: #F5B544; font-size: 12px; font-weight: 700">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+      위성 지구본
+    </a>
+    <a href="Launches.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 52px; justify-content: center; text-decoration: none; color: #A9B3C7; font-size: 12px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c3 3 4.5 7 4 12H8c-.5-5 1-9 4-12z"></path><path d="M8 14l-3 4h4M16 14l3 4h-4M10 18l2 4 2-4"></path></svg>
+      발사 일정
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
