@@ -1,0 +1,77 @@
+name: telegram-notify
+
+# PR이 열리거나 머지될 때, QA 코멘트가 달릴 때 텔레그램으로 알림을 보낸다.
+on:
+  pull_request:
+    types: [opened, closed]
+  issue_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build message
+        id: msg
+        env:
+          LANG: C.UTF-8
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          MERGED: ${{ github.event.pull_request.merged }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUM: ${{ github.event.pull_request.number }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          REVIEW_BODY: ${{ github.event.review.body }}
+          REVIEW_URL: ${{ github.event.review.html_url }}
+        run: |
+          nl=$'\n'
+          text=""
+          case "$EVENT" in
+            pull_request)
+              if [ "$ACTION" = "opened" ]; then
+                text="🆕 PR #${PR_NUM} 열림${nl}${PR_TITLE}${nl}${PR_URL}"
+              elif [ "$MERGED" = "true" ]; then
+                text="✅ PR #${PR_NUM} 머지됨${nl}${PR_TITLE}"
+              fi
+              ;;
+            issue_comment)
+              if [[ "$COMMENT_BODY" == *"[QA]"* ]]; then
+                text="🔍 #${ISSUE_NUM} QA 결과 (${ISSUE_TITLE})${nl}${COMMENT_BODY:0:1500}${nl}${COMMENT_URL}"
+              fi
+              ;;
+            pull_request_review)
+              if [[ "$REVIEW_BODY" == *"[QA]"* ]]; then
+                text="🔍 PR #${PR_NUM} QA 결과 (${PR_TITLE})${nl}${REVIEW_BODY:0:1500}${nl}${REVIEW_URL}"
+              fi
+              ;;
+          esac
+          if [ -n "$text" ]; then
+            {
+              echo "text<<TG_MSG_END"
+              printf '%s\n' "$text"
+              echo "TG_MSG_END"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send to Telegram
+        if: steps.msg.outputs.text != ''
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TEXT: ${{ steps.msg.outputs.text }}
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${TEXT}" \
+            -d "disable_web_page_preview=true")
+          echo "Telegram HTTP ${code}"
+          [ "$code" = "200" ]
