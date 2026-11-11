@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import storedTleText from "../public/data/tle.json?raw";
 import { globePixelRatio } from "../src/globe-view";
+import { globeVector } from "../src/satellite-shape";
 import {
   KOREA_PASS_HORIZON_MS,
   altitudeRatio,
@@ -161,6 +162,31 @@ describe("globe scene", () => {
     }
 
     expect(scene.iss && altitudeRatio(scene.iss.fix.altKm)).toBeCloseTo(scene.points[1]?.alt ?? 0, 6);
+  });
+
+  it("points the stored velocity along the next minute of the ground track", () => {
+    const station = vanguardStation();
+    const later = new Date(EPOCH.getTime() + 60_000);
+    const scene = buildSatelliteScene([station], EPOCH, { includeOrbit: false });
+    const ahead = buildSatelliteScene([station], later, { includeOrbit: false });
+    const now = scene.points[0];
+    const next = ahead.points[0];
+    expect(now).toBeTruthy();
+    expect(next).toBeTruthy();
+    if (!now || !next) {
+      return;
+    }
+
+    const here = globeVector(now.lat, now.lng, now.alt, 1);
+    const there = globeVector(next.lat, next.lng, next.alt, 1);
+    const track = { x: there.x - here.x, y: there.y - here.y, z: there.z - here.z };
+    const speed = Math.hypot(now.velocity.x, now.velocity.y, now.velocity.z);
+    const trackSpeed = Math.hypot(track.x, track.y, track.z);
+    expect(speed).toBeGreaterThan(0);
+    expect(trackSpeed).toBeGreaterThan(0);
+    const alignment =
+      (track.x * now.velocity.x + track.y * now.velocity.y + track.z * now.velocity.z) / (speed * trackSpeed);
+    expect(alignment).toBeGreaterThan(0.98);
   });
 
   it("splits a ground track where longitude wraps and drops a lone point", () => {

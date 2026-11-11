@@ -487,23 +487,6 @@ h1 {
   max-width: 100%;
 }
 
-.globe-sat {
-  display: block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #6cc4ff;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-}
-
-.globe-sat-iss {
-  width: 12px;
-  height: 12px;
-  background: #f5b544;
-  box-shadow: 0 0 10px 4px rgba(245, 181, 68, 0.7);
-}
-
 .globe-status {
   position: absolute;
   inset: 0;
