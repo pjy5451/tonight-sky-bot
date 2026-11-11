@@ -101,6 +101,13 @@ const tabs: Tab[] = [
   { id: "launches", label: "발사 일정" },
 ];
 
+/** DESIGN.md 5-1: 1024px 이상이면 PC 대시보드, 미만이면 폰 탭. */
+const DESKTOP_MIN_WIDTH = 1024;
+
+function isDesktopViewport(): boolean {
+  return window.innerWidth >= DESKTOP_MIN_WIDTH;
+}
+
 const GEOLOCATION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
   timeout: 10_000,
@@ -147,6 +154,18 @@ function createTabIcon(tabId: TabId): SVGSVGElement {
 
   addPath("M12 2c3 3 4.5 7 4 12H8c-.5-5 1-9 4-12z");
   addPath("M8 14l-3 4h4M16 14l3 4h-4M10 18l2 4 2-4");
+  return svg;
+}
+
+function createBrandIcon(): SVGSVGElement {
+  const svg = createSvg();
+  svg.setAttribute("width", "26");
+  svg.setAttribute("height", "26");
+  svg.setAttribute("stroke", "#F5B544");
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z");
+  svg.append(path);
   return svg;
 }
 
@@ -512,6 +531,23 @@ function createIssStat(id: string, label: string, valueClass: string): HTMLEleme
 function createSatellitesPanel(tab: Tab): HTMLElement {
   const panel = createPanel(tab);
 
+  const desktopHead = document.createElement("div");
+  desktopHead.className = "globe-desktop-head";
+
+  const desktopCopy = document.createElement("div");
+  desktopCopy.className = "globe-desktop-copy";
+
+  const desktopTitle = document.createElement("h2");
+  desktopTitle.className = "card-title";
+  desktopTitle.textContent = "위성 지구본";
+
+  const desktopNote = document.createElement("p");
+  desktopNote.className = "globe-desktop-note";
+  desktopNote.textContent = `실시간 · ${POSITION_UPDATE_MS / 1000}초마다 갱신`;
+
+  desktopCopy.append(desktopTitle, desktopNote);
+  desktopHead.append(desktopCopy);
+
   const stage = document.createElement("div");
   stage.className = "globe-stage";
 
@@ -538,6 +574,7 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   );
 
   const iss = createCard("card card-highlight");
+  iss.id = "iss-card";
   const head = document.createElement("div");
   head.className = "iss-head";
   const live = document.createElement("span");
@@ -567,7 +604,7 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   source.className = "orbit-source";
   source.textContent = "궤도 데이터: CelesTrak";
 
-  panel.append(stage, legend, iss, source);
+  panel.append(desktopHead, stage, legend, iss, source);
   panel.setAttribute("aria-busy", "true");
   return panel;
 }
@@ -950,6 +987,7 @@ function bindLaunches(
   const status = panel.querySelector("#launch-status");
   const countdown = panel.querySelector("#launch-countdown");
   const webcast = panel.querySelector("#launch-webcast");
+  const laterBlock = panel.querySelector("#later-block");
   const laterLabel = panel.querySelector("#later-label");
   const later = panel.querySelector("#later-launches");
   const source = panel.querySelector("#launch-source");
@@ -960,12 +998,18 @@ function bindLaunches(
     !(status instanceof HTMLElement) ||
     !(countdown instanceof HTMLElement) ||
     !(webcast instanceof HTMLAnchorElement) ||
+    !(laterBlock instanceof HTMLElement) ||
     !(laterLabel instanceof HTMLElement) ||
     !(later instanceof HTMLElement) ||
     !(source instanceof HTMLElement)
   ) {
     return null;
   }
+
+  const setLaterVisible = (visible: boolean) => {
+    laterBlock.hidden = !visible;
+    laterLabel.hidden = !visible;
+  };
 
   let catalog: LaunchCatalog | null = null;
   let started = false;
@@ -986,7 +1030,7 @@ function bindLaunches(
     countdown.hidden = true;
     webcast.hidden = true;
     webcast.removeAttribute("href");
-    laterLabel.hidden = true;
+    setLaterVisible(false);
     later.replaceChildren();
     source.textContent = fetchedAt ? launchSourceLabel(fetchedAt) : "";
     panel.setAttribute("aria-busy", kind === "loading" ? "true" : "false");
@@ -1013,7 +1057,7 @@ function bindLaunches(
       if (!catalog) {
         showMessage(LAUNCH_LOADING_MESSAGE, null, "loading");
         countdown.hidden = false;
-        laterLabel.hidden = false;
+        setLaterVisible(true);
         fillCountdown(countdown, null);
         source.textContent = "";
       } else if (catalog.error || !next) {
@@ -1037,7 +1081,7 @@ function bindLaunches(
           webcast.hidden = true;
           webcast.removeAttribute("href");
         }
-        laterLabel.hidden = upcoming.length < 2;
+        setLaterVisible(upcoming.length >= 2);
         later.replaceChildren(
           ...upcoming.slice(1).map((launch) => createLaterLaunchRow(launch, now())),
         );
@@ -1162,6 +1206,10 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
 
   next.append(head, copy, status, countdown, webcast);
 
+  const laterBlock = document.createElement("div");
+  laterBlock.id = "later-block";
+  laterBlock.className = "later-block";
+
   const laterLabel = document.createElement("h2");
   laterLabel.id = "later-label";
   laterLabel.className = "section-label";
@@ -1171,11 +1219,13 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
   later.id = "later-launches";
   later.className = "later-list";
 
+  laterBlock.append(laterLabel, later);
+
   const source = document.createElement("p");
   source.id = "launch-source";
   source.className = "orbit-source";
 
-  panel.append(next, laterLabel, later, source);
+  panel.append(next, laterBlock, source);
   panel.setAttribute("aria-busy", "true");
   return panel;
 }
@@ -1435,6 +1485,39 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     });
   }
 
+  const desktopBar = document.createElement("header");
+  desktopBar.className = "desktop-bar";
+
+  const desktopBarInner = document.createElement("div");
+  desktopBarInner.className = "desktop-bar-inner";
+
+  const brand = document.createElement("a");
+  brand.className = "brand-logo";
+  brand.href = "#panel-tonight";
+
+  const brandName = document.createElement("span");
+  brandName.className = "brand-name";
+  brandName.textContent = BRAND_NAME;
+  brand.append(createBrandIcon(), brandName);
+
+  const desktopNav = document.createElement("nav");
+  desktopNav.className = "desktop-nav";
+  desktopNav.setAttribute("aria-label", "주요 메뉴");
+
+  const desktopTools = document.createElement("div");
+  desktopTools.className = "desktop-tools";
+
+  const languageButton = document.createElement("button");
+  languageButton.type = "button";
+  languageButton.id = "language-button";
+  languageButton.className = "language-button";
+  languageButton.setAttribute("aria-label", "언어 바꾸기");
+  languageButton.textContent = "KO · EN";
+
+  desktopTools.append(languageButton);
+  desktopBarInner.append(brand, desktopNav, desktopTools);
+  desktopBar.append(desktopBarInner);
+
   const tabList = document.createElement("nav");
   tabList.className = "tab-list";
   tabList.role = "tablist";
@@ -1444,9 +1527,20 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   panels.className = "panel-stack";
 
   const buttons = tabs.map(createTabButton);
+  const desktopButtons = tabs.map((tab) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.id = `desktop-tab-${tab.id}`;
+    button.className = "desktop-tab";
+    button.dataset.desktopTab = tab.id;
+    button.textContent = tab.label;
+    button.setAttribute("aria-controls", `panel-${tab.id}`);
+    return button;
+  });
   const panelElements = tabs.map(createTabPanel);
 
   tabList.append(...buttons);
+  desktopNav.append(...desktopButtons);
   panels.append(...panelElements);
 
   const readJson = createLocalJsonReader();
@@ -1455,35 +1549,100 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const launchesPanel = panelElements.find((panel) => panel.id === "panel-launches");
   const launches = launchesPanel ? bindLaunches(launchesPanel, now, readJson) : null;
 
+  let currentTab: TabId = "tonight";
+
+  const placeLocationControl = (desktop: boolean) => {
+    if (desktop) {
+      desktopTools.prepend(locationButton);
+      return;
+    }
+    if (locationButton.parentElement !== heroTop) {
+      heroTop.append(locationButton);
+    }
+  };
+
   const setActiveTab = (activeTab: TabId) => {
+    currentTab = activeTab;
+    const desktop = isDesktopViewport();
+    root.classList.toggle("is-desktop", desktop);
+    placeLocationControl(desktop);
+
     buttons.forEach((button) => {
       const isActive = button.dataset.tab === activeTab;
       button.setAttribute("aria-selected", String(isActive));
       button.tabIndex = isActive ? 0 : -1;
     });
 
-    panelElements.forEach((panel) => {
-      panel.hidden = panel.id !== `panel-${activeTab}`;
+    desktopButtons.forEach((button) => {
+      const isActive = button.dataset.desktopTab === activeTab;
+      if (isActive) {
+        button.setAttribute("aria-current", "true");
+      } else {
+        button.removeAttribute("aria-current");
+      }
     });
 
-    if (activeTab === "satellites") {
+    panelElements.forEach((panel) => {
+      panel.hidden = !desktop && panel.id !== `panel-${activeTab}`;
+    });
+
+    if (desktop || activeTab === "satellites") {
       satellites?.show();
     } else {
       satellites?.hide();
     }
 
-    if (activeTab === "launches") {
+    if (desktop || activeTab === "launches") {
       launches?.show();
     } else {
       launches?.hide();
     }
   };
 
+  const scrollToTab = (activeTab: TabId) => {
+    if (!isDesktopViewport()) {
+      return;
+    }
+    const panel = document.getElementById(`panel-${activeTab}`);
+    if (!panel || typeof panel.scrollIntoView !== "function") {
+      return;
+    }
+    panel.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   buttons.forEach((button) => {
     button.addEventListener("click", () => {
-      setActiveTab(button.dataset.tab as TabId);
+      const activeTab = button.dataset.tab as TabId;
+      setActiveTab(activeTab);
+      scrollToTab(activeTab);
     });
   });
+
+  desktopButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const activeTab = button.dataset.desktopTab as TabId;
+      setActiveTab(activeTab);
+      scrollToTab(activeTab);
+    });
+  });
+
+  brand.addEventListener("click", (event) => {
+    event.preventDefault();
+    setActiveTab("tonight");
+    scrollToTab("tonight");
+  });
+
+  const onResize = () => {
+    if (!root.isConnected) {
+      window.removeEventListener("resize", onResize);
+      return;
+    }
+    setActiveTab(currentTab);
+  };
+  window.addEventListener("resize", onResize);
 
   const footer = document.createElement("p");
   footer.className = "source-footer";
@@ -1498,7 +1657,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   });
 
   screen.append(header, panels, footer);
-  root.append(screen, tabList, dialog);
+  root.append(desktopBar, screen, tabList, dialog);
   setActiveTab("tonight");
   setLocationLabel(loadLocation(localStorage)?.label ?? null);
 
