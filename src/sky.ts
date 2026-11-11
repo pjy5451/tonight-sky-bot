@@ -11,6 +11,7 @@ import {
   SearchRiseSet,
   VectorObserver,
 } from "astronomy-engine";
+import { translate, type Locale, type MessageKey } from "./i18n";
 
 /**
  * 한국표준시는 UTC+9이고 서머타임을 쓰지 않는다.
@@ -39,6 +40,25 @@ const COMPASS_16 = [
 ] as const;
 
 export type Compass16 = (typeof COMPASS_16)[number];
+
+const COMPASS_KEY: Record<Compass16, MessageKey> = {
+  북: "compassNorth",
+  북북동: "compassNorthNortheast",
+  북동: "compassNortheast",
+  동북동: "compassEastNortheast",
+  동: "compassEast",
+  동남동: "compassEastSoutheast",
+  남동: "compassSoutheast",
+  남남동: "compassSouthSoutheast",
+  남: "compassSouth",
+  남남서: "compassSouthSouthwest",
+  남서: "compassSouthwest",
+  서남서: "compassWestSouthwest",
+  서: "compassWest",
+  서북서: "compassWestNorthwest",
+  북서: "compassNorthwest",
+  북북서: "compassNorthNorthwest",
+};
 
 const PLANETS = [
   { id: "venus", name: "금성", body: Body.Venus },
@@ -104,18 +124,18 @@ export function compass16(azimuthDegrees: number): Compass16 {
   return COMPASS_16[index] ?? "북";
 }
 
-export function directionSkyLabel(direction: Compass16): string {
+export function directionSkyLabel(direction: Compass16, locale: Locale = "ko"): string {
   switch (direction) {
     case "북":
-      return "북쪽 하늘";
+      return translate(locale, "skyNorth");
     case "동":
-      return "동쪽 하늘";
+      return translate(locale, "skyEast");
     case "남":
-      return "남쪽 하늘";
+      return translate(locale, "skySouth");
     case "서":
-      return "서쪽 하늘";
+      return translate(locale, "skyWest");
     default:
-      return `${direction} 하늘`;
+      return translate(locale, "skyOther", { direction: translate(locale, COMPASS_KEY[direction]) });
   }
 }
 
@@ -125,33 +145,41 @@ export function directionSkyLabel(direction: Compass16): string {
  * 초승·상현과 보름 사이·보름과 하현 사이·그믐으로 부른다.
  * 밝기가 0%로 반올림되면, 하현을 지나 삭으로 가는 쪽은 그믐달, 그 외는 삭이다.
  */
-export function moonPhaseName(phaseAngleDeg: number, illuminationPercent?: number): string {
+function moonPhaseKey(phaseAngleDeg: number, illuminationPercent?: number): MessageKey {
   const phase = normalizeDegrees(phaseAngleDeg);
   if (illuminationPercent === 0) {
-    return phase > 180 ? "그믐달" : "삭";
+    return phase > 180 ? "moonWaningCrescent" : "moonNew";
   }
   if (illuminationPercent === 100 || phase === 180) {
-    return "보름달";
+    return "moonFull";
   }
   if (phase === 0) {
-    return "삭";
+    return "moonNew";
   }
   if (phase < 90) {
-    return "초승달";
+    return "moonWaxingCrescent";
   }
   if (phase === 90) {
-    return "상현달";
+    return "moonFirstQuarter";
   }
   if (phase < 180) {
-    return "상현달과 보름달 사이";
+    return "moonWaxingGibbous";
   }
   if (phase === 270) {
-    return "하현달";
+    return "moonLastQuarter";
   }
   if (phase < 270) {
-    return "보름달과 하현달 사이";
+    return "moonWaningGibbous";
   }
-  return "그믐달";
+  return "moonWaningCrescent";
+}
+
+export function moonPhaseName(
+  phaseAngleDeg: number,
+  illuminationPercent?: number,
+  locale: Locale = "ko",
+): string {
+  return translate(locale, moonPhaseKey(phaseAngleDeg, illuminationPercent));
 }
 
 /**

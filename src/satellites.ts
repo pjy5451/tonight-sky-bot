@@ -9,6 +9,7 @@ import {
   type OMMJsonObject,
   type SatRec,
 } from "satellite.js";
+import { translate, type Locale } from "./i18n";
 
 /** NORAD 카탈로그에서 ISS(ZARYA)의 번호. */
 export const ISS_NORAD_CATALOG_ID = 25544;
@@ -405,34 +406,36 @@ export function formatGroundPosition(lat: number, lng: number): string {
   return `${hemisphere(lat, "N", "S")}\n${hemisphere(lng, "E", "W")}`;
 }
 
-export function formatAltitude(altKm: number): string {
-  return `약 ${grouped(altKm)} km`;
+export function formatAltitude(altKm: number, locale: Locale = "ko"): string {
+  return translate(locale, "altitudeAbout", { value: grouped(altKm) });
 }
 
 export function formatSpeed(speedKmh: number): string {
   return `${grouped(speedKmh)} km/h`;
 }
 
-export function formatDuration(ms: number): string {
+export function formatDuration(ms: number, locale: Locale = "ko"): string {
   const minutes = Math.max(0, Math.round(ms / 60_000));
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   if (hours === 0) {
-    return `${rest}분`;
+    return translate(locale, "durationMinutes", { n: rest });
   }
   if (rest === 0) {
-    return `${hours}시간`;
+    return translate(locale, "durationHours", { n: hours });
   }
-  return `${hours}시간 ${rest}분`;
+  return translate(locale, "durationHoursMinutes", { hours, minutes: rest });
 }
 
-export function formatKoreaPassLabel(pass: Overflight, now: Date): string {
+export function formatKoreaPassLabel(pass: Overflight, now: Date, locale: Locale = "ko"): string {
   if (pass.overheadNow || (pass.at !== null && pass.at.getTime() <= now.getTime())) {
-    return "지금 한국 상공에 있습니다";
+    return translate(locale, "koreaPassNow");
   }
   if (pass.at) {
-    return `다음 한국 상공 통과까지 ${formatDuration(pass.at.getTime() - now.getTime())}`;
+    return translate(locale, "koreaPassIn", {
+      duration: formatDuration(pass.at.getTime() - now.getTime(), locale),
+    });
   }
   const hours = Math.round(KOREA_PASS_HORIZON_MS / (60 * 60 * 1000));
-  return `${hours}시간 안에 한국 상공을 지나지 않습니다.`;
+  return translate(locale, "koreaPassNone", { hours });
 }
