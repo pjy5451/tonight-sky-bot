@@ -1,3 +1,5 @@
+import { translate, type Locale } from "./i18n";
+
 export const LOCATION_STORAGE_KEY = "tonight-sky-location";
 
 export type LocationSource = "geolocation" | "region";
@@ -97,16 +99,16 @@ export function roundToTenth(value: number): number {
   return negative ? -rounded : rounded;
 }
 
-export function geolocationErrorMessage(code: number): string {
+export function geolocationErrorMessage(code: number, locale: Locale = "ko"): string {
   switch (code) {
     case 1:
-      return "위치 권한을 허용하지 않았습니다. 시·도를 선택해 주세요.";
+      return translate(locale, "geoDenied");
     case 2:
-      return "현재 위치를 찾지 못했습니다. 시·도를 선택해 주세요.";
+      return translate(locale, "geoUnavailable");
     case 3:
-      return "위치 확인 시간이 초과되었습니다. 시·도를 선택해 주세요.";
+      return translate(locale, "geoTimeout");
     default:
-      return "위치를 가져오지 못했습니다. 시·도를 선택해 주세요.";
+      return translate(locale, "geoFailed");
   }
 }
 

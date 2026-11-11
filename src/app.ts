@@ -1,10 +1,21 @@
 import { canRenderGlobe, mountSatelliteGlobe, type SatelliteGlobe } from "./globe-view";
 import {
+  meteorNameKey,
+  planetNameKey,
+  regionNameKey,
+  regionShortKey,
+  resolveLanguage,
+  saveLanguage,
+  translate,
+  type Locale,
+  type MessageKey,
+} from "./i18n";
+import {
   REGIONS,
-  geolocationErrorMessage,
   loadLocation,
   saveLocation,
   type LocationInput,
+  type StoredLocation,
 } from "./location";
 import {
   ORBIT_REFRESH_MS,
@@ -21,12 +32,9 @@ import {
 } from "./satellites";
 import {
   COUNTDOWN_UPDATE_MS,
-  LAUNCH_EMPTY_MESSAGE,
-  LAUNCH_LOADING_MESSAGE,
-  LAUNCH_LOAD_ERROR,
   countdownParts,
   formatCountdownUnit,
-  formatKstLaunchDateTime,
+  formatLaunchDateTime,
   formatLaunchDday,
   kstCalendarDayIndex,
   launchOperatorPlace,
@@ -38,13 +46,14 @@ import {
   type LaunchCatalog,
   type LaunchItem,
 } from "./launches";
-import { formatMeteorDday, meteorPeakLabel, nextMeteorShower } from "./meteors";
+import { formatMeteorDday, nextMeteorShower } from "./meteors";
 import { dataSourceFooter } from "./sources";
 import {
   computeTonightSky,
   directionSkyLabel,
   formatKstTime,
   moonLitPath,
+  moonPhaseName,
   type TonightSky,
 } from "./sky";
 
@@ -52,16 +61,68 @@ type TabId = "tonight" | "satellites" | "launches";
 
 type Tab = {
   id: TabId;
-  label: string;
+  labelKey: MessageKey;
 };
 
 const BRAND_NAME = "Argonova";
-const BRAND_TAGLINE = "오늘 밤, 하늘을 탐험하다";
-const PENDING_LABEL = "준비 중";
-const TONIGHT_CALC_ERROR = "오늘 밤 하늘을 계산하지 못했습니다.";
-const ORBIT_LOADING_MESSAGE = "궤도 데이터를 불러오는 중";
-const ORBIT_LOAD_ERROR = "위성 궤도 데이터를 불러오지 못했습니다.";
-const GLOBE_UNAVAILABLE_MESSAGE = "이 기기에서는 3D 지구본을 표시할 수 없습니다.";
+
+let locale: Locale = "ko";
+
+function tr(key: MessageKey, values?: Record<string, string | number>): string {
+  return translate(locale, key, values);
+}
+
+function bindText(element: HTMLElement, key: MessageKey, values?: Record<string, string | number>): void {
+  element.dataset.i18n = key;
+  if (values) {
+    element.dataset.i18nValues = JSON.stringify(values);
+  } else {
+    delete element.dataset.i18nValues;
+  }
+  element.textContent = tr(key, values);
+}
+
+function bindAria(element: HTMLElement, key: MessageKey): void {
+  element.dataset.i18nAria = key;
+  element.setAttribute("aria-label", tr(key));
+}
+
+function readBoundValues(raw: string | undefined): Record<string, string | number> | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+    return parsed as Record<string, string | number>;
+  } catch {
+    return undefined;
+  }
+}
+
+function applyBoundCopy(root: ParentNode): void {
+  root.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
+    const key = element.dataset.i18n;
+    if (!key) {
+      return;
+    }
+    element.textContent = translate(locale, key as MessageKey, readBoundValues(element.dataset.i18nValues));
+  });
+  root.querySelectorAll<HTMLElement>("[data-i18n-aria]").forEach((element) => {
+    const key = element.dataset.i18nAria;
+    if (key) {
+      element.setAttribute("aria-label", translate(locale, key as MessageKey));
+    }
+  });
+}
+
+function markLanguageButton(button: HTMLElement): void {
+  button.querySelectorAll<HTMLElement>("[data-lang]").forEach((code) => {
+    code.classList.toggle("is-current", code.dataset.lang === locale);
+  });
+}
 
 type LocalJson = { ok: true; payload: unknown } | { ok: false; payload: null };
 
@@ -96,9 +157,9 @@ function setLiveRole(element: HTMLElement, kind: "status" | "alert"): void {
 }
 
 const tabs: Tab[] = [
-  { id: "tonight", label: "오늘 밤" },
-  { id: "satellites", label: "위성 지구본" },
-  { id: "launches", label: "발사 일정" },
+  { id: "tonight", labelKey: "tabTonight" },
+  { id: "satellites", labelKey: "tabSatellites" },
+  { id: "launches", labelKey: "tabLaunches" },
 ];
 
 /** DESIGN.md 5-1: 1024px 이상이면 PC 대시보드, 미만이면 폰 탭. */
@@ -199,7 +260,7 @@ function createPanel(tab: Tab): HTMLElement {
 function createPendingText(): HTMLParagraphElement {
   const pending = document.createElement("p");
   pending.className = "pending";
-  pending.textContent = PENDING_LABEL;
+  bindText(pending, "pending");
   return pending;
 }
 
@@ -216,11 +277,17 @@ function createCardTitle(text: string): HTMLHeadingElement {
   return title;
 }
 
-function createTimeStat(id: string, label: string): HTMLElement {
+function createBoundTitle(key: MessageKey): HTMLHeadingElement {
+  const title = createCardTitle("");
+  bindText(title, key);
+  return title;
+}
+
+function createTimeStat(id: string, labelKey: MessageKey): HTMLElement {
   const card = createCard("stat-card");
   const labelElement = document.createElement("span");
   labelElement.className = "stat-label";
-  labelElement.textContent = label;
+  bindText(labelElement, labelKey);
 
   const value = document.createElement("span");
   value.id = id;
@@ -279,11 +346,12 @@ function renderPlanetRows(list: HTMLElement, planets: TonightSky["planets"]): vo
 
     const name = document.createElement("span");
     name.className = "planet-name";
-    name.textContent = planet.name;
+    const planetKey = planetNameKey(planet.id);
+    name.textContent = planetKey ? tr(planetKey) : planet.name;
 
     const detail = document.createElement("span");
     detail.className = "planet-detail";
-    detail.textContent = directionSkyLabel(planet.direction);
+    detail.textContent = directionSkyLabel(planet.direction, locale);
 
     row.append(dot, name, detail);
     list.append(row);
@@ -297,7 +365,8 @@ function fillMeteorShower(panel: HTMLElement, date: Date): void {
     return;
   }
   const next = nextMeteorShower(date);
-  name.textContent = meteorPeakLabel(next.shower.name);
+  const meteorKey = meteorNameKey(next.shower.id);
+  name.textContent = meteorKey ? tr("meteorPeak", { name: tr(meteorKey) }) : next.shower.name;
   dday.textContent = formatMeteorDday(next.daysUntil);
 }
 
@@ -363,7 +432,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date): void {
       dday.textContent = "—";
     }
     clearTonightNumbers(panel);
-    setTonightStatus(panel, TONIGHT_CALC_ERROR);
+    setTonightStatus(panel, tr("tonightCalcError"));
     return;
   }
 
@@ -396,27 +465,26 @@ function fillTonightPanel(panel: HTMLElement, date: Date): void {
     moonName.textContent = "";
     planetList.replaceChildren();
     planetEmpty.hidden = false;
-    planetEmpty.textContent = "위치를 선택하면 오늘 밤 하늘을 계산합니다.";
+    planetEmpty.textContent = tr("chooseLocationSky");
     setTonightStatus(panel, null);
     return;
   }
 
   try {
     const sky = computeTonightSky(location, date);
-    setClockValue(sunset, sky.sunset, "지지 않음");
-    setClockValue(sunrise, sky.sunrise, "뜨지 않음");
+    setClockValue(sunset, sky.sunset, tr("noSet"));
+    setClockValue(sunrise, sky.sunrise, tr("noRise"));
     moonValue.textContent = `${sky.moonIlluminationPercent}%`;
     moonValue.classList.remove("is-note");
     moonIcon.replaceChildren(renderMoonIcon(sky.moonPhaseAngle, location.latitude));
-    moonName.textContent = sky.moonPhaseName;
+    moonName.textContent = moonPhaseName(sky.moonPhaseAngle, sky.moonIlluminationPercent, locale);
     renderPlanetRows(planetList, sky.planets);
     planetEmpty.hidden = sky.planets.length > 0;
-    planetEmpty.textContent =
-      sky.planets.length > 0 ? "" : "지금 지평선 위에 있는 행성이 없습니다.";
+    planetEmpty.textContent = sky.planets.length > 0 ? "" : tr("noPlanets");
     setTonightStatus(panel, null);
   } catch {
     clearTonightNumbers(panel);
-    setTonightStatus(panel, TONIGHT_CALC_ERROR);
+    setTonightStatus(panel, tr("tonightCalcError"));
   }
 }
 
@@ -436,7 +504,7 @@ function createTonightPanel(tab: Tab): HTMLElement {
   const moon = createCard("stat-card");
   const moonLabel = document.createElement("span");
   moonLabel.className = "stat-label";
-  moonLabel.textContent = "달";
+  bindText(moonLabel, "moon");
 
   const moonRow = document.createElement("div");
   moonRow.className = "moon-readout";
@@ -457,13 +525,17 @@ function createTonightPanel(tab: Tab): HTMLElement {
   moonName.className = "moon-phase-name";
   moon.append(moonLabel, moonRow, moonName);
 
-  stats.append(createTimeStat("sunset-value", "일몰"), createTimeStat("sunrise-value", "일출"), moon);
+  stats.append(
+    createTimeStat("sunset-value", "sunset"),
+    createTimeStat("sunrise-value", "sunrise"),
+    moon,
+  );
 
   const iss = createCard("card card-highlight");
-  iss.append(createCardTitle("ISS 통과"), createPendingText());
+  iss.append(createBoundTitle("issPass"), createPendingText());
 
   const planets = createCard("card");
-  planets.append(createCardTitle("밝게 보이는 행성"));
+  planets.append(createBoundTitle("planetsTitle"));
 
   const planetList = document.createElement("div");
   planetList.id = "planet-list";
@@ -474,7 +546,7 @@ function createTonightPanel(tab: Tab): HTMLElement {
   planetEmpty.className = "pending";
   planetEmpty.setAttribute("role", "status");
   planetEmpty.setAttribute("aria-live", "polite");
-  planetEmpty.textContent = "위치를 선택하면 오늘 밤 하늘을 계산합니다.";
+  bindText(planetEmpty, "chooseLocationSky");
   planets.append(planetList, planetEmpty);
 
   const meteor = createCard("card card-row");
@@ -482,7 +554,7 @@ function createTonightPanel(tab: Tab): HTMLElement {
   meteorCopy.className = "card-copy";
   const meteorLabel = document.createElement("span");
   meteorLabel.className = "stat-label";
-  meteorLabel.textContent = "다음 유성우";
+  bindText(meteorLabel, "nextMeteor");
   const meteorName = createCardTitle("—");
   meteorName.id = "meteor-name";
   meteorCopy.append(meteorLabel, meteorName);
@@ -511,13 +583,13 @@ function createLegendItem(className: string, label: string): HTMLElement {
   return item;
 }
 
-function createIssStat(id: string, label: string, valueClass: string): HTMLElement {
+function createIssStat(id: string, labelKey: MessageKey, valueClass: string): HTMLElement {
   const cell = document.createElement("div");
   cell.className = "iss-stat";
 
   const labelElement = document.createElement("span");
   labelElement.className = "stat-label";
-  labelElement.textContent = label;
+  bindText(labelElement, labelKey);
 
   const value = document.createElement("span");
   value.id = id;
@@ -539,11 +611,11 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
 
   const desktopTitle = document.createElement("h2");
   desktopTitle.className = "card-title";
-  desktopTitle.textContent = "위성 지구본";
+  bindText(desktopTitle, "desktopGlobeTitle");
 
   const desktopNote = document.createElement("p");
   desktopNote.className = "globe-desktop-note";
-  desktopNote.textContent = `실시간 · ${POSITION_UPDATE_MS / 1000}초마다 갱신`;
+  bindText(desktopNote, "desktopGlobeNote", { seconds: POSITION_UPDATE_MS / 1000 });
 
   desktopCopy.append(desktopTitle, desktopNote);
   desktopHead.append(desktopCopy);
@@ -555,23 +627,25 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   mount.id = "globe-mount";
   mount.className = "globe-mount";
   mount.setAttribute("role", "img");
-  mount.setAttribute("aria-label", "지구본 위 ISS 궤도와 현재 위치");
+  bindAria(mount, "globeAria");
 
   const globeStatus = document.createElement("p");
   globeStatus.id = "globe-status";
   globeStatus.className = "globe-status pending";
   globeStatus.setAttribute("role", "status");
   globeStatus.setAttribute("aria-live", "polite");
-  globeStatus.textContent = ORBIT_LOADING_MESSAGE;
+  globeStatus.textContent = tr("orbitLoading");
 
   stage.append(mount, globeStatus);
 
   const legend = document.createElement("div");
   legend.className = "legend";
-  legend.append(
-    createLegendItem("legend-dot-iss", "ISS"),
-    createLegendItem("legend-dot-other", "다른 우주정거장·위성"),
-  );
+  const otherLegend = createLegendItem("legend-dot-other", "");
+  const otherLegendText = otherLegend.querySelector("span:last-child");
+  if (otherLegendText instanceof HTMLElement) {
+    bindText(otherLegendText, "legendOther");
+  }
+  legend.append(createLegendItem("legend-dot-iss", "ISS"), otherLegend);
 
   const iss = createCard("card card-highlight");
   iss.id = "iss-card";
@@ -580,14 +654,14 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   const live = document.createElement("span");
   live.id = "iss-status";
   live.className = "iss-now";
-  head.append(createCardTitle("국제우주정거장 (ISS)"), live);
+  head.append(createBoundTitle("issTitle"), live);
 
   const stats = document.createElement("div");
   stats.className = "iss-stats";
   stats.append(
-    createIssStat("iss-place", "위치", "iss-place"),
-    createIssStat("iss-altitude", "고도", "iss-metric"),
-    createIssStat("iss-speed", "속도", "iss-metric"),
+    createIssStat("iss-place", "place", "iss-place"),
+    createIssStat("iss-altitude", "altitude", "iss-metric"),
+    createIssStat("iss-speed", "speed", "iss-metric"),
   );
 
   const pass = document.createElement("p");
@@ -595,14 +669,14 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   pass.className = "iss-pass";
   pass.setAttribute("role", "status");
   pass.setAttribute("aria-live", "polite");
-  pass.textContent = ORBIT_LOADING_MESSAGE;
+  pass.textContent = tr("orbitLoading");
 
   iss.append(head, stats, pass);
 
   const source = document.createElement("p");
   source.id = "orbit-source";
   source.className = "orbit-source";
-  source.textContent = "궤도 데이터: CelesTrak";
+  source.textContent = tr("orbitSource");
 
   panel.append(desktopHead, stage, legend, iss, source);
   panel.setAttribute("aria-busy", "true");
@@ -612,6 +686,7 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
 type SatelliteBinding = {
   show(): void;
   hide(): void;
+  refresh(): void;
 };
 
 function bindSatellites(
@@ -638,7 +713,7 @@ function bindSatellites(
     !(source instanceof HTMLElement) ||
     !(mount instanceof HTMLElement)
   ) {
-    return { show() {}, hide() {} };
+    return { show() {}, hide() {}, refresh() {} };
   }
 
   let catalog: StationCatalog | null = null;
@@ -653,17 +728,17 @@ function bindSatellites(
 
   const publishGlobeStatus = () => {
     if (catalog?.error) {
-      globeStatus.textContent = catalog.error;
+      globeStatus.textContent = tr("orbitLoadError");
       setLiveRole(globeStatus, "alert");
       return;
     }
     if (globeFailed) {
-      globeStatus.textContent = GLOBE_UNAVAILABLE_MESSAGE;
+      globeStatus.textContent = tr("globeUnavailable");
       setLiveRole(globeStatus, "status");
       return;
     }
     if (!catalog) {
-      globeStatus.textContent = ORBIT_LOADING_MESSAGE;
+      globeStatus.textContent = tr("orbitLoading");
       setLiveRole(globeStatus, "status");
       return;
     }
@@ -678,15 +753,15 @@ function bindSatellites(
 
   const renderSource = () => {
     if (!catalog?.fetchedAt) {
-      source.textContent = "궤도 데이터: CelesTrak";
+      source.textContent = tr("orbitSource");
       return;
     }
     const fetched = new Date(catalog.fetchedAt);
     if (Number.isNaN(fetched.getTime())) {
-      source.textContent = "궤도 데이터: CelesTrak";
+      source.textContent = tr("orbitSource");
       return;
     }
-    source.textContent = `궤도 데이터: CelesTrak · ${formatKstTime(fetched)} 갱신`;
+    source.textContent = tr("orbitSourceUpdated", { time: formatKstTime(fetched) });
   };
 
   const renderCard = (sceneIss: ReturnType<typeof buildSatelliteScene>["iss"]) => {
@@ -695,7 +770,7 @@ function bindSatellites(
       altitude.textContent = "—";
       speed.textContent = "—";
       live.textContent = "";
-      setPassMessage(ORBIT_LOADING_MESSAGE, "status");
+      setPassMessage(tr("orbitLoading"), "status");
       return;
     }
 
@@ -704,7 +779,7 @@ function bindSatellites(
       altitude.textContent = "—";
       speed.textContent = "—";
       live.textContent = "";
-      setPassMessage(catalog.error, "alert");
+      setPassMessage(tr("orbitLoadError"), "alert");
       return;
     }
 
@@ -713,18 +788,18 @@ function bindSatellites(
       altitude.textContent = "—";
       speed.textContent = "—";
       live.textContent = "";
-      setPassMessage("ISS 궤도 정보가 없습니다.", "alert");
+      setPassMessage(tr("issMissing"), "alert");
       return;
     }
 
     place.textContent = formatGroundPosition(sceneIss.fix.lat, sceneIss.fix.lng);
-    altitude.textContent = formatAltitude(sceneIss.fix.altKm);
+    altitude.textContent = formatAltitude(sceneIss.fix.altKm, locale);
     speed.textContent = formatSpeed(sceneIss.fix.speedKmh);
-    live.textContent = "지금";
+    live.textContent = tr("issNow");
     setPassMessage(
       passResult
-        ? formatKoreaPassLabel(passResult, now())
-        : "한국 상공 통과를 계산하지 못했습니다.",
+        ? formatKoreaPassLabel(passResult, now(), locale)
+        : tr("koreaPassFailed"),
       passResult ? "status" : "alert",
     );
   };
@@ -836,7 +911,7 @@ function bindSatellites(
       }
       catalog = file.ok
         ? parseTleDocument(file.payload)
-        : { fetchedAt: null, stations: [], error: ORBIT_LOAD_ERROR };
+        : { fetchedAt: null, stations: [], error: "error" };
       paint(true);
     });
   };
@@ -871,6 +946,9 @@ function bindSatellites(
     hide() {
       globe?.pause();
     },
+    refresh() {
+      paint(false);
+    },
   };
 }
 
@@ -884,43 +962,47 @@ function createPlayIcon(): SVGSVGElement {
   return svg;
 }
 
+const COUNTDOWN_UNITS = ["unitDay", "unitHour", "unitMinute", "unitSecond"] as const;
+
 function createCountdown(): HTMLElement {
   const grid = document.createElement("div");
   grid.className = "countdown";
-  grid.setAttribute("aria-label", "남은 시간");
+  bindAria(grid, "countdownAria");
 
-  for (const unit of ["일", "시간", "분", "초"]) {
+  COUNTDOWN_UNITS.forEach((key, index) => {
     const cell = document.createElement("div");
     cell.className = "countdown-cell";
 
     const value = document.createElement("span");
-    value.className = unit === "초" ? "countdown-value countdown-seconds" : "countdown-value";
+    value.className = index === COUNTDOWN_UNITS.length - 1
+      ? "countdown-value countdown-seconds"
+      : "countdown-value";
     value.textContent = "—";
 
     const label = document.createElement("span");
     label.className = "stat-label";
-    label.textContent = unit;
+    bindText(label, key);
 
     cell.append(value, label);
     grid.append(cell);
-  }
+  });
 
   return grid;
 }
 
 function launchSourceLabel(fetchedAt: string | null): string {
   if (!fetchedAt) {
-    return "발사 데이터: The Space Devs";
+    return tr("launchData");
   }
   const date = new Date(fetchedAt);
   if (Number.isNaN(date.getTime())) {
-    return "발사 데이터: The Space Devs";
+    return tr("launchData");
   }
-  return `발사 데이터: The Space Devs · ${formatKstTime(date)} 갱신`;
+  return tr("launchDataUpdated", { time: formatKstTime(date) });
 }
 
 function fillCountdown(countdown: HTMLElement, parts: CountdownParts | null): void {
-  const units = ["일", "시간", "분", "초"];
+  const units = COUNTDOWN_UNITS.map((key) => tr(key));
   const values = ["—", "—", "—", "—"];
   if (parts) {
     values[0] = formatCountdownUnit(parts.days);
@@ -951,7 +1033,7 @@ function createLaterLaunchRow(launch: LaunchItem, now: Date): HTMLElement {
 
   const title = document.createElement("h3");
   title.className = "card-title";
-  title.textContent = launchVehicle(launch);
+  title.textContent = launchVehicle(launch, locale);
 
   const detail = document.createElement("span");
   detail.className = "stat-label";
@@ -965,7 +1047,7 @@ function createLaterLaunchRow(launch: LaunchItem, now: Date): HTMLElement {
   const time = document.createElement("span");
   time.className = "launch-time";
   const net = new Date(launch.net);
-  time.textContent = formatKstLaunchDateTime(net);
+  time.textContent = formatLaunchDateTime(net, locale);
 
   const dday = document.createElement("span");
   dday.className = "launch-dday";
@@ -980,7 +1062,7 @@ function bindLaunches(
   panel: HTMLElement,
   now: () => Date,
   readJson: (fileName: string) => Promise<LocalJson>,
-): { show: () => void; hide: () => void } | null {
+): { show: () => void; hide: () => void; refresh: () => void } | null {
   const title = panel.querySelector("#next-launch-title");
   const meta = panel.querySelector("#next-launch-meta");
   const when = panel.querySelector("#next-launch-when");
@@ -1055,14 +1137,14 @@ function bindLaunches(
     if (key !== builtKey) {
       builtKey = key;
       if (!catalog) {
-        showMessage(LAUNCH_LOADING_MESSAGE, null, "loading");
+        showMessage(tr("launchLoading"), null, "loading");
         countdown.hidden = false;
         setLaterVisible(true);
         fillCountdown(countdown, null);
         source.textContent = "";
       } else if (catalog.error || !next) {
         showMessage(
-          catalog.error ?? LAUNCH_EMPTY_MESSAGE,
+          catalog.error ? tr("launchLoadError") : tr("launchEmpty"),
           catalog.fetchedAt,
           catalog.error ? "error" : "empty",
         );
@@ -1070,9 +1152,9 @@ function bindLaunches(
         const net = new Date(next.net);
         status.hidden = true;
         status.textContent = "";
-        title.textContent = nextLaunchTitle(next);
+        title.textContent = nextLaunchTitle(next, locale);
         meta.textContent = launchOperatorPlace(next);
-        when.textContent = formatKstLaunchDateTime(net);
+        when.textContent = formatLaunchDateTime(net, locale);
         countdown.hidden = false;
         if (next.webcastUrl) {
           webcast.hidden = false;
@@ -1107,7 +1189,7 @@ function bindLaunches(
       }
       catalog = file.ok
         ? parseLaunchDocument(file.payload)
-        : { fetchedAt: null, launches: [], error: LAUNCH_LOAD_ERROR };
+        : { fetchedAt: null, launches: [], error: "error" };
       builtKey = "";
       paint();
     });
@@ -1148,6 +1230,10 @@ function bindLaunches(
     hide() {
       stopTimer();
     },
+    refresh() {
+      builtKey = "";
+      paint();
+    },
   };
 }
 
@@ -1162,7 +1248,7 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
 
   const badge = document.createElement("span");
   badge.className = "badge";
-  badge.textContent = "다음 발사";
+  bindText(badge, "nextLaunch");
 
   const when = document.createElement("span");
   when.id = "next-launch-when";
@@ -1188,7 +1274,7 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
   status.className = "pending";
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
-  status.textContent = LAUNCH_LOADING_MESSAGE;
+  status.textContent = tr("launchLoading");
 
   const countdown = createCountdown();
   countdown.id = "launch-countdown";
@@ -1199,9 +1285,9 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
   webcast.target = "_blank";
   webcast.rel = "noopener noreferrer";
   webcast.hidden = true;
-  webcast.setAttribute("aria-label", "생중계 보기");
+  bindAria(webcast, "watchLive");
   const webcastLabel = document.createElement("span");
-  webcastLabel.textContent = "생중계 보기";
+  bindText(webcastLabel, "watchLive");
   webcast.append(createPlayIcon(), webcastLabel);
 
   next.append(head, copy, status, countdown, webcast);
@@ -1213,7 +1299,7 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
   const laterLabel = document.createElement("h2");
   laterLabel.id = "later-label";
   laterLabel.className = "section-label";
-  laterLabel.textContent = "이후 일정";
+  bindText(laterLabel, "laterLaunches");
 
   const later = document.createElement("div");
   later.id = "later-launches";
@@ -1237,11 +1323,11 @@ function createTabButton(tab: Tab): HTMLButtonElement {
   button.className = "tab-button";
   button.role = "tab";
   button.setAttribute("aria-controls", `panel-${tab.id}`);
-  button.setAttribute("aria-label", tab.label);
+  bindAria(button, tab.labelKey);
   button.dataset.tab = tab.id;
 
   const label = document.createElement("span");
-  label.textContent = tab.label;
+  bindText(label, tab.labelKey);
   button.append(createTabIcon(tab.id), label);
   return button;
 }
@@ -1260,7 +1346,32 @@ export type AppOptions = {
   now?: () => Date;
 };
 
+function geoErrorKey(code: number): MessageKey {
+  if (code === 1) {
+    return "geoDenied";
+  }
+  if (code === 2) {
+    return "geoUnavailable";
+  }
+  if (code === 3) {
+    return "geoTimeout";
+  }
+  return "geoFailed";
+}
+
+function locationDisplay(stored: StoredLocation): string {
+  if (stored.source === "geolocation") {
+    return tr("myLocation");
+  }
+  const region = REGIONS.find((item) => item.shortName === stored.label);
+  const key = region ? regionShortKey(region.id) : null;
+  return key ? tr(key) : stored.label;
+}
+
 export function createApp(options: AppOptions = {}): HTMLElement {
+  locale = resolveLanguage(localStorage, navigator.language || "");
+  document.documentElement.lang = locale;
+
   const now = () => options.now?.() ?? new Date();
   document.title = BRAND_NAME;
 
@@ -1281,12 +1392,15 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const eyebrow = document.createElement("p");
   eyebrow.className = "eyebrow";
-  eyebrow.textContent = BRAND_TAGLINE;
+  bindText(eyebrow, "brandTagline");
 
   const title = document.createElement("h1");
   title.textContent = BRAND_NAME;
 
   heroCopy.append(eyebrow, title);
+
+  const heroActions = document.createElement("div");
+  heroActions.className = "hero-actions";
 
   const locationButton = document.createElement("button");
   locationButton.type = "button";
@@ -1300,7 +1414,8 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   locationLabel.id = "location-label";
   locationButton.append(createPinIcon(), locationLabel);
 
-  heroTop.append(heroCopy, locationButton);
+  heroActions.append(locationButton);
+  heroTop.append(heroCopy, heroActions);
   header.append(heroTop);
 
   const dialog = document.createElement("div");
@@ -1319,25 +1434,25 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const dialogTitle = document.createElement("h2");
   dialogTitle.id = "location-dialog-title";
-  dialogTitle.textContent = "위치 선택";
+  bindText(dialogTitle, "locationDialogTitle");
 
   const closeButton = document.createElement("button");
   closeButton.type = "button";
   closeButton.id = "location-close";
   closeButton.className = "location-close";
-  closeButton.textContent = "닫기";
+  bindText(closeButton, "close");
 
   dialogHeader.append(dialogTitle, closeButton);
 
   const help = document.createElement("p");
   help.className = "location-help";
-  help.textContent = "좌표는 소수점 1자리로 반올림해 이 기기에만 저장합니다.";
+  bindText(help, "locationHelp");
 
   const useCurrentButton = document.createElement("button");
   useCurrentButton.type = "button";
   useCurrentButton.id = "use-current-location";
   useCurrentButton.className = "location-primary";
-  useCurrentButton.textContent = "현재 위치 사용";
+  bindText(useCurrentButton, "useCurrentLocation");
 
   const error = document.createElement("p");
   error.id = "location-error";
@@ -1357,7 +1472,12 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     button.id = `region-${region.id}`;
     button.className = "region-button";
     button.dataset.region = region.id;
-    button.textContent = region.name;
+    const nameKey = regionNameKey(region.id);
+    if (nameKey) {
+      bindText(button, nameKey);
+    } else {
+      button.textContent = region.name;
+    }
     button.setAttribute("aria-pressed", "false");
     item.append(button);
     regionList.append(item);
@@ -1367,29 +1487,33 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   dialogCard.append(dialogHeader, help, useCurrentButton, error, regionList);
   dialog.append(dialogCard);
 
-  const setLocationLabel = (label: string | null) => {
-    if (label) {
-      locationLabel.textContent = label;
-      locationButton.setAttribute("aria-label", `위치 ${label}, 변경`);
-    } else {
-      locationLabel.textContent = "위치 선택";
-      locationButton.setAttribute("aria-label", "위치 선택");
-    }
+  const setLocationLabel = () => {
+    const stored = loadLocation(localStorage);
+    const label = stored ? locationDisplay(stored) : tr("locationChoose");
+    locationLabel.textContent = label;
+    locationButton.setAttribute("aria-label", stored ? tr("locationChange", { label }) : label);
 
     for (const region of REGIONS) {
       const button = regionButtons.get(region.id);
       if (button) {
-        button.setAttribute("aria-pressed", String(region.shortName === label));
+        button.setAttribute(
+          "aria-pressed",
+          String(stored?.source === "region" && region.shortName === stored.label),
+        );
       }
     }
   };
 
-  const showError = (message: string) => {
+  let locationErrorKey: MessageKey | null = null;
+
+  const showError = (key: MessageKey) => {
+    locationErrorKey = key;
     error.hidden = false;
-    error.textContent = message;
+    error.textContent = tr(key);
   };
 
   const clearError = () => {
+    locationErrorKey = null;
     error.hidden = true;
     error.textContent = "";
   };
@@ -1409,8 +1533,8 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   let refreshTonight = (): void => {};
 
   const persistLocation = (input: LocationInput) => {
-    const saved = saveLocation(localStorage, input);
-    setLocationLabel(saved.label);
+    saveLocation(localStorage, input);
+    setLocationLabel();
     closeDialog();
     refreshTonight();
   };
@@ -1441,7 +1565,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   useCurrentButton.addEventListener("click", () => {
     const geolocation = navigator.geolocation;
     if (!geolocation) {
-      showError("이 브라우저에서는 현재 위치를 사용할 수 없습니다. 시·도를 선택해 주세요.");
+      showError("geoUnsupported");
       return;
     }
 
@@ -1459,12 +1583,12 @@ export function createApp(options: AppOptions = {}): HTMLElement {
             source: "geolocation",
           });
         } catch {
-          showError("좌표를 저장하지 못했습니다. 시·도를 선택해 주세요.");
+          showError("saveFailed");
         }
       },
       (positionError) => {
         useCurrentButton.disabled = false;
-        showError(geolocationErrorMessage(positionError.code));
+        showError(geoErrorKey(positionError.code));
       },
       GEOLOCATION_OPTIONS,
     );
@@ -1480,7 +1604,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
           source: "region",
         });
       } catch {
-        showError("선택한 위치를 저장하지 못했습니다.");
+        showError("regionSaveFailed");
       }
     });
   }
@@ -1502,7 +1626,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const desktopNav = document.createElement("nav");
   desktopNav.className = "desktop-nav";
-  desktopNav.setAttribute("aria-label", "주요 메뉴");
+  bindAria(desktopNav, "desktopNavAria");
 
   const desktopTools = document.createElement("div");
   desktopTools.className = "desktop-tools";
@@ -1511,8 +1635,18 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   languageButton.type = "button";
   languageButton.id = "language-button";
   languageButton.className = "language-button";
-  languageButton.setAttribute("aria-label", "언어 바꾸기");
-  languageButton.textContent = "KO · EN";
+  const koreanCode = document.createElement("span");
+  koreanCode.dataset.lang = "ko";
+  koreanCode.textContent = "KO";
+  const languageSeparator = document.createElement("span");
+  languageSeparator.setAttribute("aria-hidden", "true");
+  languageSeparator.textContent = " · ";
+  const englishCode = document.createElement("span");
+  englishCode.dataset.lang = "en";
+  englishCode.textContent = "EN";
+  languageButton.append(koreanCode, languageSeparator, englishCode);
+  bindAria(languageButton, "languageSwitch");
+  markLanguageButton(languageButton);
 
   desktopTools.append(languageButton);
   desktopBarInner.append(brand, desktopNav, desktopTools);
@@ -1521,7 +1655,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const tabList = document.createElement("nav");
   tabList.className = "tab-list";
   tabList.role = "tablist";
-  tabList.setAttribute("aria-label", "화면 탭");
+  bindAria(tabList, "tabListAria");
 
   const panels = document.createElement("main");
   panels.className = "panel-stack";
@@ -1533,7 +1667,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     button.id = `desktop-tab-${tab.id}`;
     button.className = "desktop-tab";
     button.dataset.desktopTab = tab.id;
-    button.textContent = tab.label;
+    bindText(button, tab.labelKey);
     button.setAttribute("aria-controls", `panel-${tab.id}`);
     return button;
   });
@@ -1553,11 +1687,13 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const placeLocationControl = (desktop: boolean) => {
     if (desktop) {
-      desktopTools.prepend(locationButton);
+      desktopTools.append(locationButton, languageButton);
+      heroActions.remove();
       return;
     }
-    if (locationButton.parentElement !== heroTop) {
-      heroTop.append(locationButton);
+    heroActions.append(locationButton, languageButton);
+    if (heroActions.parentElement !== heroTop) {
+      heroTop.append(heroActions);
     }
   };
 
@@ -1646,20 +1782,25 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const footer = document.createElement("p");
   footer.className = "source-footer";
-  footer.textContent = dataSourceFooter(null, null);
+  let orbitFetchedAt: string | null = null;
+  let launchFetchedAt: string | null = null;
+  const updateFooter = () => {
+    footer.textContent = dataSourceFooter(orbitFetchedAt, launchFetchedAt, locale);
+  };
+  updateFooter();
   void Promise.all([readJson("tle.json"), readJson("launches.json")]).then(([orbitFile, launchFile]) => {
     if (!footer.isConnected) {
       return;
     }
-    const orbitAt = orbitFile.ok ? parseTleDocument(orbitFile.payload).fetchedAt : null;
-    const launchAt = launchFile.ok ? parseLaunchDocument(launchFile.payload).fetchedAt : null;
-    footer.textContent = dataSourceFooter(orbitAt, launchAt);
+    orbitFetchedAt = orbitFile.ok ? parseTleDocument(orbitFile.payload).fetchedAt : null;
+    launchFetchedAt = launchFile.ok ? parseLaunchDocument(launchFile.payload).fetchedAt : null;
+    updateFooter();
   });
 
   screen.append(header, panels, footer);
   root.append(desktopBar, screen, tabList, dialog);
   setActiveTab("tonight");
-  setLocationLabel(loadLocation(localStorage)?.label ?? null);
+  setLocationLabel();
 
   const tonightPanel = panelElements.find((panel) => panel.id === "panel-tonight");
   refreshTonight = () => {
@@ -1668,6 +1809,26 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     }
   };
   refreshTonight();
+
+  const applyLocale = () => {
+    document.documentElement.lang = locale;
+    applyBoundCopy(root);
+    markLanguageButton(languageButton);
+    setLocationLabel();
+    if (locationErrorKey) {
+      showError(locationErrorKey);
+    }
+    refreshTonight();
+    satellites?.refresh();
+    launches?.refresh();
+    updateFooter();
+  };
+
+  languageButton.addEventListener("click", () => {
+    locale = locale === "ko" ? "en" : "ko";
+    saveLanguage(localStorage, locale);
+    applyLocale();
+  });
 
   return root;
 }

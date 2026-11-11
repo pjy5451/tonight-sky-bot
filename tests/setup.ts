@@ -8,4 +8,13 @@ beforeEach(() => {
     writable: true,
     value: 390,
   });
+  Object.defineProperty(navigator, "language", {
+    configurable: true,
+    value: "ko-KR",
+  });
+  Object.defineProperty(navigator, "languages", {
+    configurable: true,
+    value: ["ko-KR"],
+  });
+  document.documentElement.lang = "ko";
 });

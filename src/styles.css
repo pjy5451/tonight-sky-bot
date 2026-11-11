@@ -118,6 +118,34 @@ h1 {
   white-space: nowrap;
 }
 
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 68%;
+}
+
+.hero-actions .location-button {
+  max-width: none;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.hero-actions .language-button {
+  flex-shrink: 0;
+  padding: 0 12px;
+}
+
+.language-button [data-lang] {
+  color: #8d97ad;
+}
+
+.language-button [data-lang].is-current {
+  color: #f5b544;
+}
+
 .location-button:focus-visible,
 .language-button:focus-visible,
 .location-primary:focus-visible,
