@@ -6,6 +6,7 @@ import {
   formatKstTime,
   moonLitPath,
   moonPhaseName,
+  subsolarPoint,
 } from "../src/sky";
 
 /**
@@ -165,5 +166,27 @@ describe("tonight sky for a fixed place and time", () => {
     );
     expect(polarDay.sunrise).toBeNull();
     expect(polarDay.sunset).toBeNull();
+  });
+});
+
+describe("subsolar point", () => {
+  it("rejects an invalid time", () => {
+    expect(() => subsolarPoint(new Date("not-a-date"))).toThrow(RangeError);
+  });
+
+  it("is near latitude 0° and longitude 0° at 2026-03-20 12:00 UTC", () => {
+    const point = subsolarPoint(new Date("2026-03-20T12:00:00.000Z"));
+    expect(Number.isFinite(point.latitude)).toBe(true);
+    expect(Number.isFinite(point.longitude)).toBe(true);
+    expect(Math.abs(point.latitude)).toBeLessThanOrEqual(3);
+    expect(Math.abs(point.longitude)).toBeLessThanOrEqual(3);
+  });
+
+  it("shifts about 90° west after six hours of Earth rotation", () => {
+    const noon = subsolarPoint(new Date("2026-03-20T12:00:00.000Z"));
+    const later = subsolarPoint(new Date("2026-03-20T18:00:00.000Z"));
+    const eastward = ((later.longitude - noon.longitude + 540) % 360) - 180;
+    expect(eastward).toBeGreaterThan(-95);
+    expect(eastward).toBeLessThan(-85);
   });
 });

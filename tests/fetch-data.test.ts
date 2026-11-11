@@ -295,7 +295,9 @@ describe("fetch-data", () => {
     expect(browserSource).not.toContain("thespacedevs.com");
     expect(browserSource).not.toContain("innerHTML");
     expect(browserSource).not.toContain("unpkg.com");
-    expect(globeSource).toContain("textures/earth.png");
+    expect(globeSource).toContain("textures/earth-day.jpg");
+    expect(globeSource).toContain("textures/earth-night.jpg");
+    expect(globeSource).not.toContain("textures/earth.png");
     expect(globeSource).not.toMatch(/https?:\/\//);
   });
 });
