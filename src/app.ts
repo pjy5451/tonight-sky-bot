@@ -29,6 +29,7 @@ import {
   type StoredLocation,
 } from "./location";
 import {
+  ISS_NORAD_CATALOG_ID,
   ORBIT_REFRESH_MS,
   POSITION_UPDATE_MS,
   SCENE_BATCH,
@@ -62,6 +63,17 @@ import {
   type LaunchCatalog,
   type LaunchItem,
 } from "./launches";
+import {
+  ISS_PASS_HORIZON_MS,
+  ISS_PASS_LOOKBACK_MS,
+  issPassLater,
+  issPassRoute,
+  issPassTimeRange,
+  kstDayOffset,
+  predictStationPasses,
+  upcomingIssPasses,
+  type IssPass,
+} from "./iss-passes";
 import { formatMeteorDday, nextMeteorShower } from "./meteors";
 import { dataSourceFooter } from "./sources";
 import {
@@ -273,13 +285,6 @@ function createPanel(tab: Tab): HTMLElement {
   return panel;
 }
 
-function createPendingText(): HTMLParagraphElement {
-  const pending = document.createElement("p");
-  pending.className = "pending";
-  bindText(pending, "pending");
-  return pending;
-}
-
 function createCard(className: string): HTMLElement {
   const card = document.createElement("article");
   card.className = className;
@@ -435,7 +440,185 @@ function clearTonightNumbers(panel: HTMLElement): void {
   }
 }
 
-function fillTonightPanel(panel: HTMLElement, date: Date): void {
+type IssOrbitState = "loading" | "ready" | "error" | "missing";
+
+type IssOrbitLoad = {
+  state: IssOrbitState;
+  station: Station | null;
+  cacheKey: string;
+  cache: IssPass[];
+};
+
+function passDayLabel(offset: number): string {
+  if (offset <= 0) {
+    return tr("dayToday");
+  }
+  if (offset === 1) {
+    return tr("dayTomorrow");
+  }
+  if (offset === 2) {
+    return tr("dayAfter");
+  }
+  return tr("dayLater", { days: offset });
+}
+
+function setIssNote(note: HTMLElement, message: string | null, kind: "status" | "alert"): void {
+  delete note.dataset.i18n;
+  delete note.dataset.i18nValues;
+  if (!message) {
+    note.hidden = true;
+    note.textContent = "";
+    return;
+  }
+  note.hidden = false;
+  note.textContent = message;
+  setLiveRole(note, kind);
+}
+
+function hideIssPassDetails(panel: HTMLElement): void {
+  const badge = panel.querySelector("#iss-pass-badge");
+  const main = panel.querySelector("#iss-pass-main");
+  const when = panel.querySelector("#iss-pass-when");
+  const time = panel.querySelector("#iss-pass-time");
+  const detail = panel.querySelector("#iss-pass-detail");
+  const divider = panel.querySelector("#iss-pass-divider");
+  const list = panel.querySelector("#iss-pass-list");
+  if (badge instanceof HTMLElement) {
+    badge.hidden = true;
+  }
+  if (main instanceof HTMLElement) {
+    main.hidden = true;
+  }
+  if (when instanceof HTMLElement) {
+    when.hidden = true;
+    when.textContent = "";
+  }
+  if (time instanceof HTMLElement) {
+    time.textContent = "";
+  }
+  if (detail instanceof HTMLElement) {
+    detail.textContent = "";
+  }
+  if (divider instanceof HTMLElement) {
+    divider.hidden = true;
+  }
+  if (list instanceof HTMLElement) {
+    list.replaceChildren();
+  }
+}
+
+function renderIssPassCard(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad): void {
+  const note = panel.querySelector("#iss-pass-note");
+  const badge = panel.querySelector("#iss-pass-badge");
+  const main = panel.querySelector("#iss-pass-main");
+  const when = panel.querySelector("#iss-pass-when");
+  const time = panel.querySelector("#iss-pass-time");
+  const detail = panel.querySelector("#iss-pass-detail");
+  const divider = panel.querySelector("#iss-pass-divider");
+  const list = panel.querySelector("#iss-pass-list");
+  if (
+    !(note instanceof HTMLElement) ||
+    !(badge instanceof HTMLElement) ||
+    !(main instanceof HTMLElement) ||
+    !(when instanceof HTMLElement) ||
+    !(time instanceof HTMLElement) ||
+    !(detail instanceof HTMLElement) ||
+    !(divider instanceof HTMLElement) ||
+    !(list instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  if (Number.isNaN(date.getTime())) {
+    hideIssPassDetails(panel);
+    setIssNote(note, null, "status");
+    return;
+  }
+
+  const location = loadLocation(localStorage);
+  if (!location) {
+    hideIssPassDetails(panel);
+    setIssNote(note, tr("issPassChoose"), "status");
+    return;
+  }
+
+  if (issLoad.state === "loading") {
+    hideIssPassDetails(panel);
+    setIssNote(note, tr("orbitLoading"), "status");
+    return;
+  }
+  if (issLoad.state === "error" || !issLoad.station) {
+    hideIssPassDetails(panel);
+    setIssNote(note, tr(issLoad.state === "missing" ? "issMissing" : "orbitLoadError"), "alert");
+    return;
+  }
+
+  const cacheKey = [
+    issLoad.station.noradId,
+    issLoad.station.omm.EPOCH,
+    issLoad.station.omm.MEAN_ANOMALY,
+    location.latitude,
+    location.longitude,
+    Math.floor(date.getTime() / 60_000),
+  ].join("|");
+
+  let passes = issLoad.cache;
+  if (cacheKey !== issLoad.cacheKey) {
+    const predicted = predictStationPasses(
+      issLoad.station,
+      { latitude: location.latitude, longitude: location.longitude, heightMeters: 0 },
+      new Date(date.getTime() - ISS_PASS_LOOKBACK_MS),
+      new Date(date.getTime() + ISS_PASS_HORIZON_MS),
+    );
+    if (!predicted) {
+      hideIssPassDetails(panel);
+      setIssNote(note, tr("issPassFailed"), "alert");
+      return;
+    }
+    passes = upcomingIssPasses(predicted, date);
+    issLoad.cacheKey = cacheKey;
+    issLoad.cache = passes;
+  }
+
+  const featured = passes[0];
+  if (!featured) {
+    hideIssPassDetails(panel);
+    setIssNote(note, tr("issPassNone"), "status");
+    return;
+  }
+
+  badge.hidden = false;
+  main.hidden = false;
+  setIssNote(note, null, "status");
+  const offset = kstDayOffset(date, featured.start.time);
+  if (offset > 0) {
+    when.hidden = false;
+    when.textContent = passDayLabel(offset);
+  } else {
+    when.hidden = true;
+    when.textContent = "";
+  }
+  time.textContent = issPassTimeRange(featured);
+  detail.textContent = issPassRoute(featured, locale);
+
+  list.replaceChildren();
+  for (const pass of passes.slice(1)) {
+    const row = document.createElement("div");
+    row.className = "iss-pass-row";
+    const label = document.createElement("span");
+    label.className = "iss-pass-row-label";
+    label.textContent = passDayLabel(kstDayOffset(date, pass.start.time));
+    const value = document.createElement("span");
+    value.className = "iss-pass-row-value";
+    value.textContent = issPassLater(pass, locale);
+    row.append(label, value);
+    list.append(row);
+  }
+  divider.hidden = passes.length < 2;
+}
+
+function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad): void {
+  renderIssPassCard(panel, date, issLoad);
   try {
     fillMeteorShower(panel, date);
   } catch {
@@ -548,7 +731,54 @@ function createTonightPanel(tab: Tab): HTMLElement {
   );
 
   const iss = createCard("card card-highlight");
-  iss.append(createBoundTitle("issPass"), createPendingText());
+  iss.id = "iss-pass-card";
+
+  const issHead = document.createElement("div");
+  issHead.className = "iss-pass-head";
+  const issBadge = document.createElement("span");
+  issBadge.id = "iss-pass-badge";
+  issBadge.className = "iss-badge";
+  issBadge.hidden = true;
+  bindText(issBadge, "issNakedEye");
+  issHead.append(createBoundTitle("issPass"), issBadge);
+
+  const issMain = document.createElement("div");
+  issMain.id = "iss-pass-main";
+  issMain.className = "iss-pass-main";
+  issMain.hidden = true;
+
+  const issWhen = document.createElement("span");
+  issWhen.id = "iss-pass-when";
+  issWhen.className = "iss-pass-when";
+  issWhen.hidden = true;
+
+  const issTime = document.createElement("span");
+  issTime.id = "iss-pass-time";
+  issTime.className = "iss-pass-time";
+
+  const issDetail = document.createElement("span");
+  issDetail.id = "iss-pass-detail";
+  issDetail.className = "iss-pass-detail";
+  issMain.append(issWhen, issTime, issDetail);
+
+  const issDivider = document.createElement("div");
+  issDivider.id = "iss-pass-divider";
+  issDivider.className = "iss-pass-divider";
+  issDivider.hidden = true;
+  issDivider.setAttribute("aria-hidden", "true");
+
+  const issList = document.createElement("div");
+  issList.id = "iss-pass-list";
+  issList.className = "iss-pass-list";
+
+  const issNote = document.createElement("p");
+  issNote.id = "iss-pass-note";
+  issNote.className = "pending";
+  issNote.setAttribute("role", "status");
+  issNote.setAttribute("aria-live", "polite");
+  bindText(issNote, "issPassChoose");
+
+  iss.append(issHead, issMain, issDivider, issList, issNote);
 
   const planets = createCard("card");
   planets.append(createBoundTitle("planetsTitle"));
@@ -1966,13 +2196,37 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     footer.textContent = dataSourceFooter(orbitFetchedAt, launchFetchedAt, locale);
   };
   updateFooter();
+  const issLoad: IssOrbitLoad = {
+    state: "loading",
+    station: null,
+    cacheKey: "",
+    cache: [],
+  };
+
   void Promise.all([readJson("tle.json"), readJson("launches.json")]).then(([orbitFile, launchFile]) => {
     if (!footer.isConnected) {
       return;
     }
-    orbitFetchedAt = orbitFile.ok ? parseTleDocument(orbitFile.payload).fetchedAt : null;
+    if (orbitFile.ok) {
+      const catalog = parseTleDocument(orbitFile.payload);
+      orbitFetchedAt = catalog.fetchedAt;
+      const iss = catalog.stations.find((station) => station.noradId === ISS_NORAD_CATALOG_ID) ?? null;
+      issLoad.station = iss;
+      issLoad.cacheKey = "";
+      issLoad.cache = [];
+      if (iss) {
+        issLoad.state = "ready";
+      } else {
+        issLoad.state = catalog.error ? "error" : "missing";
+      }
+    } else {
+      orbitFetchedAt = null;
+      issLoad.station = null;
+      issLoad.state = "error";
+    }
     launchFetchedAt = launchFile.ok ? parseLaunchDocument(launchFile.payload).fetchedAt : null;
     updateFooter();
+    refreshTonight();
   });
 
   screen.append(header, panels, footer);
@@ -1983,7 +2237,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const tonightPanel = panelElements.find((panel) => panel.id === "panel-tonight");
   refreshTonight = () => {
     if (tonightPanel) {
-      fillTonightPanel(tonightPanel, now());
+      fillTonightPanel(tonightPanel, now(), issLoad);
     }
   };
   refreshTonight();

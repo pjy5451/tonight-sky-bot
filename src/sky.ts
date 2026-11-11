@@ -124,6 +124,10 @@ export function compass16(azimuthDegrees: number): Compass16 {
   return COMPASS_16[index] ?? "북";
 }
 
+export function compassLabel(direction: Compass16, locale: Locale = "ko"): string {
+  return translate(locale, COMPASS_KEY[direction]);
+}
+
 export function directionSkyLabel(direction: Compass16, locale: Locale = "ko"): string {
   switch (direction) {
     case "북":
@@ -135,7 +139,7 @@ export function directionSkyLabel(direction: Compass16, locale: Locale = "ko"): 
     case "서":
       return translate(locale, "skyWest");
     default:
-      return translate(locale, "skyOther", { direction: translate(locale, COMPASS_KEY[direction]) });
+      return translate(locale, "skyOther", { direction: compassLabel(direction, locale) });
   }
 }
 
