@@ -479,12 +479,21 @@ describe("satellite globe panel", () => {
     const other = { ...iss, OBJECT_NAME: "CSS (TIANHE)", NORAD_CAT_ID: 48274 };
     const fetchMock = vi.fn(async (input: RequestInfo) => {
       const url = String(input);
-      expect(url).toContain("data/tle.json");
       expect(url).not.toContain("celestrak.org");
-      return {
-        ok: true,
-        json: async () => ({ fetched_at: fetchedAt, items: [other, iss] }),
-      };
+      expect(url).not.toContain("thespacedevs.com");
+      if (url.includes("data/tle.json")) {
+        return {
+          ok: true,
+          json: async () => ({ fetched_at: fetchedAt, items: [other, iss] }),
+        };
+      }
+      if (url.includes("data/launches.json")) {
+        return {
+          ok: true,
+          json: async () => ({ fetched_at: fetchedAt, items: [] }),
+        };
+      }
+      throw new Error(`unexpected ${url}`);
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -514,7 +523,9 @@ describe("satellite globe panel", () => {
     expect(document.querySelector("#globe-status")?.textContent).toBe(
       "이 기기에서는 3D 지구본을 표시할 수 없습니다.",
     );
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(calls.filter((url) => url.includes("data/tle.json"))).toHaveLength(1);
+    expect(calls.filter((url) => url.includes("data/launches.json"))).toHaveLength(1);
 
     const rootWidth = document.documentElement.clientWidth || 390;
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(rootWidth);
@@ -586,12 +597,21 @@ describe("launch schedule", () => {
     let current = NOW;
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      expect(url).toContain("data/launches.json");
       expect(url).not.toContain("thespacedevs.com");
-      return {
-        ok: true,
-        json: async () => launchResponse(),
-      };
+      expect(url).not.toContain("celestrak.org");
+      if (url.includes("data/launches.json")) {
+        return {
+          ok: true,
+          json: async () => launchResponse(),
+        };
+      }
+      if (url.includes("data/tle.json")) {
+        return {
+          ok: true,
+          json: async () => ({ fetched_at: "2026-11-12T03:00:00.000Z", items: [] }),
+        };
+      }
+      throw new Error(`unexpected ${url}`);
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -638,7 +658,9 @@ describe("launch schedule", () => {
     );
     expect(document.querySelector("#panel-launches")?.textContent).not.toContain("Past Rocket");
     expect(document.body.innerHTML).not.toContain("javascript:");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(calls.filter((url) => url.includes("data/launches.json"))).toHaveLength(1);
+    expect(calls.filter((url) => url.includes("data/tle.json"))).toHaveLength(1);
 
     current = new Date(NOW.getTime() + 1000);
     document.querySelector<HTMLButtonElement>("#tab-tonight")?.click();
@@ -646,7 +668,8 @@ describe("launch schedule", () => {
     expect(
       [...document.querySelectorAll("#launch-countdown .countdown-value")].map((node) => node.textContent),
     ).toEqual(["02", "03", "27", "40"]);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const callsAfter = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(callsAfter.filter((url) => url.includes("data/launches.json"))).toHaveLength(1);
 
     const rootWidth = document.documentElement.clientWidth || 390;
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(rootWidth);

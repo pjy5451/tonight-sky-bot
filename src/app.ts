@@ -39,6 +39,7 @@ import {
   type LaunchItem,
 } from "./launches";
 import { formatMeteorDday, meteorPeakLabel, nextMeteorShower } from "./meteors";
+import { dataSourceFooter } from "./sources";
 import {
   computeTonightSky,
   directionSkyLabel,
@@ -57,6 +58,42 @@ type Tab = {
 const BRAND_NAME = "Argonova";
 const BRAND_TAGLINE = "오늘 밤, 하늘을 탐험하다";
 const PENDING_LABEL = "준비 중";
+const TONIGHT_CALC_ERROR = "오늘 밤 하늘을 계산하지 못했습니다.";
+const ORBIT_LOADING_MESSAGE = "궤도 데이터를 불러오는 중";
+const ORBIT_LOAD_ERROR = "위성 궤도 데이터를 불러오지 못했습니다.";
+const GLOBE_UNAVAILABLE_MESSAGE = "이 기기에서는 3D 지구본을 표시할 수 없습니다.";
+
+type LocalJson = { ok: true; payload: unknown } | { ok: false; payload: null };
+
+function createLocalJsonReader(): (fileName: string) => Promise<LocalJson> {
+  const pending = new Map<string, Promise<LocalJson>>();
+  return (fileName: string) => {
+    const existing = pending.get(fileName);
+    if (existing) {
+      return existing;
+    }
+    const request = Promise.resolve()
+      .then(() => fetch(`${import.meta.env.BASE_URL}data/${fileName}`))
+      .then(async (response) => {
+        if (!response.ok) {
+          return { ok: false as const, payload: null };
+        }
+        return { ok: true as const, payload: await response.json() };
+      })
+      .catch(() => ({ ok: false as const, payload: null }));
+    pending.set(fileName, request);
+    return request;
+  };
+}
+
+function setLiveRole(element: HTMLElement, kind: "status" | "alert"): void {
+  element.setAttribute("role", kind);
+  if (kind === "alert") {
+    element.removeAttribute("aria-live");
+    return;
+  }
+  element.setAttribute("aria-live", "polite");
+}
 
 const tabs: Tab[] = [
   { id: "tonight", label: "오늘 밤" },
@@ -245,8 +282,71 @@ function fillMeteorShower(panel: HTMLElement, date: Date): void {
   dday.textContent = formatMeteorDday(next.daysUntil);
 }
 
+function setTonightStatus(panel: HTMLElement, message: string | null): void {
+  const status = panel.querySelector("#tonight-status");
+  if (!(status instanceof HTMLElement)) {
+    return;
+  }
+  if (!message) {
+    status.hidden = true;
+    status.textContent = "";
+    setLiveRole(status, "status");
+    return;
+  }
+  status.hidden = false;
+  status.textContent = message;
+  setLiveRole(status, "alert");
+}
+
+function clearTonightNumbers(panel: HTMLElement): void {
+  const sunset = panel.querySelector("#sunset-value");
+  const sunrise = panel.querySelector("#sunrise-value");
+  const moonValue = panel.querySelector("#moon-value");
+  const moonIcon = panel.querySelector("#moon-icon");
+  const moonName = panel.querySelector("#moon-phase-name");
+  const planetList = panel.querySelector("#planet-list");
+  const planetEmpty = panel.querySelector("#planet-empty");
+  if (sunset instanceof HTMLElement) {
+    setClockValue(sunset, null, "—");
+  }
+  if (sunrise instanceof HTMLElement) {
+    setClockValue(sunrise, null, "—");
+  }
+  if (moonValue instanceof HTMLElement) {
+    moonValue.textContent = "—";
+    moonValue.classList.remove("is-note");
+  }
+  if (moonIcon instanceof HTMLElement) {
+    moonIcon.replaceChildren();
+  }
+  if (moonName instanceof HTMLElement) {
+    moonName.textContent = "";
+  }
+  if (planetList instanceof HTMLElement) {
+    planetList.replaceChildren();
+  }
+  if (planetEmpty instanceof HTMLElement) {
+    planetEmpty.hidden = true;
+    planetEmpty.textContent = "";
+  }
+}
+
 function fillTonightPanel(panel: HTMLElement, date: Date): void {
-  fillMeteorShower(panel, date);
+  try {
+    fillMeteorShower(panel, date);
+  } catch {
+    const name = panel.querySelector("#meteor-name");
+    const dday = panel.querySelector("#meteor-dday");
+    if (name instanceof HTMLElement) {
+      name.textContent = "—";
+    }
+    if (dday instanceof HTMLElement) {
+      dday.textContent = "—";
+    }
+    clearTonightNumbers(panel);
+    setTonightStatus(panel, TONIGHT_CALC_ERROR);
+    return;
+  }
 
   const sunset = panel.querySelector("#sunset-value");
   const sunrise = panel.querySelector("#sunrise-value");
@@ -278,24 +378,38 @@ function fillTonightPanel(panel: HTMLElement, date: Date): void {
     planetList.replaceChildren();
     planetEmpty.hidden = false;
     planetEmpty.textContent = "위치를 선택하면 오늘 밤 하늘을 계산합니다.";
+    setTonightStatus(panel, null);
     return;
   }
 
-  const sky = computeTonightSky(location, date);
-  setClockValue(sunset, sky.sunset, "지지 않음");
-  setClockValue(sunrise, sky.sunrise, "뜨지 않음");
-  moonValue.textContent = `${sky.moonIlluminationPercent}%`;
-  moonValue.classList.remove("is-note");
-  moonIcon.replaceChildren(renderMoonIcon(sky.moonPhaseAngle, location.latitude));
-  moonName.textContent = sky.moonPhaseName;
-  renderPlanetRows(planetList, sky.planets);
-  planetEmpty.hidden = sky.planets.length > 0;
-  planetEmpty.textContent =
-    sky.planets.length > 0 ? "" : "지금 지평선 위에 있는 행성이 없습니다.";
+  try {
+    const sky = computeTonightSky(location, date);
+    setClockValue(sunset, sky.sunset, "지지 않음");
+    setClockValue(sunrise, sky.sunrise, "뜨지 않음");
+    moonValue.textContent = `${sky.moonIlluminationPercent}%`;
+    moonValue.classList.remove("is-note");
+    moonIcon.replaceChildren(renderMoonIcon(sky.moonPhaseAngle, location.latitude));
+    moonName.textContent = sky.moonPhaseName;
+    renderPlanetRows(planetList, sky.planets);
+    planetEmpty.hidden = sky.planets.length > 0;
+    planetEmpty.textContent =
+      sky.planets.length > 0 ? "" : "지금 지평선 위에 있는 행성이 없습니다.";
+    setTonightStatus(panel, null);
+  } catch {
+    clearTonightNumbers(panel);
+    setTonightStatus(panel, TONIGHT_CALC_ERROR);
+  }
 }
 
 function createTonightPanel(tab: Tab): HTMLElement {
   const panel = createPanel(tab);
+
+  const status = document.createElement("p");
+  status.id = "tonight-status";
+  status.className = "pending";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  status.hidden = true;
 
   const stats = document.createElement("div");
   stats.className = "stat-grid";
@@ -339,6 +453,8 @@ function createTonightPanel(tab: Tab): HTMLElement {
   const planetEmpty = document.createElement("p");
   planetEmpty.id = "planet-empty";
   planetEmpty.className = "pending";
+  planetEmpty.setAttribute("role", "status");
+  planetEmpty.setAttribute("aria-live", "polite");
   planetEmpty.textContent = "위치를 선택하면 오늘 밤 하늘을 계산합니다.";
   planets.append(planetList, planetEmpty);
 
@@ -357,7 +473,7 @@ function createTonightPanel(tab: Tab): HTMLElement {
   meteorDday.textContent = "—";
   meteor.append(meteorCopy, meteorDday);
 
-  panel.append(stats, iss, planets, meteor);
+  panel.append(status, stats, iss, planets, meteor);
   return panel;
 }
 
@@ -398,16 +514,19 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
 
   const stage = document.createElement("div");
   stage.className = "globe-stage";
-  stage.setAttribute("aria-label", "지구본 위 ISS 궤도와 현재 위치");
 
   const mount = document.createElement("div");
   mount.id = "globe-mount";
   mount.className = "globe-mount";
+  mount.setAttribute("role", "img");
+  mount.setAttribute("aria-label", "지구본 위 ISS 궤도와 현재 위치");
 
   const globeStatus = document.createElement("p");
   globeStatus.id = "globe-status";
   globeStatus.className = "globe-status pending";
-  globeStatus.textContent = "궤도 데이터를 불러오는 중";
+  globeStatus.setAttribute("role", "status");
+  globeStatus.setAttribute("aria-live", "polite");
+  globeStatus.textContent = ORBIT_LOADING_MESSAGE;
 
   stage.append(mount, globeStatus);
 
@@ -437,7 +556,9 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   const pass = document.createElement("p");
   pass.id = "iss-pass";
   pass.className = "iss-pass";
-  pass.textContent = "궤도 데이터를 불러오는 중";
+  pass.setAttribute("role", "status");
+  pass.setAttribute("aria-live", "polite");
+  pass.textContent = ORBIT_LOADING_MESSAGE;
 
   iss.append(head, stats, pass);
 
@@ -447,6 +568,7 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   source.textContent = "궤도 데이터: CelesTrak";
 
   panel.append(stage, legend, iss, source);
+  panel.setAttribute("aria-busy", "true");
   return panel;
 }
 
@@ -455,7 +577,11 @@ type SatelliteBinding = {
   hide(): void;
 };
 
-function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
+function bindSatellites(
+  panel: HTMLElement,
+  now: () => Date,
+  readJson: (fileName: string) => Promise<LocalJson>,
+): SatelliteBinding {
   const place = panel.querySelector("#iss-place");
   const altitude = panel.querySelector("#iss-altitude");
   const speed = panel.querySelector("#iss-speed");
@@ -488,8 +614,29 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
   let timer = 0;
   let aimedAtIss = false;
 
-  const setGlobeStatus = (message: string) => {
-    globeStatus.textContent = message;
+  const publishGlobeStatus = () => {
+    if (catalog?.error) {
+      globeStatus.textContent = catalog.error;
+      setLiveRole(globeStatus, "alert");
+      return;
+    }
+    if (globeFailed) {
+      globeStatus.textContent = GLOBE_UNAVAILABLE_MESSAGE;
+      setLiveRole(globeStatus, "status");
+      return;
+    }
+    if (!catalog) {
+      globeStatus.textContent = ORBIT_LOADING_MESSAGE;
+      setLiveRole(globeStatus, "status");
+      return;
+    }
+    globeStatus.textContent = "";
+    setLiveRole(globeStatus, "status");
+  };
+
+  const setPassMessage = (message: string, kind: "status" | "alert") => {
+    pass.textContent = message;
+    setLiveRole(pass, kind);
   };
 
   const renderSource = () => {
@@ -511,7 +658,7 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
       altitude.textContent = "—";
       speed.textContent = "—";
       live.textContent = "";
-      pass.textContent = "궤도 데이터를 불러오는 중";
+      setPassMessage(ORBIT_LOADING_MESSAGE, "status");
       return;
     }
 
@@ -520,7 +667,7 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
       altitude.textContent = "—";
       speed.textContent = "—";
       live.textContent = "";
-      pass.textContent = catalog.error;
+      setPassMessage(catalog.error, "alert");
       return;
     }
 
@@ -529,7 +676,7 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
       altitude.textContent = "—";
       speed.textContent = "—";
       live.textContent = "";
-      pass.textContent = "ISS 궤도 정보가 없습니다.";
+      setPassMessage("ISS 궤도 정보가 없습니다.", "alert");
       return;
     }
 
@@ -537,29 +684,20 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
     altitude.textContent = formatAltitude(sceneIss.fix.altKm);
     speed.textContent = formatSpeed(sceneIss.fix.speedKmh);
     live.textContent = "지금";
-    pass.textContent = passResult
-      ? formatKoreaPassLabel(passResult, now())
-      : "한국 상공 통과를 계산하지 못했습니다.";
-  };
-
-  const globeMessage = () => {
-    if (catalog?.error) {
-      return catalog.error;
-    }
-    if (globeFailed) {
-      return "이 기기에서는 3D 지구본을 표시할 수 없습니다.";
-    }
-    if (!catalog) {
-      return "궤도 데이터를 불러오는 중";
-    }
-    return "";
+    setPassMessage(
+      passResult
+        ? formatKoreaPassLabel(passResult, now())
+        : "한국 상공 통과를 계산하지 못했습니다.",
+      passResult ? "status" : "alert",
+    );
   };
 
   const paint = (refreshOrbit: boolean) => {
+    panel.setAttribute("aria-busy", catalog ? "false" : "true");
     if (!panel.isConnected || !catalog) {
       renderCard(null);
       renderSource();
-      setGlobeStatus(globeMessage());
+      publishGlobeStatus();
       return;
     }
 
@@ -584,7 +722,7 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
     globe?.update(scene?.points ?? [], refreshOrbit ? (scene?.paths ?? []) : undefined, focus);
     renderCard(scene?.iss ?? null);
     renderSource();
-    setGlobeStatus(globeMessage());
+    publishGlobeStatus();
   };
 
   const stop = () => {
@@ -615,7 +753,7 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
       if (!canRenderGlobe()) {
         globeFailed = true;
       }
-      setGlobeStatus(globeMessage());
+      publishGlobeStatus();
       return;
     }
 
@@ -629,7 +767,7 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
         }
         if (!mounted) {
           globeFailed = true;
-          setGlobeStatus(globeMessage());
+          publishGlobeStatus();
           return;
         }
         globe = mounted;
@@ -643,46 +781,27 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
           }
           globe.update(scene.points, scene.paths, focus);
         }
-        setGlobeStatus(globeMessage());
+        publishGlobeStatus();
       })
       .catch(() => {
         globeStarting = false;
         globeFailed = true;
         if (panel.isConnected) {
-          setGlobeStatus(globeMessage());
+          publishGlobeStatus();
         }
       });
   };
 
   const load = () => {
-    const url = `${import.meta.env.BASE_URL}data/tle.json`;
-    void fetch(url)
-      .then(async (response) => {
-        if (!panel.isConnected) {
-          return;
-        }
-        if (!response.ok) {
-          catalog = {
-            fetchedAt: null,
-            stations: [],
-            error: "위성 궤도 데이터를 불러오지 못했습니다.",
-          };
-        } else {
-          catalog = parseTleDocument(await response.json());
-        }
-        paint(true);
-      })
-      .catch(() => {
-        if (!panel.isConnected) {
-          return;
-        }
-        catalog = {
-          fetchedAt: null,
-          stations: [],
-          error: "위성 궤도 데이터를 불러오지 못했습니다.",
-        };
-        paint(true);
-      });
+    void readJson("tle.json").then((file) => {
+      if (!panel.isConnected) {
+        return;
+      }
+      catalog = file.ok
+        ? parseTleDocument(file.payload)
+        : { fetchedAt: null, stations: [], error: ORBIT_LOAD_ERROR };
+      paint(true);
+    });
   };
 
   const onVisibility = () => {
@@ -764,6 +883,7 @@ function launchSourceLabel(fetchedAt: string | null): string {
 }
 
 function fillCountdown(countdown: HTMLElement, parts: CountdownParts | null): void {
+  const units = ["일", "시간", "분", "초"];
   const values = ["—", "—", "—", "—"];
   if (parts) {
     values[0] = formatCountdownUnit(parts.days);
@@ -771,9 +891,17 @@ function fillCountdown(countdown: HTMLElement, parts: CountdownParts | null): vo
     values[2] = formatCountdownUnit(parts.minutes);
     values[3] = formatCountdownUnit(parts.seconds);
   }
-  const nodes = countdown.querySelectorAll(".countdown-value");
-  nodes.forEach((node, index) => {
-    node.textContent = values[index] ?? "—";
+  const cells = countdown.querySelectorAll(".countdown-cell");
+  cells.forEach((cell, index) => {
+    const value = values[index] ?? "—";
+    const unit = units[index] ?? "";
+    const node = cell.querySelector(".countdown-value");
+    if (node) {
+      node.textContent = value;
+    }
+    if (cell instanceof HTMLElement) {
+      cell.setAttribute("aria-label", `${value} ${unit}`);
+    }
   });
 }
 
@@ -811,7 +939,11 @@ function createLaterLaunchRow(launch: LaunchItem, now: Date): HTMLElement {
   return row;
 }
 
-function bindLaunches(panel: HTMLElement, now: () => Date): { show: () => void; hide: () => void } | null {
+function bindLaunches(
+  panel: HTMLElement,
+  now: () => Date,
+  readJson: (fileName: string) => Promise<LocalJson>,
+): { show: () => void; hide: () => void } | null {
   const title = panel.querySelector("#next-launch-title");
   const meta = panel.querySelector("#next-launch-meta");
   const when = panel.querySelector("#next-launch-when");
@@ -840,9 +972,14 @@ function bindLaunches(panel: HTMLElement, now: () => Date): { show: () => void; 
   let timer = 0;
   let builtKey = "";
 
-  const showMessage = (message: string, fetchedAt: string | null) => {
+  const showMessage = (
+    message: string,
+    fetchedAt: string | null,
+    kind: "loading" | "empty" | "error",
+  ) => {
     status.hidden = false;
     status.textContent = message;
+    setLiveRole(status, kind === "error" ? "alert" : "status");
     title.textContent = "";
     meta.textContent = "";
     when.textContent = "";
@@ -852,6 +989,7 @@ function bindLaunches(panel: HTMLElement, now: () => Date): { show: () => void; 
     laterLabel.hidden = true;
     later.replaceChildren();
     source.textContent = fetchedAt ? launchSourceLabel(fetchedAt) : "";
+    panel.setAttribute("aria-busy", kind === "loading" ? "true" : "false");
   };
 
   const paint = () => {
@@ -873,13 +1011,17 @@ function bindLaunches(panel: HTMLElement, now: () => Date): { show: () => void; 
     if (key !== builtKey) {
       builtKey = key;
       if (!catalog) {
-        showMessage(LAUNCH_LOADING_MESSAGE, null);
+        showMessage(LAUNCH_LOADING_MESSAGE, null, "loading");
         countdown.hidden = false;
         laterLabel.hidden = false;
         fillCountdown(countdown, null);
         source.textContent = "";
       } else if (catalog.error || !next) {
-        showMessage(catalog.error ?? LAUNCH_EMPTY_MESSAGE, catalog.fetchedAt);
+        showMessage(
+          catalog.error ?? LAUNCH_EMPTY_MESSAGE,
+          catalog.fetchedAt,
+          catalog.error ? "error" : "empty",
+        );
       } else {
         const net = new Date(next.net);
         status.hidden = true;
@@ -900,6 +1042,7 @@ function bindLaunches(panel: HTMLElement, now: () => Date): { show: () => void; 
           ...upcoming.slice(1).map((launch) => createLaterLaunchRow(launch, now())),
         );
         source.textContent = launchSourceLabel(catalog.fetchedAt);
+        panel.setAttribute("aria-busy", "false");
       }
     }
 
@@ -914,28 +1057,16 @@ function bindLaunches(panel: HTMLElement, now: () => Date): { show: () => void; 
   };
 
   const load = () => {
-    const url = `${import.meta.env.BASE_URL}data/launches.json`;
-    void fetch(url)
-      .then(async (response) => {
-        if (!panel.isConnected) {
-          return;
-        }
-        if (!response.ok) {
-          catalog = { fetchedAt: null, launches: [], error: LAUNCH_LOAD_ERROR };
-        } else {
-          catalog = parseLaunchDocument(await response.json());
-        }
-        builtKey = "";
-        paint();
-      })
-      .catch(() => {
-        if (!panel.isConnected) {
-          return;
-        }
-        catalog = { fetchedAt: null, launches: [], error: LAUNCH_LOAD_ERROR };
-        builtKey = "";
-        paint();
-      });
+    void readJson("launches.json").then((file) => {
+      if (!panel.isConnected) {
+        return;
+      }
+      catalog = file.ok
+        ? parseLaunchDocument(file.payload)
+        : { fetchedAt: null, launches: [], error: LAUNCH_LOAD_ERROR };
+      builtKey = "";
+      paint();
+    });
   };
 
   const onVisibility = () => {
@@ -1011,7 +1142,8 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
   const status = document.createElement("p");
   status.id = "launch-status";
   status.className = "pending";
-  status.role = "status";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
   status.textContent = LAUNCH_LOADING_MESSAGE;
 
   const countdown = createCountdown();
@@ -1023,6 +1155,7 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
   webcast.target = "_blank";
   webcast.rel = "noopener noreferrer";
   webcast.hidden = true;
+  webcast.setAttribute("aria-label", "생중계 보기");
   const webcastLabel = document.createElement("span");
   webcastLabel.textContent = "생중계 보기";
   webcast.append(createPlayIcon(), webcastLabel);
@@ -1043,6 +1176,7 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
   source.className = "orbit-source";
 
   panel.append(next, laterLabel, later, source);
+  panel.setAttribute("aria-busy", "true");
   return panel;
 }
 
@@ -1053,6 +1187,7 @@ function createTabButton(tab: Tab): HTMLButtonElement {
   button.className = "tab-button";
   button.role = "tab";
   button.setAttribute("aria-controls", `panel-${tab.id}`);
+  button.setAttribute("aria-label", tab.label);
   button.dataset.tab = tab.id;
 
   const label = document.createElement("span");
@@ -1314,10 +1449,11 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   tabList.append(...buttons);
   panels.append(...panelElements);
 
+  const readJson = createLocalJsonReader();
   const satellitesPanel = panelElements.find((panel) => panel.id === "panel-satellites");
-  const satellites = satellitesPanel ? bindSatellites(satellitesPanel, now) : null;
+  const satellites = satellitesPanel ? bindSatellites(satellitesPanel, now, readJson) : null;
   const launchesPanel = panelElements.find((panel) => panel.id === "panel-launches");
-  const launches = launchesPanel ? bindLaunches(launchesPanel, now) : null;
+  const launches = launchesPanel ? bindLaunches(launchesPanel, now, readJson) : null;
 
   const setActiveTab = (activeTab: TabId) => {
     buttons.forEach((button) => {
@@ -1351,7 +1487,15 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const footer = document.createElement("p");
   footer.className = "source-footer";
-  footer.textContent = "데이터: CelesTrak · The Space Devs";
+  footer.textContent = dataSourceFooter(null, null);
+  void Promise.all([readJson("tle.json"), readJson("launches.json")]).then(([orbitFile, launchFile]) => {
+    if (!footer.isConnected) {
+      return;
+    }
+    const orbitAt = orbitFile.ok ? parseTleDocument(orbitFile.payload).fetchedAt : null;
+    const launchAt = launchFile.ok ? parseLaunchDocument(launchFile.payload).fetchedAt : null;
+    footer.textContent = dataSourceFooter(orbitAt, launchAt);
+  });
 
   screen.append(header, panels, footer);
   root.append(screen, tabList, dialog);

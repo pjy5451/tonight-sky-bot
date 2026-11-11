@@ -122,7 +122,8 @@ h1 {
 .location-primary:focus-visible,
 .location-close:focus-visible,
 .region-button:focus-visible,
-.tab-button:focus-visible {
+.tab-button:focus-visible,
+.webcast-button:focus-visible {
   outline: 3px solid #f5b544;
   outline-offset: 2px;
 }
@@ -428,6 +429,12 @@ h1 {
   color: #a9b3c7;
   font-size: 14px;
   line-height: 1.5;
+}
+
+.pending[role="alert"],
+.globe-status[role="alert"],
+.iss-pass[role="alert"] {
+  color: #f5b544;
 }
 
 .globe-stage {
