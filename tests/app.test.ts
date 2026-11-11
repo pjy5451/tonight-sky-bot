@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, type AppOptions } from "../src/app";
 import { LOCATION_STORAGE_KEY, saveLocation } from "../src/location";
+import { nextMeteorShower } from "../src/meteors";
 import { formatKstTime } from "../src/sky";
 import {
   formatAltitude,
@@ -325,6 +326,14 @@ describe("tonight panel", () => {
     expect(document.querySelector<HTMLElement>("#planet-empty")?.hidden).toBe(true);
     expect(document.querySelector("#panel-tonight")?.textContent).toContain("ISS 통과");
     expect(document.querySelector("#panel-tonight")?.textContent).toContain("준비 중");
+    expect(document.querySelector("#meteor-name")?.textContent).toBe("사자자리 유성우 극대");
+    expect(document.querySelector("#meteor-dday")?.textContent).toBe("D-5");
+    expect(getComputedStyle(document.querySelector("#meteor-dday") as HTMLElement).color).toBe(
+      "rgb(108, 196, 255)",
+    );
+    expect(getComputedStyle(document.querySelector("#meteor-dday") as HTMLElement).fontFamily).toContain(
+      "Space Grotesk",
+    );
     expect(getComputedStyle(document.querySelector("#sunset-value") as HTMLElement).fontFamily).toContain(
       "Space Grotesk",
     );
@@ -384,6 +393,8 @@ describe("tonight panel", () => {
     expect(document.querySelector("#planet-empty")?.textContent).toBe(
       "위치를 선택하면 오늘 밤 하늘을 계산합니다.",
     );
+    expect(document.querySelector("#meteor-name")?.textContent).toBe("사자자리 유성우 극대");
+    expect(document.querySelector("#meteor-dday")?.textContent).toBe("D-5");
     expect(document.querySelector("#panel-tonight")?.textContent).not.toMatch(/\d{1,2}:\d{2}/);
   });
 
@@ -412,6 +423,21 @@ describe("tonight panel", () => {
       }
     }
     expect(tooWide).toEqual([]);
+  });
+
+  it("keeps the longest meteor shower name inside a 390px screen", () => {
+    const now = new Date("2026-05-07T03:00:00.000Z");
+    document.documentElement.style.width = "390px";
+    document.body.style.width = "390px";
+    renderApp({ now: () => now });
+
+    const next = nextMeteorShower(now);
+    expect(next).toMatchObject({ shower: { id: "sda" }, daysUntil: 85 });
+    expect(document.querySelector("#meteor-name")?.textContent).toBe("남쪽 물병자리 델타 유성우 극대");
+    expect(document.querySelector("#meteor-dday")?.textContent).toBe("D-85");
+
+    const rootWidth = document.documentElement.clientWidth || 390;
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(rootWidth);
   });
 
   it("flips the moon's bright limb south of the equator", () => {
