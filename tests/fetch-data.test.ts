@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import appSource from "../src/app.ts?raw";
+import textureSource from "../src/earth-textures.ts?raw";
 import globeSource from "../src/globe-view.ts?raw";
 import locationSource from "../src/location.ts?raw";
 import mainSource from "../src/main.ts?raw";
@@ -287,6 +288,7 @@ describe("fetch-data", () => {
       mainSource,
       locationSource,
       globeSource,
+      textureSource,
       satelliteSource,
       stylesSource,
     ].join("\n");
@@ -295,9 +297,11 @@ describe("fetch-data", () => {
     expect(browserSource).not.toContain("thespacedevs.com");
     expect(browserSource).not.toContain("innerHTML");
     expect(browserSource).not.toContain("unpkg.com");
-    expect(globeSource).toContain("textures/earth-day.jpg");
-    expect(globeSource).toContain("textures/earth-night.jpg");
-    expect(globeSource).not.toContain("textures/earth.png");
+    expect(textureSource).toContain("textures/earth-day.jpg");
+    expect(textureSource).toContain("textures/earth-night.jpg");
+    expect(textureSource).not.toContain("textures/earth.png");
+    expect(textureSource).not.toMatch(/https?:\/\//);
+    expect(globeSource).toContain("startupTextures()");
     expect(globeSource).not.toMatch(/https?:\/\//);
   });
 });
