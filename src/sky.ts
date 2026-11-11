@@ -1,11 +1,15 @@
 import {
   Body,
   Equator,
+  GeoVector,
   Horizon,
   Illumination,
   MoonPhase,
   Observer,
+  RotateVector,
+  Rotation_EQJ_EQD,
   SearchRiseSet,
+  VectorObserver,
 } from "astronomy-engine";
 
 /**
@@ -283,5 +287,27 @@ export function computeTonightSky(place: SkyPlace, date: Date): TonightSky {
     moonIlluminationPercent,
     moonPhaseName: moonPhaseName(moonPhaseAngle, moonIlluminationPercent),
     planets,
+  };
+}
+
+export type SubsolarPoint = {
+  latitude: number;
+  longitude: number;
+};
+
+/**
+ * 태양이 머리 위에 있는 지점.
+ * 지구 중심에서 본 태양 방향(광행차 보정, J2000)을 그날의 적도로 돌린 뒤
+ * astronomy-engine `VectorObserver`가 정한 지리 위도·경도를 쓴다.
+ */
+export function subsolarPoint(date: Date): SubsolarPoint {
+  if (Number.isNaN(date.getTime())) {
+    throw new RangeError("시각이 올바르지 않습니다.");
+  }
+  const ofDate = RotateVector(Rotation_EQJ_EQD(date), GeoVector(Body.Sun, date, true));
+  const place = VectorObserver(ofDate, true);
+  return {
+    latitude: place.latitude,
+    longitude: place.longitude,
   };
 }
