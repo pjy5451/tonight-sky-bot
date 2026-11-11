@@ -38,6 +38,7 @@ import {
   type LaunchCatalog,
   type LaunchItem,
 } from "./launches";
+import { formatMeteorDday, meteorPeakLabel, nextMeteorShower } from "./meteors";
 import {
   computeTonightSky,
   directionSkyLabel,
@@ -233,7 +234,20 @@ function renderPlanetRows(list: HTMLElement, planets: TonightSky["planets"]): vo
   }
 }
 
+function fillMeteorShower(panel: HTMLElement, date: Date): void {
+  const name = panel.querySelector("#meteor-name");
+  const dday = panel.querySelector("#meteor-dday");
+  if (!(name instanceof HTMLElement) || !(dday instanceof HTMLElement)) {
+    return;
+  }
+  const next = nextMeteorShower(date);
+  name.textContent = meteorPeakLabel(next.shower.name);
+  dday.textContent = formatMeteorDday(next.daysUntil);
+}
+
 function fillTonightPanel(panel: HTMLElement, date: Date): void {
+  fillMeteorShower(panel, date);
+
   const sunset = panel.querySelector("#sunset-value");
   const sunrise = panel.querySelector("#sunrise-value");
   const moonValue = panel.querySelector("#moon-value");
@@ -334,8 +348,14 @@ function createTonightPanel(tab: Tab): HTMLElement {
   const meteorLabel = document.createElement("span");
   meteorLabel.className = "stat-label";
   meteorLabel.textContent = "다음 유성우";
-  meteorCopy.append(meteorLabel, createCardTitle("준비 중"));
-  meteor.append(meteorCopy);
+  const meteorName = createCardTitle("—");
+  meteorName.id = "meteor-name";
+  meteorCopy.append(meteorLabel, meteorName);
+  const meteorDday = document.createElement("span");
+  meteorDday.id = "meteor-dday";
+  meteorDday.className = "meteor-dday";
+  meteorDday.textContent = "—";
+  meteor.append(meteorCopy, meteorDday);
 
   panel.append(stats, iss, planets, meteor);
   return panel;

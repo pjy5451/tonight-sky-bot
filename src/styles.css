@@ -312,6 +312,19 @@ h1 {
   line-height: 1.4;
 }
 
+#meteor-name {
+  overflow-wrap: anywhere;
+}
+
+.meteor-dday {
+  flex-shrink: 0;
+  color: #6cc4ff;
+  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .stat-label {
   color: #a9b3c7;
   font-size: 12px;
