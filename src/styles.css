@@ -320,6 +320,86 @@ h1 {
   border: 1px solid #f5b54455;
 }
 
+#iss-pass-card {
+  gap: 14px;
+}
+
+.iss-pass-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.iss-badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 10px;
+  background: #f5b544;
+  color: #0b1020;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.iss-pass-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.iss-pass-when,
+.iss-pass-detail {
+  color: #a9b3c7;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.iss-pass-time {
+  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+
+.iss-pass-divider {
+  height: 1px;
+  background: #2a3550;
+}
+
+.iss-pass-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.iss-pass-list:empty {
+  display: none;
+}
+
+.iss-pass-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.iss-pass-row-label {
+  flex-shrink: 0;
+  color: #a9b3c7;
+}
+
+.iss-pass-row-value {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 .card-row {
   flex-direction: row;
   justify-content: space-between;

@@ -240,7 +240,10 @@ describe("Argonova frame", () => {
     expect(tonight?.querySelector(".card-highlight")).not.toBeNull();
     expect(tonight?.textContent).toContain("일몰");
     expect(tonight?.textContent).toContain("ISS 통과");
-    expect(tonight?.textContent).toContain("준비 중");
+    expect(tonight?.querySelector("#iss-pass-note")?.textContent).toBe(
+      "위치를 선택하면 통과 시각을 계산합니다.",
+    );
+    expect(tonight?.querySelector("#iss-pass-time")?.textContent).toBe("");
     expect(tonight?.textContent).not.toMatch(/\d{1,2}:\d{2}/);
 
     document.querySelector<HTMLButtonElement>("#tab-satellites")?.click();
@@ -337,7 +340,7 @@ describe("tonight panel", () => {
     );
     expect(document.querySelector<HTMLElement>("#planet-empty")?.hidden).toBe(true);
     expect(document.querySelector("#panel-tonight")?.textContent).toContain("ISS 통과");
-    expect(document.querySelector("#panel-tonight")?.textContent).toContain("준비 중");
+    expect(document.querySelector("#iss-pass-note")?.textContent).toBe("궤도 데이터를 불러오는 중");
     expect(document.querySelector("#meteor-name")?.textContent).toBe("사자자리 유성우 극대");
     expect(document.querySelector("#meteor-dday")?.textContent).toBe("D-5");
     expect(getComputedStyle(document.querySelector("#meteor-dday") as HTMLElement).color).toBe(
