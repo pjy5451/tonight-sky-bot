@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import appSource from "../src/app.ts?raw";
+import globeSource from "../src/globe-view.ts?raw";
 import locationSource from "../src/location.ts?raw";
 import mainSource from "../src/main.ts?raw";
+import satelliteSource from "../src/satellites.ts?raw";
 import stylesSource from "../src/styles.css?raw";
 import indexHtml from "../index.html?raw";
 import {
@@ -279,9 +281,21 @@ describe("fetch-data", () => {
   });
 
   it("does not call CelesTrak or Launch Library from browser source", () => {
-    const browserSource = [indexHtml, appSource, mainSource, locationSource, stylesSource].join("\n");
+    const browserSource = [
+      indexHtml,
+      appSource,
+      mainSource,
+      locationSource,
+      globeSource,
+      satelliteSource,
+      stylesSource,
+    ].join("\n");
 
     expect(browserSource).not.toContain("celestrak.org");
     expect(browserSource).not.toContain("thespacedevs.com");
+    expect(browserSource).not.toContain("innerHTML");
+    expect(browserSource).not.toContain("unpkg.com");
+    expect(globeSource).toContain("textures/earth.png");
+    expect(globeSource).not.toMatch(/https?:\/\//);
   });
 });

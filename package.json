@@ -16,6 +16,8 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
-    "astronomy-engine": "^2.1.19"
+    "astronomy-engine": "^2.1.19",
+    "globe.gl": "^2.46.2",
+    "satellite.js": "^6.0.2"
   }
 }

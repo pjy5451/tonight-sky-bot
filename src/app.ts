@@ -1,3 +1,4 @@
+import { canRenderGlobe, mountSatelliteGlobe, type SatelliteGlobe } from "./globe-view";
 import {
   REGIONS,
   geolocationErrorMessage,
@@ -5,6 +6,19 @@ import {
   saveLocation,
   type LocationInput,
 } from "./location";
+import {
+  ORBIT_REFRESH_MS,
+  POSITION_UPDATE_MS,
+  buildSatelliteScene,
+  findNextKoreaPass,
+  formatAltitude,
+  formatGroundPosition,
+  formatKoreaPassLabel,
+  formatSpeed,
+  parseTleDocument,
+  type Overflight,
+  type StationCatalog,
+} from "./satellites";
 import {
   computeTonightSky,
   directionSkyLabel,
@@ -323,11 +337,40 @@ function createLegendItem(className: string, label: string): HTMLElement {
   return item;
 }
 
+function createIssStat(id: string, label: string, valueClass: string): HTMLElement {
+  const cell = document.createElement("div");
+  cell.className = "iss-stat";
+
+  const labelElement = document.createElement("span");
+  labelElement.className = "stat-label";
+  labelElement.textContent = label;
+
+  const value = document.createElement("span");
+  value.id = id;
+  value.className = valueClass;
+  value.textContent = "—";
+
+  cell.append(labelElement, value);
+  return cell;
+}
+
 function createSatellitesPanel(tab: Tab): HTMLElement {
   const panel = createPanel(tab);
 
-  const globe = createCard("globe-placeholder");
-  globe.append(createPendingText());
+  const stage = document.createElement("div");
+  stage.className = "globe-stage";
+  stage.setAttribute("aria-label", "지구본 위 ISS 궤도와 현재 위치");
+
+  const mount = document.createElement("div");
+  mount.id = "globe-mount";
+  mount.className = "globe-mount";
+
+  const globeStatus = document.createElement("p");
+  globeStatus.id = "globe-status";
+  globeStatus.className = "globe-status pending";
+  globeStatus.textContent = "궤도 데이터를 불러오는 중";
+
+  stage.append(mount, globeStatus);
 
   const legend = document.createElement("div");
   legend.className = "legend";
@@ -337,10 +380,303 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   );
 
   const iss = createCard("card card-highlight");
-  iss.append(createCardTitle("국제우주정거장 (ISS)"), createPendingText());
+  const head = document.createElement("div");
+  head.className = "iss-head";
+  const live = document.createElement("span");
+  live.id = "iss-status";
+  live.className = "iss-now";
+  head.append(createCardTitle("국제우주정거장 (ISS)"), live);
 
-  panel.append(globe, legend, iss);
+  const stats = document.createElement("div");
+  stats.className = "iss-stats";
+  stats.append(
+    createIssStat("iss-place", "위치", "iss-place"),
+    createIssStat("iss-altitude", "고도", "iss-metric"),
+    createIssStat("iss-speed", "속도", "iss-metric"),
+  );
+
+  const pass = document.createElement("p");
+  pass.id = "iss-pass";
+  pass.className = "iss-pass";
+  pass.textContent = "궤도 데이터를 불러오는 중";
+
+  iss.append(head, stats, pass);
+
+  const source = document.createElement("p");
+  source.id = "orbit-source";
+  source.className = "orbit-source";
+  source.textContent = "궤도 데이터: CelesTrak";
+
+  panel.append(stage, legend, iss, source);
   return panel;
+}
+
+type SatelliteBinding = {
+  show(): void;
+  hide(): void;
+};
+
+function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
+  const place = panel.querySelector("#iss-place");
+  const altitude = panel.querySelector("#iss-altitude");
+  const speed = panel.querySelector("#iss-speed");
+  const pass = panel.querySelector("#iss-pass");
+  const live = panel.querySelector("#iss-status");
+  const globeStatus = panel.querySelector("#globe-status");
+  const source = panel.querySelector("#orbit-source");
+  const mount = panel.querySelector("#globe-mount");
+
+  if (
+    !(place instanceof HTMLElement) ||
+    !(altitude instanceof HTMLElement) ||
+    !(speed instanceof HTMLElement) ||
+    !(pass instanceof HTMLElement) ||
+    !(live instanceof HTMLElement) ||
+    !(globeStatus instanceof HTMLElement) ||
+    !(source instanceof HTMLElement) ||
+    !(mount instanceof HTMLElement)
+  ) {
+    return { show() {}, hide() {} };
+  }
+
+  let catalog: StationCatalog | null = null;
+  let globe: SatelliteGlobe | null = null;
+  let globeFailed = false;
+  let globeStarting = false;
+  let started = false;
+  let passResult: Overflight | null = null;
+  let passStamp = 0;
+  let timer = 0;
+  let aimedAtIss = false;
+
+  const setGlobeStatus = (message: string) => {
+    globeStatus.textContent = message;
+  };
+
+  const renderSource = () => {
+    if (!catalog?.fetchedAt) {
+      source.textContent = "궤도 데이터: CelesTrak";
+      return;
+    }
+    const fetched = new Date(catalog.fetchedAt);
+    if (Number.isNaN(fetched.getTime())) {
+      source.textContent = "궤도 데이터: CelesTrak";
+      return;
+    }
+    source.textContent = `궤도 데이터: CelesTrak · ${formatKstTime(fetched)} 갱신`;
+  };
+
+  const renderCard = (sceneIss: ReturnType<typeof buildSatelliteScene>["iss"]) => {
+    if (!catalog) {
+      place.textContent = "—";
+      altitude.textContent = "—";
+      speed.textContent = "—";
+      live.textContent = "";
+      pass.textContent = "궤도 데이터를 불러오는 중";
+      return;
+    }
+
+    if (catalog.error) {
+      place.textContent = "—";
+      altitude.textContent = "—";
+      speed.textContent = "—";
+      live.textContent = "";
+      pass.textContent = catalog.error;
+      return;
+    }
+
+    if (!sceneIss) {
+      place.textContent = "—";
+      altitude.textContent = "—";
+      speed.textContent = "—";
+      live.textContent = "";
+      pass.textContent = "ISS 궤도 정보가 없습니다.";
+      return;
+    }
+
+    place.textContent = formatGroundPosition(sceneIss.fix.lat, sceneIss.fix.lng);
+    altitude.textContent = formatAltitude(sceneIss.fix.altKm);
+    speed.textContent = formatSpeed(sceneIss.fix.speedKmh);
+    live.textContent = "지금";
+    pass.textContent = passResult
+      ? formatKoreaPassLabel(passResult, now())
+      : "한국 상공 통과를 계산하지 못했습니다.";
+  };
+
+  const globeMessage = () => {
+    if (catalog?.error) {
+      return catalog.error;
+    }
+    if (globeFailed) {
+      return "이 기기에서는 3D 지구본을 표시할 수 없습니다.";
+    }
+    if (!catalog) {
+      return "궤도 데이터를 불러오는 중";
+    }
+    return "";
+  };
+
+  const paint = (refreshOrbit: boolean) => {
+    if (!panel.isConnected || !catalog) {
+      renderCard(null);
+      renderSource();
+      setGlobeStatus(globeMessage());
+      return;
+    }
+
+    const date = now();
+    const scene = catalog.error
+      ? null
+      : buildSatelliteScene(catalog.stations, date, { includeOrbit: refreshOrbit });
+    if (scene && refreshOrbit) {
+      passResult = scene.iss ? findNextKoreaPass(scene.iss.station, date) : null;
+      passStamp = date.getTime();
+    }
+    if (!scene?.iss) {
+      passResult = null;
+    }
+
+    const focus = scene?.iss && globe && !aimedAtIss
+      ? { lat: scene.iss.fix.lat, lng: scene.iss.fix.lng }
+      : undefined;
+    if (focus) {
+      aimedAtIss = true;
+    }
+    globe?.update(scene?.points ?? [], refreshOrbit ? (scene?.paths ?? []) : undefined, focus);
+    renderCard(scene?.iss ?? null);
+    renderSource();
+    setGlobeStatus(globeMessage());
+  };
+
+  const stop = () => {
+    window.clearInterval(timer);
+    timer = 0;
+    globe?.destroy();
+    globe = null;
+  };
+
+  const tick = () => {
+    if (!panel.isConnected) {
+      stop();
+      return;
+    }
+    if (panel.hidden || document.visibilityState === "hidden") {
+      globe?.pause();
+      return;
+    }
+    globe?.resume();
+    if (!catalog) {
+      return;
+    }
+    paint(Math.abs(now().getTime() - passStamp) >= ORBIT_REFRESH_MS);
+  };
+
+  const ensureGlobe = () => {
+    if (globe || globeFailed || globeStarting || !canRenderGlobe()) {
+      if (!canRenderGlobe()) {
+        globeFailed = true;
+      }
+      setGlobeStatus(globeMessage());
+      return;
+    }
+
+    globeStarting = true;
+    void mountSatelliteGlobe(mount)
+      .then((mounted) => {
+        globeStarting = false;
+        if (!panel.isConnected) {
+          mounted?.destroy();
+          return;
+        }
+        if (!mounted) {
+          globeFailed = true;
+          setGlobeStatus(globeMessage());
+          return;
+        }
+        globe = mounted;
+        if (catalog && !catalog.error) {
+          const scene = buildSatelliteScene(catalog.stations, now());
+          const focus = scene.iss && !aimedAtIss
+            ? { lat: scene.iss.fix.lat, lng: scene.iss.fix.lng }
+            : undefined;
+          if (focus) {
+            aimedAtIss = true;
+          }
+          globe.update(scene.points, scene.paths, focus);
+        }
+        setGlobeStatus(globeMessage());
+      })
+      .catch(() => {
+        globeStarting = false;
+        globeFailed = true;
+        if (panel.isConnected) {
+          setGlobeStatus(globeMessage());
+        }
+      });
+  };
+
+  const load = () => {
+    const url = `${import.meta.env.BASE_URL}data/tle.json`;
+    void fetch(url)
+      .then(async (response) => {
+        if (!panel.isConnected) {
+          return;
+        }
+        if (!response.ok) {
+          catalog = {
+            fetchedAt: null,
+            stations: [],
+            error: "위성 궤도 데이터를 불러오지 못했습니다.",
+          };
+        } else {
+          catalog = parseTleDocument(await response.json());
+        }
+        paint(true);
+      })
+      .catch(() => {
+        if (!panel.isConnected) {
+          return;
+        }
+        catalog = {
+          fetchedAt: null,
+          stations: [],
+          error: "위성 궤도 데이터를 불러오지 못했습니다.",
+        };
+        paint(true);
+      });
+  };
+
+  const onVisibility = () => {
+    if (!panel.isConnected) {
+      document.removeEventListener("visibilitychange", onVisibility);
+      stop();
+      return;
+    }
+    if (document.visibilityState === "hidden" || panel.hidden) {
+      globe?.pause();
+      return;
+    }
+    globe?.resume();
+  };
+
+  return {
+    show() {
+      if (!started) {
+        started = true;
+        load();
+        timer = window.setInterval(tick, POSITION_UPDATE_MS);
+        document.addEventListener("visibilitychange", onVisibility);
+      }
+      ensureGlobe();
+      if (catalog) {
+        paint(false);
+      }
+      globe?.resume();
+    },
+    hide() {
+      globe?.pause();
+    },
+  };
 }
 
 function createCountdown(): HTMLElement {
@@ -654,6 +990,9 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   tabList.append(...buttons);
   panels.append(...panelElements);
 
+  const satellitesPanel = panelElements.find((panel) => panel.id === "panel-satellites");
+  const satellites = satellitesPanel ? bindSatellites(satellitesPanel, now) : null;
+
   const setActiveTab = (activeTab: TabId) => {
     buttons.forEach((button) => {
       const isActive = button.dataset.tab === activeTab;
@@ -664,6 +1003,12 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     panelElements.forEach((panel) => {
       panel.hidden = panel.id !== `panel-${activeTab}`;
     });
+
+    if (activeTab === "satellites") {
+      satellites?.show();
+    } else {
+      satellites?.hide();
+    }
   };
 
   buttons.forEach((button) => {
