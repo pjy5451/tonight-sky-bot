@@ -254,6 +254,18 @@ describe("Argonova frame", () => {
     expect(satellites?.textContent).toContain("고도");
     expect(satellites?.textContent).toContain("속도");
     expect(satellites?.textContent).toContain("다른 우주정거장·위성");
+    expect(satellites?.textContent).toContain("스타링크");
+    expect(satellites?.textContent).toContain("한국 위성만");
+    const starlinkFilter = document.querySelector<HTMLButtonElement>('[data-group="starlink"]');
+    const koreaOnly = document.querySelector<HTMLButtonElement>('[data-filter="korea-only"]');
+    expect(starlinkFilter?.getAttribute("aria-pressed")).toBe("true");
+    expect(koreaOnly?.getAttribute("aria-pressed")).toBe("false");
+    expect(getComputedStyle(starlinkFilter as HTMLElement).minHeight).toBe("44px");
+    starlinkFilter?.click();
+    expect(starlinkFilter?.getAttribute("aria-pressed")).toBe("false");
+    koreaOnly?.click();
+    expect(koreaOnly?.getAttribute("aria-pressed")).toBe("true");
+    expect(document.querySelector("#sat-detail-name")?.textContent).toContain("위성을 누르면");
     expect(getComputedStyle(satellites?.querySelector(".legend-dot-iss") as HTMLElement).backgroundColor).toBe(
       "rgb(245, 181, 68)",
     );

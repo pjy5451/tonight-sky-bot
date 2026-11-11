@@ -1,6 +1,31 @@
 export const CELESTRAK_STATIONS_URL: string;
 export const LAUNCH_LIBRARY_UPCOMING_URL: string;
 export const USER_AGENT: string;
+export const CATALOG_BYTE_BUDGET: number;
+export const CATALOG_GROUPS: readonly string[];
+export const GROUP_COUNTRY: Record<string, string>;
+export const KOREAN_NAME_QUERIES: readonly string[];
+export const KOREAN_NORAD_IDS: readonly number[];
+export const CATALOG_COLUMN: {
+  name: number;
+  norad: number;
+  group: number;
+  country: number;
+  epoch: number;
+  meanMotion: number;
+  eccentricity: number;
+  inclination: number;
+  raan: number;
+  argp: number;
+  anomaly: number;
+  bstar: number;
+  meanMotionDot: number;
+  korean: number;
+};
+
+export function celestrakGroupUrl(group: string): string;
+export function celestrakNameUrl(name: string): string;
+export function catalogRequestPlan(): Array<{ id: string; url: string; name?: string }>;
 
 export interface JsonResponse {
   ok: boolean;
@@ -23,6 +48,36 @@ export interface CollectDataOptions {
 }
 
 export function parseStationItems(payload: unknown): unknown[];
+
+export function parseCatalogGroupItems(payload: unknown): unknown[];
+
+export function compactGpItem(
+  item: {
+    OBJECT_NAME?: string;
+    NORAD_CAT_ID?: number | string;
+    EPOCH?: string;
+    MEAN_MOTION?: number;
+    ECCENTRICITY?: number;
+    INCLINATION?: number;
+    RA_OF_ASC_NODE?: number;
+    ARG_OF_PERICENTER?: number;
+    MEAN_ANOMALY?: number;
+    BSTAR?: number;
+    MEAN_MOTION_DOT?: number;
+  },
+  group: string,
+  country: string,
+  korean: boolean,
+): unknown[];
+
+export function serializeCatalog(document: unknown): string;
+
+export function collectCatalog(fetchImpl: FetchLike): Promise<{
+  fetched_at?: string;
+  error?: string;
+  groups: Record<string, { ok: boolean; count?: number; error?: string; warnings?: string[] }>;
+  items: unknown[][];
+}>;
 
 export function parseLaunchItems(payload: unknown): Array<{
   id: string | null;

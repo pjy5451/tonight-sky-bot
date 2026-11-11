@@ -8,9 +8,11 @@ import {
   InstancedMesh,
   Matrix4,
   Mesh,
+  MeshBasicMaterial,
   MeshPhongMaterial,
   Quaternion,
   SRGBColorSpace,
+  SphereGeometry,
   Vector3,
   type BufferGeometry,
   type Material,
@@ -19,6 +21,8 @@ import {
 } from "three";
 import type { SatellitePoint } from "./satellites";
 import {
+  DOT_SCREEN_PX,
+  DOT_SPAN,
   GENERIC_SCREEN_PX,
   ISS_SCREEN_PX,
   MODEL_COLOR,
@@ -41,6 +45,18 @@ import {
 
 const PANEL_TEXTURE_SIZE = 64;
 const INITIAL_CAPACITY = 128;
+const DOT_CAPACITY = 256;
+
+export type ModelRay = {
+  intersectObject(object: Object3D, recursive?: boolean): Array<{ object: Object3D; instanceId?: number }>;
+};
+
+type DotRig = {
+  mesh: InstancedMesh;
+  geometry: BufferGeometry;
+  material: Material;
+  capacity: number;
+};
 
 type ShadedMaterial = {
   material: MeshPhongMaterial;
@@ -239,15 +255,37 @@ function createGenericRig(panelMap: Texture | null, capacity: number): GenericRi
   };
 }
 
+function createDotRig(capacity: number): DotRig {
+  const geometry = new SphereGeometry(DOT_SPAN / 2, 6, 5);
+  const material = new MeshBasicMaterial({ color: 0xffffff });
+  const mesh = new InstancedMesh(geometry, material, capacity);
+  mesh.name = "catalog-dots";
+  mesh.userData.role = "dot";
+  mesh.count = 0;
+  mesh.visible = false;
+  mesh.frustumCulled = false;
+  return { mesh, geometry, material, capacity };
+}
+
+function cssColor(hex: string, target: Color): void {
+  const match = /^#([0-9a-fA-F]{6})$/.exec(hex);
+  target.setHex(match ? Number.parseInt(match[1] ?? "6CC4FF", 16) : 0x6cc4ff);
+}
+
 /**
- * ISS는 부품을 공유하는 하나의 그룹, 나머지 위성은 몸체·날개 인스턴스 두 묶음이다.
- * 위성이 늘어도 그리기 호출은 ISS 부품 수와 인스턴스 2회로 유지된다.
+ * ISS는 부품을 공유하는 하나의 그룹, 톈궁·허블은 몸체·날개 인스턴스,
+ * 나머지 수천 개는 종류별 색의 점 인스턴스 한 묶음이다.
  */
 export class SatelliteModels {
   readonly object: Group;
   private readonly iss: IssRig;
   private generic: GenericRig;
+  private dots: DotRig;
+  private issPoint: SatellitePoint | null = null;
+  private craftPoints: SatellitePoint[] = [];
+  private dotPoints: SatellitePoint[] = [];
   private readonly panelTexture: Texture | null;
+  private readonly dotColor = new Color();
   private readonly axisX = new Vector3();
   private readonly axisY = new Vector3();
   private readonly axisZ = new Vector3();
@@ -267,21 +305,49 @@ export class SatelliteModels {
     this.iss = createIssRig(this.panelTexture);
     this.iss.group.visible = false;
     this.generic = createGenericRig(this.panelTexture, INITIAL_CAPACITY);
+    this.dots = createDotRig(DOT_CAPACITY);
     this.object = new Group();
     this.object.name = "satellite-models";
     this.object.frustumCulled = false;
-    this.object.add(this.iss.group, this.generic.bodyMesh, this.generic.panelMesh);
+    this.object.add(this.iss.group, this.generic.bodyMesh, this.generic.panelMesh, this.dots.mesh);
   }
 
   sync(points: readonly SatellitePoint[], view: ModelView): void {
     const iss = points.find((point) => point.iss) ?? null;
-    const others = points.filter((point) => !point.iss);
+    const dots = points.filter((point) => !point.iss && point.marker === "dot");
+    const others = points.filter((point) => !point.iss && point.marker !== "dot");
+    this.issPoint = iss;
+    this.dotPoints = dots;
+    this.craftPoints = others;
     if (iss) {
       this.placeIss(iss, view);
     } else {
       this.iss.group.visible = false;
     }
     this.placeOthers(others, view);
+    this.placeDots(dots, view);
+  }
+
+  pick(raycaster: ModelRay): SatellitePoint | null {
+    this.object.updateMatrixWorld(true);
+    const hit = raycaster.intersectObject(this.object, true)[0];
+    if (!hit) {
+      return null;
+    }
+    if (hit.object === this.dots.mesh && typeof hit.instanceId === "number") {
+      return this.dotPoints[hit.instanceId] ?? null;
+    }
+    if (hit.object === this.generic.bodyMesh && typeof hit.instanceId === "number") {
+      return this.craftPoints[hit.instanceId] ?? null;
+    }
+    if (hit.object === this.generic.panelMesh && typeof hit.instanceId === "number") {
+      const wings = Math.max(1, this.generic.panelCenters.length);
+      return this.craftPoints[Math.floor(hit.instanceId / wings)] ?? null;
+    }
+    if (this.issPoint && this.belongsToIss(hit.object)) {
+      return this.issPoint;
+    }
+    return null;
   }
 
   dispose(): void {
@@ -301,7 +367,21 @@ export class SatelliteModels {
     for (const material of this.generic.materials) {
       material.dispose();
     }
+    this.dots.mesh.dispose();
+    this.dots.geometry.dispose();
+    this.dots.material.dispose();
     this.panelTexture?.dispose();
+  }
+
+  private belongsToIss(object: Object3D): boolean {
+    let current: Object3D | null = object;
+    while (current) {
+      if (current === this.iss.group) {
+        return true;
+      }
+      current = current.parent;
+    }
+    return false;
   }
 
   private placeIss(point: SatellitePoint, view: ModelView): void {
@@ -365,6 +445,52 @@ export class SatelliteModels {
     if (rig.panelMesh.instanceColor) {
       rig.panelMesh.instanceColor.needsUpdate = true;
     }
+  }
+
+  private placeDots(points: readonly SatellitePoint[], view: ModelView): void {
+    if (points.length > this.dots.capacity) {
+      this.growDots(points.length);
+    }
+    const mesh = this.dots.mesh;
+    mesh.count = points.length;
+    mesh.visible = points.length > 0;
+    for (let index = 0; index < points.length; index += 1) {
+      const point = points[index];
+      if (!point) {
+        continue;
+      }
+      const placed = this.placement(point, view, DOT_SPAN, DOT_SCREEN_PX);
+      this.position.set(placed.position.x, placed.position.y, placed.position.z);
+      this.quaternion.identity();
+      this.scale.set(placed.scale, placed.scale, placed.scale);
+      this.modelMatrix.compose(this.position, this.quaternion, this.scale);
+      mesh.setMatrixAt(index, this.modelMatrix);
+      cssColor(point.color, this.dotColor);
+      this.shadeColor.setRGB(
+        this.dotColor.r * placed.shade,
+        this.dotColor.g * placed.shade,
+        this.dotColor.b * placed.shade,
+      );
+      mesh.setColorAt(index, this.shadeColor);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) {
+      mesh.instanceColor.needsUpdate = true;
+    }
+  }
+
+  private growDots(needed: number): void {
+    let capacity = this.dots.capacity;
+    while (capacity < needed) {
+      capacity *= 2;
+    }
+    const next = createDotRig(capacity);
+    this.object.remove(this.dots.mesh);
+    this.dots.mesh.dispose();
+    this.dots.geometry.dispose();
+    this.dots.material.dispose();
+    this.dots = next;
+    this.object.add(next.mesh);
   }
 
   private growGeneric(needed: number): void {

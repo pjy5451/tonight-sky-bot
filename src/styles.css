@@ -148,6 +148,7 @@ h1 {
 
 .location-button:focus-visible,
 .language-button:focus-visible,
+.sat-filter:focus-visible,
 .location-primary:focus-visible,
 .location-close:focus-visible,
 .region-button:focus-visible,
@@ -598,6 +599,86 @@ h1 {
   background: #6cc4ff;
 }
 
+.sat-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sat-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
+  border: 1px solid #2a3550;
+  background: #141b30;
+  color: #a9b3c7;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.sat-filter[aria-pressed="true"] {
+  border-color: #f5b544;
+  background: #f5b544;
+  color: #0b1020;
+}
+
+.sat-swatch {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 5px;
+}
+
+.sat-swatch-stations,
+.sat-swatch-korea {
+  background: #6cc4ff;
+}
+
+.sat-swatch-starlink {
+  background: #d5ddea;
+}
+
+.sat-swatch-gps-ops {
+  background: #f5b544;
+}
+
+.sat-swatch-galileo {
+  background: #ffd58a;
+}
+
+.sat-swatch-geo {
+  background: #a9b3c7;
+}
+
+.sat-swatch-weather {
+  background: #9fd4ff;
+}
+
+.sat-swatch-science {
+  background: #f2f4f8;
+}
+
+.catalog-status {
+  margin: 0;
+  color: #a9b3c7;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.catalog-status[hidden] {
+  display: none;
+}
+
 .badge {
   align-self: flex-start;
   border-radius: 10px;
@@ -968,7 +1049,7 @@ h1 {
   grid-column: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto 420px auto auto;
+  grid-template-rows: auto auto 420px auto auto auto auto;
   gap: 16px;
   align-items: center;
   align-content: start;
@@ -993,11 +1074,33 @@ h1 {
   justify-self: end;
 }
 
-.is-desktop #panel-satellites .globe-stage {
+.is-desktop #panel-satellites .sat-filters {
   grid-column: 1 / -1;
   grid-row: 2;
+  justify-content: flex-start;
+}
+
+.is-desktop #panel-satellites .globe-stage {
+  grid-column: 1 / -1;
+  grid-row: 3;
   height: 420px;
   min-height: 360px;
+}
+
+.is-desktop #sat-detail,
+.is-desktop #catalog-status {
+  grid-column: 1 / -1;
+}
+
+.is-desktop #sat-detail {
+  grid-row: 4;
+  border-radius: 16px;
+  padding: 16px;
+  background: #0b1020;
+}
+
+.is-desktop #catalog-status {
+  grid-row: 5;
 }
 
 .is-desktop #iss-card,
@@ -1006,11 +1109,11 @@ h1 {
 }
 
 .is-desktop #iss-card {
-  grid-row: 3;
+  grid-row: 6;
 }
 
 .is-desktop #orbit-source {
-  grid-row: 4;
+  grid-row: 7;
 }
 
 .is-desktop #iss-card {

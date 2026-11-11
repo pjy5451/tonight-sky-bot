@@ -1,7 +1,9 @@
 import {
   MeshPhongMaterial,
+  Raycaster,
   SRGBColorSpace,
   TextureLoader,
+  Vector2,
   Vector3,
   type Camera,
   type Texture,
@@ -23,6 +25,10 @@ import {
   type Vec3,
 } from "./satellite-shape";
 import type { OrbitPath, SatellitePoint } from "./satellites";
+
+export type GlobeMountOptions = {
+  onSelect?: (point: SatellitePoint | null) => void;
+};
 import { subsolarPoint } from "./sky";
 
 export { sunDirectionFromSubsolar };
@@ -108,7 +114,10 @@ function applySampling(texture: Texture, kind: TextureKind, anisotropy: number):
   texture.needsUpdate = true;
 }
 
-export async function mountSatelliteGlobe(container: HTMLElement): Promise<SatelliteGlobe | null> {
+export async function mountSatelliteGlobe(
+  container: HTMLElement,
+  options: GlobeMountOptions = {},
+): Promise<SatelliteGlobe | null> {
   if (!canRenderGlobe(container.ownerDocument)) {
     return null;
   }
@@ -320,6 +329,40 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
     syncModels();
   });
 
+  const raycaster = new Raycaster();
+  const pointer = new Vector2();
+  let downX = 0;
+  let downY = 0;
+  let dragged = false;
+  const onPointerDown = (event: PointerEvent) => {
+    downX = event.clientX;
+    downY = event.clientY;
+    dragged = false;
+  };
+  const onPointerMove = (event: PointerEvent) => {
+    if (Math.hypot(event.clientX - downX, event.clientY - downY) > 8) {
+      dragged = true;
+    }
+  };
+  const onPointerUp = (event: PointerEvent) => {
+    if (disposed || dragged) {
+      return;
+    }
+    const rect = container.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) {
+      return;
+    }
+    pointer.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    raycaster.setFromCamera(pointer, globe.camera());
+    options.onSelect?.(models.pick(raycaster));
+  };
+  container.addEventListener("pointerdown", onPointerDown);
+  container.addEventListener("pointermove", onPointerMove);
+  container.addEventListener("pointerup", onPointerUp);
+
   globe.onZoom((pov) => {
     beginUpgrade(
       schedule.noteViewChange({
@@ -376,6 +419,9 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
       disposed = true;
       window.clearInterval(sunTimer);
       observer?.disconnect();
+      container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("pointermove", onPointerMove);
+      container.removeEventListener("pointerup", onPointerUp);
       for (const texture of tracked) {
         texture.dispose();
       }

@@ -55,6 +55,12 @@ export const ISS_SCREEN_PX = 76;
 /** 다른 정거장·위성은 ISS보다 작게, 점은 읽히도록. */
 export const GENERIC_SCREEN_PX = 34;
 
+/** 수천 개 위성의 색 점이 화면에서 차지할 지름. */
+export const DOT_SCREEN_PX = 12;
+
+/** 점 모형의 지름. 화면 크기 계산의 기준 길이. */
+export const DOT_SPAN = 1;
+
 /** 지구 그림자 안의 밝기. 햇빛을 받을 때는 1. */
 export const SHADOW_SHADE = 0.32;
 

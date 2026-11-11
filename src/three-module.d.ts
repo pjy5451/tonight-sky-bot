@@ -2,7 +2,12 @@
 // 이 앱이 쓰는 심볼과, globe.gl 타입 정의가 가져오는 심볼만 적는다.
 
 declare module "three" {
-  export class Vector2 {}
+  export class Vector2 {
+    x: number;
+    y: number;
+    constructor(x?: number, y?: number);
+    set(x: number, y: number): this;
+  }
 
   export class Matrix4 {
     elements: number[];
@@ -16,6 +21,7 @@ declare module "three" {
   export class Quaternion {
     setFromRotationMatrix(matrix: Matrix4): this;
     copy(quaternion: Quaternion): this;
+    identity(): this;
   }
 
   export class Vector3 {
@@ -59,6 +65,7 @@ declare module "three" {
     remove(...objects: Object3D[]): this;
     traverse(callback: (child: Object3D) => void): void;
     updateWorldMatrix(updateParents: boolean, updateChildren: boolean): void;
+    updateMatrixWorld(force?: boolean): void;
     getWorldQuaternion(target: Quaternion): Quaternion;
   }
 
@@ -76,6 +83,10 @@ declare module "three" {
 
   export class BoxGeometry extends BufferGeometry {
     constructor(width?: number, height?: number, depth?: number);
+  }
+
+  export class SphereGeometry extends BufferGeometry {
+    constructor(radius?: number, widthSegments?: number, heightSegments?: number);
   }
 
   export class CylinderGeometry extends BufferGeometry {
@@ -118,6 +129,11 @@ declare module "three" {
     dispose(): void;
   }
 
+  export class MeshBasicMaterial extends Material {
+    color: Color;
+    constructor(parameters?: { color?: number });
+  }
+
   export class MeshPhongMaterial extends Material {
     color: Color;
     emissive: Color;
@@ -150,6 +166,14 @@ declare module "three" {
     setColorAt(index: number, color: Color): void;
     getColorAt(index: number, color: Color): void;
     dispose(): void;
+  }
+
+  export class Raycaster {
+    setFromCamera(pointer: Vector2, camera: Camera): void;
+    intersectObject(
+      object: Object3D,
+      recursive?: boolean,
+    ): Array<{ object: Object3D; instanceId?: number }>;
   }
 
   export class WebGLRenderer {
