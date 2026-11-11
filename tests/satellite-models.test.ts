@@ -165,7 +165,9 @@ describe("earth shadow and screen size", () => {
   });
 });
 
-function point(partial: Partial<SatellitePoint> & Pick<SatellitePoint, "lat" | "lng" | "iss" | "velocity">): SatellitePoint {
+function point(
+  partial: Partial<SatellitePoint> & Pick<SatellitePoint, "lat" | "lng" | "iss" | "velocity">,
+): SatellitePoint {
   return {
     alt: 0.06,
     color: partial.iss ? "#F5B544" : "#6CC4FF",
@@ -325,6 +327,54 @@ describe("many satellites", () => {
     }
     const separate = byRole(models.object, "truss").length + byRole(models.object, "module").length;
     expect(separate).toBeLessThan(20);
+    models.dispose();
+  });
+
+  it("draws catalog satellites as one instanced dot mesh and keeps station models", () => {
+    const models = new SatelliteModels(1);
+    const sun = { x: 0, y: 0, z: 1 };
+    models.sync(
+      [
+        point({ lat: 0, lng: 0, iss: true, velocity: { x: 0.01, y: 0, z: 0 } }),
+        point({ lat: 10, lng: 20, iss: false, velocity: { x: 0, y: 0.01, z: 0 } }),
+        point({
+          lat: 0,
+          lng: 30,
+          iss: false,
+          marker: "dot",
+          color: "#F5B544",
+          velocity: { x: 0, y: 0, z: 0 },
+        }),
+        point({
+          lat: 5,
+          lng: 40,
+          iss: false,
+          marker: "dot",
+          color: "#6CC4FF",
+          velocity: { x: 0, y: 0, z: 0 },
+        }),
+      ],
+      {
+        globeRadius: 100,
+        cameraPosition: { x: 0, y: 0, z: 350 },
+        viewportHeight: 340,
+        fovDegrees: 50,
+        sun,
+      },
+    );
+
+    const bodies = models.object.children.find((child) => child.name === "generic-body");
+    const dots = models.object.children.find((child) => child.name === "catalog-dots");
+    expect(bodies).toBeInstanceOf(InstancedMesh);
+    expect(dots).toBeInstanceOf(InstancedMesh);
+    if (bodies instanceof InstancedMesh && dots instanceof InstancedMesh) {
+      expect(bodies.count).toBe(1);
+      expect(dots.count).toBe(2);
+      const color = new Color();
+      dots.getColorAt(0, color);
+      expect(color.getHex()).toBe(0xf5b544);
+    }
+    expect(byRole(models.object, "truss")).toHaveLength(1);
     models.dispose();
   });
 });

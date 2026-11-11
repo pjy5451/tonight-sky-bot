@@ -9,11 +9,22 @@ import {
   type OMMJsonObject,
   type SatRec,
 } from "satellite.js";
+import {
+  GROUP_COLOR,
+  HUBBLE_NORAD_CATALOG_ID,
+  TIANGONG_NORAD_CATALOG_ID,
+  type FilterGroup,
+} from "./catalog";
 import { translate, type Locale } from "./i18n";
 import { globeVector, type Vec3 } from "./satellite-shape";
 
 /** NORAD 카탈로그에서 ISS(ZARYA)의 번호. */
 export const ISS_NORAD_CATALOG_ID = 25544;
+
+export { HUBBLE_NORAD_CATALOG_ID, TIANGONG_NORAD_CATALOG_ID };
+
+/** 한 프레임에 궤도를 계산하는 위성 수. 나머진 다음 프레임으로 넘긴다. */
+export const SCENE_BATCH = 400;
 
 export const ISS_COLOR = "#F5B544";
 export const OTHER_SATELLITE_COLOR = "#6CC4FF";
@@ -43,10 +54,16 @@ export const KOREA_BOUNDS = {
 
 const DATA_ERROR = "위성 궤도 데이터를 불러오지 못했습니다.";
 
+export type SatelliteMarker = "model" | "dot";
+
 export type Station = {
   name: string;
   noradId: number;
   omm: OMMJsonObject;
+  group?: string;
+  country?: string;
+  korean?: boolean;
+  marker?: SatelliteMarker;
 };
 
 export type StationCatalog = {
@@ -68,10 +85,17 @@ export type SatellitePoint = {
   lat: number;
   lng: number;
   alt: number;
+  altKm?: number;
   color: string;
   iss: boolean;
   /** 1초 뒤 지면 위치와의 차. 장면 좌표(지구 반지름 = 1)이며 모형이 이 방향을 본다. */
   velocity: Vec3;
+  noradId?: number;
+  name?: string;
+  group?: string;
+  country?: string;
+  korean?: boolean;
+  marker?: SatelliteMarker;
 };
 
 export type OrbitPoint = {
@@ -204,6 +228,126 @@ export function parseTleDocument(payload: unknown): StationCatalog {
   }
 
   return { fetchedAt, stations, error: null };
+}
+
+const CATALOG_GROUPS = new Set<string>([
+  "starlink",
+  "gps-ops",
+  "galileo",
+  "geo",
+  "weather",
+  "science",
+  "korea",
+  "stations",
+]);
+
+export type CatalogLoad = {
+  fetchedAt: string | null;
+  satellites: Station[];
+  error: string | null;
+};
+
+/** ISS·톈궁·허블만 3D 모형이고, 나머지 추가 위성은 색 점이다. 정거장 그룹은 기존 모형이다. */
+export function markerFor(noradId: number, group?: string): SatelliteMarker {
+  if (
+    noradId === ISS_NORAD_CATALOG_ID ||
+    noradId === TIANGONG_NORAD_CATALOG_ID ||
+    noradId === HUBBLE_NORAD_CATALOG_ID
+  ) {
+    return "model";
+  }
+  if (group === undefined || group === "stations") {
+    return "model";
+  }
+  return "dot";
+}
+
+function catalogStation(row: unknown): Station | null {
+  if (!Array.isArray(row) || row.length < 14) {
+    return null;
+  }
+  const name = typeof row[0] === "string" ? row[0].trim() : "";
+  const noradId = finiteNumber(row[1]);
+  const group = typeof row[2] === "string" ? row[2] : "";
+  const country = typeof row[3] === "string" ? row[3] : "";
+  const epoch = typeof row[4] === "string" ? row[4].trim() : "";
+  const meanMotion = finiteNumber(row[5]);
+  const eccentricity = finiteNumber(row[6]);
+  const inclination = finiteNumber(row[7]);
+  const raan = finiteNumber(row[8]);
+  const argument = finiteNumber(row[9]);
+  const anomaly = finiteNumber(row[10]);
+  const bstar = finiteNumber(row[11]) ?? 0;
+  const meanMotionDot = finiteNumber(row[12]) ?? 0;
+  const korean = row[13] === 1 || row[13] === true;
+
+  if (!name || noradId === null || !CATALOG_GROUPS.has(group) || !epoch) {
+    return null;
+  }
+  if (meanMotion === null || meanMotion <= 0) {
+    return null;
+  }
+  if (eccentricity === null || inclination === null || raan === null || argument === null || anomaly === null) {
+    return null;
+  }
+
+  const omm: OMMJsonObject = {
+    OBJECT_NAME: name,
+    OBJECT_ID: "UNKNOWN",
+    EPOCH: epoch,
+    MEAN_MOTION: meanMotion,
+    ECCENTRICITY: eccentricity,
+    INCLINATION: inclination,
+    RA_OF_ASC_NODE: raan,
+    ARG_OF_PERICENTER: argument,
+    MEAN_ANOMALY: anomaly,
+    NORAD_CAT_ID: noradId,
+    ELEMENT_SET_NO: 999,
+    BSTAR: bstar,
+    MEAN_MOTION_DOT: meanMotionDot,
+    MEAN_MOTION_DDOT: 0,
+  };
+
+  return {
+    name,
+    noradId,
+    omm,
+    group,
+    country,
+    korean,
+    marker: markerFor(noradId, group),
+  };
+}
+
+/** `catalog.json`의 짧은 행만 읽는다. 파일이 비어 있으면 오류가 아니다. */
+export function parseCatalogDocument(payload: unknown): CatalogLoad {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { fetchedAt: null, satellites: [], error: null };
+  }
+
+  const record = payload as Record<string, unknown>;
+  const fetchedAt =
+    typeof record.fetched_at === "string" && record.fetched_at.trim() ? record.fetched_at.trim() : null;
+  const rows = Array.isArray(record.items) ? record.items : null;
+  const satellites: Station[] = [];
+  if (rows) {
+    for (const row of rows) {
+      const station = catalogStation(row);
+      if (station) {
+        satellites.push(station);
+      }
+    }
+  }
+
+  const failed = typeof record.error === "string" && record.error.trim().length > 0 && satellites.length === 0;
+  return { fetchedAt, satellites, error: failed ? "failed" : null };
+}
+
+function groupColor(group: string | undefined): string {
+  if (group && group in GROUP_COLOR) {
+    return GROUP_COLOR[group as FilterGroup];
+  }
+  return OTHER_SATELLITE_COLOR;
 }
 
 function satrecFor(station: Station): SatRec | null {
@@ -376,14 +520,22 @@ export function buildSatelliteScene(
     }
 
     const isIss = station.noradId === ISS_NORAD_CATALOG_ID;
+    const marker = station.marker ?? markerFor(station.noradId, station.group);
     const alt = altitudeRatio(fix.altKm);
     points.push({
       lat: fix.lat,
       lng: fix.lng,
       alt,
-      color: isIss ? ISS_COLOR : OTHER_SATELLITE_COLOR,
+      altKm: fix.altKm,
+      color: isIss ? ISS_COLOR : marker === "dot" ? groupColor(station.group) : OTHER_SATELLITE_COLOR,
       iss: isIss,
-      velocity: travelVelocity(station, date, fix, alt),
+      velocity: marker === "dot" ? { x: 0, y: 0, z: 0 } : travelVelocity(station, date, fix, alt),
+      noradId: station.noradId,
+      name: station.name,
+      group: station.group ?? "stations",
+      country: station.country ?? "",
+      korean: station.korean === true,
+      marker,
     });
 
     if (isIss) {

@@ -8,14 +8,23 @@ import satelliteSource from "../src/satellites.ts?raw";
 import stylesSource from "../src/styles.css?raw";
 import indexHtml from "../index.html?raw";
 import {
+  CATALOG_BYTE_BUDGET,
+  CATALOG_COLUMN,
+  CATALOG_GROUPS,
   CELESTRAK_STATIONS_URL,
+  KOREAN_NAME_QUERIES,
+  KOREAN_NORAD_IDS,
   LAUNCH_LIBRARY_UPCOMING_URL,
   USER_AGENT,
+  catalogRequestPlan,
   collectData,
+  compactGpItem,
   runFetchData,
+  serializeCatalog,
   type FetchLike,
   type JsonResponse,
 } from "../scripts/fetch-data.js";
+import catalogSource from "../src/catalog.ts?raw";
 
 const FETCHED_AT = "2026-11-10T21:00:00.000Z";
 
@@ -142,8 +151,9 @@ describe("fetch-data", () => {
     expect(LAUNCH_LIBRARY_UPCOMING_URL).toContain("limit=20");
     expect(LAUNCH_LIBRARY_UPCOMING_URL).toContain("mode=detailed");
     expect(calls.map((call) => call.url).sort()).toEqual(
-      [CELESTRAK_STATIONS_URL, LAUNCH_LIBRARY_UPCOMING_URL].sort(),
+      [CELESTRAK_STATIONS_URL, LAUNCH_LIBRARY_UPCOMING_URL, ...catalogRequestPlan().map((entry) => entry.url)].sort(),
     );
+    expect(new Set(calls.map((call) => call.url)).size).toBe(calls.length);
     for (const call of calls) {
       expect(call.init?.headers).toMatchObject({
         accept: "application/json",
@@ -290,8 +300,10 @@ describe("fetch-data", () => {
       globeSource,
       textureSource,
       satelliteSource,
+      catalogSource,
       stylesSource,
     ].join("\n");
+    expect(catalogSource).not.toMatch(/https?:\/\//);
 
     expect(browserSource).not.toContain("celestrak.org");
     expect(browserSource).not.toContain("thespacedevs.com");
@@ -303,5 +315,133 @@ describe("fetch-data", () => {
     expect(textureSource).not.toMatch(/https?:\/\//);
     expect(globeSource).toContain("startupTextures()");
     expect(globeSource).not.toMatch(/https?:\/\//);
+  });
+
+  it("keeps successful groups when one group fails and only keeps confirmed Korean ids", async () => {
+    const gps = { ...station, OBJECT_NAME: "GPS BIIA-1", NORAD_CAT_ID: 20959, OBJECT_ID: "1990-103A" };
+    const cheollian = {
+      ...station,
+      OBJECT_NAME: "GEO-KOMPSAT-2A",
+      NORAD_CAT_ID: 43823,
+      OBJECT_ID: "2018-100A",
+    };
+    const lookalike = { ...station, OBJECT_NAME: "NOT-A-KOMPSAT", NORAD_CAT_ID: 99999 };
+    const fetchImpl: FetchLike = async (url) => {
+      if (url === CELESTRAK_STATIONS_URL) {
+        return jsonResponse([station]);
+      }
+      if (url === LAUNCH_LIBRARY_UPCOMING_URL) {
+        return jsonResponse({ results: [] });
+      }
+      if (url.includes("GROUP=starlink")) {
+        return jsonResponse({ error: "busy" }, 503);
+      }
+      if (url.includes("GROUP=gps-ops")) {
+        return jsonResponse([gps, { OBJECT_NAME: "BROKEN" }]);
+      }
+      if (url.includes("GROUP=geo")) {
+        return jsonResponse([cheollian]);
+      }
+      if (url.includes("NAME=KOMPSAT")) {
+        return jsonResponse([cheollian, lookalike]);
+      }
+      if (url.includes("NAME=CAS500")) {
+        throw new Error("timeout");
+      }
+      if (url.includes("GROUP=") || url.includes("NAME=")) {
+        return jsonResponse([]);
+      }
+      throw new Error(`unexpected url ${url}`);
+    };
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    const files = await collectWith(fetchImpl);
+
+    const raw = files.get("catalog.json");
+    expect(raw?.endsWith("\n")).toBe(true);
+    const catalog = JSON.parse(raw ?? "") as {
+      fetched_at?: string;
+      error?: string;
+      groups: Record<string, { ok: boolean; error?: string; count?: number; warnings?: string[] }>;
+      items: unknown[][];
+    };
+    expect(catalog.fetched_at).toBe(FETCHED_AT);
+    expect(catalog.error).toBeUndefined();
+    expect(catalog.groups.starlink?.ok).toBe(false);
+    expect(catalog.groups.starlink?.error).toContain("HTTP 503");
+    expect(catalog.groups["gps-ops"]?.ok).toBe(true);
+    expect(catalog.groups.geo?.ok).toBe(true);
+    expect(catalog.groups.korea?.ok).toBe(true);
+    expect(catalog.groups.korea?.warnings?.some((warning) => warning.includes("CAS500"))).toBe(true);
+    expect(readSaved(files, "tle.json").items).toEqual([station]);
+
+    const norads = catalog.items.map((row) => row[CATALOG_COLUMN.norad]);
+    expect(norads).toContain(20959);
+    expect(norads).toContain(43823);
+    expect(norads).not.toContain(99999);
+    expect(norads.filter((id) => id === 43823)).toHaveLength(1);
+    const korean = catalog.items.find((row) => row[CATALOG_COLUMN.norad] === 43823);
+    expect(korean?.[CATALOG_COLUMN.group]).toBe("geo");
+    expect(korean?.[CATALOG_COLUMN.country]).toBe("KR");
+    expect(korean?.[CATALOG_COLUMN.korean]).toBe(1);
+    expect(JSON.stringify(catalog)).not.toContain("2018-100A");
+    expect(JSON.stringify(catalog)).not.toContain("REV_AT_EPOCH");
+    expect(JSON.stringify(catalog)).not.toContain("NOT-A-KOMPSAT");
+    errorLog.mockRestore();
+  });
+
+  it("requests each CelesTrak group and Korean name once", async () => {
+    const seen: string[] = [];
+    const fetchImpl: FetchLike = async (url) => {
+      seen.push(url);
+      if (url === CELESTRAK_STATIONS_URL) {
+        return jsonResponse([station]);
+      }
+      if (url === LAUNCH_LIBRARY_UPCOMING_URL) {
+        return jsonResponse({ results: [] });
+      }
+      return jsonResponse([]);
+    };
+    await collectWith(fetchImpl);
+    const plan = catalogRequestPlan();
+    expect(new Set(plan.map((entry) => entry.url)).size).toBe(plan.length);
+    for (const entry of plan) {
+      expect(seen.filter((url) => url === entry.url)).toHaveLength(1);
+    }
+    expect(seen.filter((url) => url === CELESTRAK_STATIONS_URL)).toHaveLength(1);
+    expect(CATALOG_GROUPS.every((group) => plan.some((entry) => entry.url.includes(`GROUP=${group}`)))).toBe(true);
+    expect(KOREAN_NAME_QUERIES.every((name) => plan.some((entry) => entry.url.includes(`NAME=${name}`)))).toBe(true);
+  });
+
+  it("keeps a compact catalog under 3MB", () => {
+    const verbose = {
+      ...station,
+      OBJECT_ID: "1998-067A",
+      REV_AT_EPOCH: 99999,
+      COMMENT: "this extra field must stay out of the browser file",
+      MEAN_MOTION_DOT: 0.00001,
+      BSTAR: 0.00002,
+    };
+    const items = Array.from({ length: 12_000 }, (_, index) =>
+      compactGpItem(
+        { ...verbose, OBJECT_NAME: `STARLINK-${index}`, NORAD_CAT_ID: 40_000 + index },
+        "starlink",
+        "US",
+        false,
+      ),
+    );
+    const text = serializeCatalog({
+      fetched_at: FETCHED_AT,
+      groups: { starlink: { ok: true, count: items.length } },
+      items,
+    });
+    expect(new TextEncoder().encode(text).byteLength).toBeLessThan(CATALOG_BYTE_BUDGET);
+    expect(text.trim().includes("\n")).toBe(false);
+    expect(text).not.toContain("COMMENT");
+    expect(text).not.toContain("REV_AT_EPOCH");
+    expect(text).not.toContain("1998-067A");
+    expect(text).toContain("STARLINK-0");
+    expect(KOREAN_NORAD_IDS).toEqual(
+      expect.arrayContaining([38338, 40536, 39227, 43823, 45246, 47932]),
+    );
   });
 });
