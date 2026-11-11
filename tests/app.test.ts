@@ -1,6 +1,14 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, type AppOptions } from "../src/app";
 import { LOCATION_STORAGE_KEY, saveLocation } from "../src/location";
+import { formatKstTime } from "../src/sky";
+import {
+  formatAltitude,
+  formatGroundPosition,
+  formatSpeed,
+  parseTleDocument,
+  propagateStation,
+} from "../src/satellites";
 import indexHtml from "../index.html?raw";
 import manifestText from "../public/manifest.webmanifest?raw";
 import "../src/styles.css";
@@ -30,6 +38,11 @@ function installGeolocation(geolocation: Geolocation) {
 
 beforeEach(() => {
   localStorage.clear();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("tab navigation", () => {
@@ -231,10 +244,23 @@ describe("Argonova frame", () => {
 
     document.querySelector<HTMLButtonElement>("#tab-satellites")?.click();
     const satellites = document.querySelector("#panel-satellites");
-    expect(satellites?.querySelector(".globe-placeholder")).not.toBeNull();
+    expect(satellites?.querySelector(".globe-stage")).not.toBeNull();
+    expect(getComputedStyle(satellites?.querySelector(".globe-stage") as HTMLElement).height).toBe("340px");
     expect(satellites?.querySelector(".legend")).not.toBeNull();
     expect(satellites?.querySelector(".card-highlight")).not.toBeNull();
-    expect(satellites?.textContent).toContain("준비 중");
+    expect(satellites?.textContent).toContain("국제우주정거장 (ISS)");
+    expect(satellites?.textContent).toContain("위치");
+    expect(satellites?.textContent).toContain("고도");
+    expect(satellites?.textContent).toContain("속도");
+    expect(satellites?.textContent).toContain("다른 우주정거장·위성");
+    expect(getComputedStyle(satellites?.querySelector(".legend-dot-iss") as HTMLElement).backgroundColor).toBe(
+      "rgb(245, 181, 68)",
+    );
+    expect(getComputedStyle(satellites?.querySelector(".legend-dot-other") as HTMLElement).backgroundColor).toBe(
+      "rgb(108, 196, 255)",
+    );
+    expect(satellites?.textContent).not.toContain("약 420 km");
+    expect(satellites?.textContent).not.toContain("27,600");
 
     document.querySelector<HTMLButtonElement>("#tab-launches")?.click();
     const launches = document.querySelector("#panel-launches");
@@ -401,5 +427,93 @@ describe("tonight panel", () => {
     expect(xs.length).toBeGreaterThan(10);
     expect(Math.max(...xs)).toBeLessThan(10.5);
     expect(Math.min(...xs)).toBeLessThan(3);
+  });
+});
+
+describe("satellite globe panel", () => {
+  it("shows the propagated ISS card from the local orbit file", async () => {
+    const fetchedAt = "2000-06-27T18:50:19.733Z";
+    const epoch = new Date("2000-06-27T18:50:19.733568Z");
+    const iss = {
+      OBJECT_NAME: "ISS (ZARYA)",
+      OBJECT_ID: "1998-067A",
+      EPOCH: "2000-06-27T18:50:19.733568Z",
+      MEAN_MOTION: 10.82419157,
+      ECCENTRICITY: 0.1859667,
+      INCLINATION: 34.2682,
+      RA_OF_ASC_NODE: 348.7242,
+      ARG_OF_PERICENTER: 331.7664,
+      MEAN_ANOMALY: 19.3264,
+      NORAD_CAT_ID: 25544,
+      BSTAR: 2.8098e-5,
+      MEAN_MOTION_DOT: 2.3e-7,
+      MEAN_MOTION_DDOT: 0,
+    };
+    const other = { ...iss, OBJECT_NAME: "CSS (TIANHE)", NORAD_CAT_ID: 48274 };
+    const fetchMock = vi.fn(async (input: RequestInfo) => {
+      const url = String(input);
+      expect(url).toContain("data/tle.json");
+      expect(url).not.toContain("celestrak.org");
+      return {
+        ok: true,
+        json: async () => ({ fetched_at: fetchedAt, items: [other, iss] }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    document.documentElement.style.width = "390px";
+    document.body.style.width = "390px";
+    renderApp({ now: () => epoch });
+    document.querySelector<HTMLButtonElement>("#tab-satellites")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#iss-altitude")?.textContent).not.toBe("—");
+    });
+
+    const station = parseTleDocument({ items: [iss] }).stations[0];
+    const fix = station ? propagateStation(station, epoch) : null;
+    expect(fix).not.toBeNull();
+    if (!fix) {
+      return;
+    }
+
+    expect(document.querySelector("#iss-place")?.textContent).toBe(formatGroundPosition(fix.lat, fix.lng));
+    expect(document.querySelector("#iss-altitude")?.textContent).toBe(formatAltitude(fix.altKm));
+    expect(document.querySelector("#iss-speed")?.textContent).toBe(formatSpeed(fix.speedKmh));
+    expect(document.querySelector("#iss-status")?.textContent).toBe("지금");
+    expect(document.querySelector("#orbit-source")?.textContent).toBe(
+      `궤도 데이터: CelesTrak · ${formatKstTime(new Date(fetchedAt))} 갱신`,
+    );
+    expect(document.querySelector("#globe-status")?.textContent).toBe(
+      "이 기기에서는 3D 지구본을 표시할 수 없습니다.",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const rootWidth = document.documentElement.clientWidth || 390;
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(rootWidth);
+  });
+
+  it("explains a missing orbit file without showing sample numbers", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ error: "CelesTrak 요청 실패: HTTP 503", items: [] }),
+      })),
+    );
+
+    renderApp();
+    document.querySelector<HTMLButtonElement>("#tab-satellites")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#iss-pass")?.textContent).toBe(
+        "위성 궤도 데이터를 불러오지 못했습니다.",
+      );
+    });
+
+    expect(document.querySelector("#iss-altitude")?.textContent).toBe("—");
+    expect(document.querySelector("#iss-speed")?.textContent).toBe("—");
+    expect(document.querySelector("#panel-satellites")?.textContent).not.toContain("27,600");
+    expect(document.querySelector("#panel-satellites")?.textContent).not.toContain("약 420");
   });
 });

@@ -260,8 +260,7 @@ h1 {
 }
 
 .stat-card,
-.card,
-.globe-placeholder {
+.card {
   min-width: 0;
   background: #141b30;
   color: #f2f4f8;
@@ -417,13 +416,120 @@ h1 {
   line-height: 1.5;
 }
 
-.globe-placeholder {
+.globe-stage {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.globe-mount {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.globe-mount canvas {
+  display: block;
+  max-width: 100%;
+}
+
+.globe-sat {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6cc4ff;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.globe-sat-iss {
+  width: 12px;
+  height: 12px;
+  background: #f5b544;
+  box-shadow: 0 0 10px 4px rgba(245, 181, 68, 0.7);
+}
+
+.globe-status {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 280px;
-  border-radius: 20px;
+  margin: 0;
   padding: 18px;
+  text-align: center;
+}
+
+.globe-status:empty {
+  display: none;
+}
+
+.iss-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.iss-head .card-title {
+  min-width: 0;
+}
+
+.iss-now {
+  flex-shrink: 0;
+  color: #a9b3c7;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.iss-now:empty {
+  display: none;
+}
+
+.iss-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.iss-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.iss-place {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.iss-metric {
+  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.iss-pass {
+  color: #a9b3c7;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.orbit-source {
+  color: #8d97ad;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .legend {
