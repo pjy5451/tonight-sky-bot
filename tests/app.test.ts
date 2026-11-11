@@ -325,6 +325,14 @@ describe("tonight panel", () => {
     expect(document.querySelector<HTMLElement>("#planet-empty")?.hidden).toBe(true);
     expect(document.querySelector("#panel-tonight")?.textContent).toContain("ISS 통과");
     expect(document.querySelector("#panel-tonight")?.textContent).toContain("준비 중");
+    expect(document.querySelector("#meteor-name")?.textContent).toBe("사자자리 유성우 극대");
+    expect(document.querySelector("#meteor-dday")?.textContent).toBe("D-5");
+    expect(getComputedStyle(document.querySelector("#meteor-dday") as HTMLElement).color).toBe(
+      "rgb(108, 196, 255)",
+    );
+    expect(getComputedStyle(document.querySelector("#meteor-dday") as HTMLElement).fontFamily).toContain(
+      "Space Grotesk",
+    );
     expect(getComputedStyle(document.querySelector("#sunset-value") as HTMLElement).fontFamily).toContain(
       "Space Grotesk",
     );

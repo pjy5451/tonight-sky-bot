@@ -306,6 +306,19 @@ h1 {
   min-width: 0;
 }
 
+.meteor-dday {
+  flex-shrink: 0;
+  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  color: #6cc4ff;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+#meteor-name {
+  overflow-wrap: anywhere;
+}
+
 .card-title {
   font-size: 15px;
   font-weight: 700;
