@@ -10,6 +10,7 @@ import {
   type SatRec,
 } from "satellite.js";
 import { translate, type Locale } from "./i18n";
+import { globeVector, type Vec3 } from "./satellite-shape";
 
 /** NORAD 카탈로그에서 ISS(ZARYA)의 번호. */
 export const ISS_NORAD_CATALOG_ID = 25544;
@@ -22,6 +23,9 @@ export const POSITION_UPDATE_MS = 5_000;
 
 /** 궤도선과 한국 상공 통과 시각은 위치보다 드물게 다시 계산한다. */
 export const ORBIT_REFRESH_MS = 60_000;
+
+/** 진행 방향은 이 간격만큼 뒤의 지면 위치로 잡는다. */
+const VELOCITY_SAMPLE_MS = 1_000;
 
 export const KOREA_PASS_STEP_MS = 30_000;
 export const KOREA_PASS_HORIZON_MS = 18 * 60 * 60 * 1000;
@@ -66,6 +70,8 @@ export type SatellitePoint = {
   alt: number;
   color: string;
   iss: boolean;
+  /** 1초 뒤 지면 위치와의 차. 장면 좌표(지구 반지름 = 1)이며 모형이 이 방향을 본다. */
+  velocity: Vec3;
 };
 
 export type OrbitPoint = {
@@ -370,12 +376,14 @@ export function buildSatelliteScene(
     }
 
     const isIss = station.noradId === ISS_NORAD_CATALOG_ID;
+    const alt = altitudeRatio(fix.altKm);
     points.push({
       lat: fix.lat,
       lng: fix.lng,
-      alt: altitudeRatio(fix.altKm),
+      alt,
       color: isIss ? ISS_COLOR : OTHER_SATELLITE_COLOR,
       iss: isIss,
+      velocity: travelVelocity(station, date, fix, alt),
     });
 
     if (isIss) {
@@ -389,6 +397,16 @@ export function buildSatelliteScene(
     paths: includeOrbit && iss ? orbitPathsFor(iss.station, date) : [],
     iss,
   };
+}
+
+function travelVelocity(station: Station, date: Date, fix: Propagation, alt: number): Vec3 {
+  const ahead = propagateStation(station, new Date(date.getTime() + VELOCITY_SAMPLE_MS));
+  if (!ahead) {
+    return { x: 0, y: 0, z: 0 };
+  }
+  const here = globeVector(fix.lat, fix.lng, alt, 1);
+  const there = globeVector(ahead.lat, ahead.lng, altitudeRatio(ahead.altKm), 1);
+  return { x: there.x - here.x, y: there.y - here.y, z: there.z - here.z };
 }
 
 function grouped(value: number): string {

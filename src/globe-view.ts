@@ -3,6 +3,7 @@ import {
   SRGBColorSpace,
   TextureLoader,
   Vector3,
+  type Camera,
   type Texture,
 } from "three";
 import {
@@ -14,8 +15,17 @@ import {
   type TextureKind,
   type TextureView,
 } from "./earth-textures";
+import { SatelliteModels } from "./satellite-mesh";
+import {
+  GLOBE_SCENE_RADIUS,
+  globeVector,
+  sunDirectionFromSubsolar,
+  type Vec3,
+} from "./satellite-shape";
 import type { OrbitPath, SatellitePoint } from "./satellites";
 import { subsolarPoint } from "./sky";
+
+export { sunDirectionFromSubsolar };
 
 /** 태양 직하점을 다시 읽어 낮·밤 경계를 옮기는 간격. */
 export const SUNLIGHT_REFRESH_MS = 60_000;
@@ -40,22 +50,8 @@ export function globePixelRatio(devicePixelRatio: number, narrowScreen: boolean)
   return Math.min(ratio, narrowScreen ? 1.25 : 2);
 }
 
-/**
- * three-globe `polar2Cartesian`과 같은 장면 좌표.
- * 위도 0°·경도 0°는 +Z, 북극은 +Y다. 지구본 메시의 Y축 -90° 회전이 이미 반영된 방향이다.
- */
-export function sunDirectionFromSubsolar(
-  latitude: number,
-  longitude: number,
-): { x: number; y: number; z: number } {
-  const phi = ((90 - latitude) * Math.PI) / 180;
-  const theta = ((90 - longitude) * Math.PI) / 180;
-  const sinPhi = Math.sin(phi);
-  return {
-    x: sinPhi * Math.cos(theta),
-    y: Math.cos(phi),
-    z: sinPhi * Math.sin(theta),
-  };
+function cameraFov(camera: Camera): number {
+  return typeof camera.fov === "number" && camera.fov > 0 ? camera.fov : 50;
 }
 
 /**
@@ -133,16 +129,6 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
     .showAtmosphere(true)
     .atmosphereColor("#6CC4FF")
     .atmosphereAltitude(0.18)
-    .htmlLat("lat")
-    .htmlLng("lng")
-    .htmlAltitude("alt")
-    .htmlTransitionDuration(0)
-    .htmlElement((datum: object) => {
-      const point = datum as SatellitePoint;
-      const marker = document.createElement("span");
-      marker.className = point.iss ? "globe-sat globe-sat-iss" : "globe-sat";
-      return marker;
-    })
     .pathPoints("points")
     .pathPointLat("lat")
     .pathPointLng("lng")
@@ -308,6 +294,32 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
   const controls = globe.controls();
   controls.autoRotate = false;
   controls.enableDamping = true;
+
+  const models = new SatelliteModels(anisotropy);
+  let latestPoints: SatellitePoint[] = [];
+  const markerDatum = { id: "satellites" };
+  const syncModels = () => {
+    const pov = globe.pointOfView();
+    const altitude = typeof pov.altitude === "number" && Number.isFinite(pov.altitude) ? pov.altitude : 2.5;
+    const latitude = typeof pov.lat === "number" && Number.isFinite(pov.lat) ? pov.lat : 0;
+    const longitude = typeof pov.lng === "number" && Number.isFinite(pov.lng) ? pov.lng : 0;
+    const height = container.clientHeight;
+    if (height < 2) {
+      return;
+    }
+    const sun: Vec3 = { x: sunDirection.x, y: sunDirection.y, z: sunDirection.z };
+    models.sync(latestPoints, {
+      globeRadius: GLOBE_SCENE_RADIUS,
+      cameraPosition: globeVector(latitude, longitude, altitude, GLOBE_SCENE_RADIUS),
+      viewportHeight: height > 1 ? height : 1,
+      fovDegrees: cameraFov(globe.camera()),
+      sun,
+    });
+  };
+  globe.customLayerData([markerDatum]).customThreeObject(() => models.object).customThreeObjectUpdate(() => {
+    syncModels();
+  });
+
   globe.onZoom((pov) => {
     beginUpgrade(
       schedule.noteViewChange({
@@ -316,6 +328,7 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
         altitude: pov.altitude,
       }),
     );
+    syncModels();
   });
 
   const resize = () => {
@@ -327,6 +340,7 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
     globe.width(width);
     globe.height(height);
     beginUpgrade(schedule.noteViewChange(currentView()));
+    syncModels();
   };
   resize();
 
@@ -335,17 +349,19 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
 
   const sunTimer = window.setInterval(() => {
     applySun(new Date());
+    syncModels();
   }, SUNLIGHT_REFRESH_MS);
 
   return {
     update(points, paths, focus) {
-      globe.htmlElementsData(points);
+      latestPoints = points;
       if (paths) {
         globe.pathsData(paths);
       }
       if (focus) {
         globe.pointOfView({ lat: focus.lat, lng: focus.lng, altitude: 2.5 }, 0);
       }
+      syncModels();
     },
     resize,
     pause() {
@@ -364,6 +380,7 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
         texture.dispose();
       }
       tracked.clear();
+      models.dispose();
       material.map = null;
       material.emissiveMap = null;
       material.bumpMap = null;
