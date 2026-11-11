@@ -15,6 +15,7 @@ QA가 통과시키면 GitHub Actions가 자동으로 머지·배포하므로, �
    - qa-feedback 브랜치의 그 파일 첫 줄을 `status: fixed` 로 바꿔 푸시한다. 다른 줄은 건드리지 않는다.
 3. **대기**: `blocked` 가 아닌 작업 브랜치가 하나라도 남아 있으면(검사·머지 대기 중) 아무것도 하지 않고 끝낸다.
 4. **개발**: BACKLOG.md의 `- [ ]` 항목을 위에서부터 보고, 아래에 해당하면 건너뛴다.
+   - 최신 `origin/main` 의 BACKLOG.md에서 이미 `- [x]` 다. (BACKLOG는 반드시 `git fetch origin` 후 `git show origin/main:BACKLOG.md` 로 읽는다. 끝난 작업을 다시 만들지 않는다.)
    - 같은 번호의 원격 `task-NN-` 브랜치가 있다.
    - 항목에 `(사람이 채움)` 이 남아 있다.
    - qa-feedback에 `task-NN.md` 가 `status: blocked` 다.
