@@ -5,6 +5,13 @@ import {
   saveLocation,
   type LocationInput,
 } from "./location";
+import {
+  computeTonightSky,
+  directionSkyLabel,
+  formatKstTime,
+  moonLitPath,
+  type TonightSky,
+} from "./sky";
 
 type TabId = "tonight" | "satellites" | "launches";
 
@@ -119,18 +126,125 @@ function createCardTitle(text: string): HTMLHeadingElement {
   return title;
 }
 
-function createStatCard(label: string): HTMLElement {
+function createTimeStat(id: string, label: string): HTMLElement {
   const card = createCard("stat-card");
   const labelElement = document.createElement("span");
   labelElement.className = "stat-label";
   labelElement.textContent = label;
 
   const value = document.createElement("span");
+  value.id = id;
   value.className = "stat-value";
-  value.textContent = PENDING_LABEL;
+  value.textContent = "—";
 
   card.append(labelElement, value);
   return card;
+}
+
+function setClockValue(element: HTMLElement, date: Date | null, emptyLabel: string): void {
+  if (date) {
+    element.textContent = formatKstTime(date);
+    element.classList.remove("is-note");
+    return;
+  }
+
+  element.textContent = emptyLabel;
+  element.classList.toggle("is-note", emptyLabel !== "—");
+}
+
+function renderMoonIcon(phaseAngle: number, latitude: number): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 20 20");
+  svg.setAttribute("width", "20");
+  svg.setAttribute("height", "20");
+  svg.setAttribute("aria-hidden", "true");
+
+  const disk = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  disk.setAttribute("cx", "10");
+  disk.setAttribute("cy", "10");
+  disk.setAttribute("r", "9");
+  disk.setAttribute("fill", "#2A3550");
+  svg.append(disk);
+
+  const lit = moonLitPath(phaseAngle, latitude < 0);
+  if (lit) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", lit);
+    path.setAttribute("fill", "#F2F4F8");
+    svg.append(path);
+  }
+
+  return svg;
+}
+
+function renderPlanetRows(list: HTMLElement, planets: TonightSky["planets"]): void {
+  list.replaceChildren();
+  for (const planet of planets) {
+    const row = document.createElement("div");
+    row.className = "planet-row";
+
+    const dot = document.createElement("span");
+    dot.className = `planet-dot planet-dot-${planet.id}`;
+    dot.setAttribute("aria-hidden", "true");
+
+    const name = document.createElement("span");
+    name.className = "planet-name";
+    name.textContent = planet.name;
+
+    const detail = document.createElement("span");
+    detail.className = "planet-detail";
+    detail.textContent = directionSkyLabel(planet.direction);
+
+    row.append(dot, name, detail);
+    list.append(row);
+  }
+}
+
+function fillTonightPanel(panel: HTMLElement, date: Date): void {
+  const sunset = panel.querySelector("#sunset-value");
+  const sunrise = panel.querySelector("#sunrise-value");
+  const moonValue = panel.querySelector("#moon-value");
+  const moonIcon = panel.querySelector("#moon-icon");
+  const moonName = panel.querySelector("#moon-phase-name");
+  const planetList = panel.querySelector("#planet-list");
+  const planetEmpty = panel.querySelector("#planet-empty");
+  if (
+    !(sunset instanceof HTMLElement) ||
+    !(sunrise instanceof HTMLElement) ||
+    !(moonValue instanceof HTMLElement) ||
+    !(moonIcon instanceof HTMLElement) ||
+    !(moonName instanceof HTMLElement) ||
+    !(planetList instanceof HTMLElement) ||
+    !(planetEmpty instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  const location = loadLocation(localStorage);
+  if (!location) {
+    setClockValue(sunset, null, "—");
+    setClockValue(sunrise, null, "—");
+    moonValue.textContent = "—";
+    moonValue.classList.remove("is-note");
+    moonIcon.replaceChildren();
+    moonName.textContent = "";
+    planetList.replaceChildren();
+    planetEmpty.hidden = false;
+    planetEmpty.textContent = "위치를 선택하면 오늘 밤 하늘을 계산합니다.";
+    return;
+  }
+
+  const sky = computeTonightSky(location, date);
+  setClockValue(sunset, sky.sunset, "지지 않음");
+  setClockValue(sunrise, sky.sunrise, "뜨지 않음");
+  moonValue.textContent = `${sky.moonIlluminationPercent}%`;
+  moonValue.classList.remove("is-note");
+  moonIcon.replaceChildren(renderMoonIcon(sky.moonPhaseAngle, location.latitude));
+  moonName.textContent = sky.moonPhaseName;
+  renderPlanetRows(planetList, sky.planets);
+  planetEmpty.hidden = sky.planets.length > 0;
+  planetEmpty.textContent =
+    sky.planets.length > 0 ? "" : "지금 지평선 위에 있는 행성이 없습니다.";
 }
 
 function createTonightPanel(tab: Tab): HTMLElement {
@@ -138,13 +252,48 @@ function createTonightPanel(tab: Tab): HTMLElement {
 
   const stats = document.createElement("div");
   stats.className = "stat-grid";
-  stats.append(createStatCard("일몰"), createStatCard("일출"), createStatCard("달"));
+
+  const moon = createCard("stat-card");
+  const moonLabel = document.createElement("span");
+  moonLabel.className = "stat-label";
+  moonLabel.textContent = "달";
+
+  const moonRow = document.createElement("div");
+  moonRow.className = "moon-readout";
+
+  const moonIcon = document.createElement("span");
+  moonIcon.id = "moon-icon";
+  moonIcon.className = "moon-icon";
+
+  const moonValue = document.createElement("span");
+  moonValue.id = "moon-value";
+  moonValue.className = "stat-value";
+  moonValue.textContent = "—";
+
+  moonRow.append(moonIcon, moonValue);
+
+  const moonName = document.createElement("span");
+  moonName.id = "moon-phase-name";
+  moonName.className = "moon-phase-name";
+  moon.append(moonLabel, moonRow, moonName);
+
+  stats.append(createTimeStat("sunset-value", "일몰"), createTimeStat("sunrise-value", "일출"), moon);
 
   const iss = createCard("card card-highlight");
   iss.append(createCardTitle("ISS 통과"), createPendingText());
 
   const planets = createCard("card");
-  planets.append(createCardTitle("밝게 보이는 행성"), createPendingText());
+  planets.append(createCardTitle("밝게 보이는 행성"));
+
+  const planetList = document.createElement("div");
+  planetList.id = "planet-list";
+  planetList.className = "planet-list";
+
+  const planetEmpty = document.createElement("p");
+  planetEmpty.id = "planet-empty";
+  planetEmpty.className = "pending";
+  planetEmpty.textContent = "위치를 선택하면 오늘 밤 하늘을 계산합니다.";
+  planets.append(planetList, planetEmpty);
 
   const meteor = createCard("card card-row");
   const meteorCopy = document.createElement("div");
@@ -262,7 +411,12 @@ function createTabPanel(tab: Tab): HTMLElement {
   return createLaunchesPanel(tab);
 }
 
-export function createApp(): HTMLElement {
+export type AppOptions = {
+  now?: () => Date;
+};
+
+export function createApp(options: AppOptions = {}): HTMLElement {
+  const now = () => options.now?.() ?? new Date();
   document.title = BRAND_NAME;
 
   const root = document.createElement("div");
@@ -407,10 +561,13 @@ export function createApp(): HTMLElement {
     locationButton.setAttribute("aria-expanded", "false");
   };
 
+  let refreshTonight = (): void => {};
+
   const persistLocation = (input: LocationInput) => {
     const saved = saveLocation(localStorage, input);
     setLocationLabel(saved.label);
     closeDialog();
+    refreshTonight();
   };
 
   locationButton.addEventListener("click", () => {
@@ -523,6 +680,14 @@ export function createApp(): HTMLElement {
   root.append(screen, tabList, dialog);
   setActiveTab("tonight");
   setLocationLabel(loadLocation(localStorage)?.label ?? null);
+
+  const tonightPanel = panelElements.find((panel) => panel.id === "panel-tonight");
+  refreshTonight = () => {
+    if (tonightPanel) {
+      fillTonightPanel(tonightPanel, now());
+    }
+  };
+  refreshTonight();
 
   return root;
 }
