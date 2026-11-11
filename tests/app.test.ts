@@ -268,7 +268,8 @@ describe("Argonova frame", () => {
     expect(launches?.querySelectorAll(".countdown-cell")).toHaveLength(4);
     expect(launches?.querySelector(".card-highlight")).not.toBeNull();
     expect(launches?.textContent).toContain("다음 발사");
-    expect(launches?.textContent).toContain("준비 중");
+    expect(launches?.textContent).toContain("이후 일정");
+    expect(launches?.textContent).toContain("불러오는 중");
     expect(launches?.textContent).not.toMatch(/\d{1,2}:\d{2}/);
   });
 
@@ -515,5 +516,160 @@ describe("satellite globe panel", () => {
     expect(document.querySelector("#iss-speed")?.textContent).toBe("—");
     expect(document.querySelector("#panel-satellites")?.textContent).not.toContain("27,600");
     expect(document.querySelector("#panel-satellites")?.textContent).not.toContain("약 420");
+  });
+});
+
+describe("launch schedule", () => {
+  const NOW = new Date("2026-11-12T08:38:00.000Z");
+
+  function launchResponse() {
+    return {
+      fetched_at: "2026-11-12T03:00:00.000Z",
+      items: [
+        {
+          id: "later",
+          name: "Electron | Mission",
+          net: "2026-11-16T00:30:00Z",
+          provider: "Rocket Lab",
+          rocket: "Electron",
+          location: "뉴질랜드",
+          webcast_urls: ["javascript:alert(1)"],
+        },
+        {
+          id: "next",
+          name: "Falcon 9 Block 5 | Starlink 위성",
+          net: "2026-11-14T12:05:41Z",
+          provider: "SpaceX",
+          rocket: "Falcon 9",
+          pad: "SLC-40",
+          location: "미국 케이프커내버럴",
+          webcast_urls: ["javascript:alert(1)", "https://example.com/live"],
+        },
+        {
+          id: "past",
+          name: "Past",
+          net: "2026-11-11T00:00:00Z",
+          rocket: "Past Rocket",
+          provider: "Old",
+        },
+      ],
+    };
+  }
+
+  it("shows the next launch in KST with a countdown and a safe livestream link", async () => {
+    let current = NOW;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      expect(url).toContain("data/launches.json");
+      expect(url).not.toContain("thespacedevs.com");
+      return {
+        ok: true,
+        json: async () => launchResponse(),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    document.documentElement.style.width = "390px";
+    document.body.style.width = "390px";
+    renderApp({ now: () => current });
+    document.querySelector<HTMLButtonElement>("#tab-launches")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#next-launch-title")?.textContent).toBe("Falcon 9 · Starlink 위성");
+    });
+
+    expect(document.querySelector("#next-launch-when")?.textContent).toBe("11/14 (토) 21:05");
+    expect(document.querySelector("#next-launch-meta")?.textContent).toBe("SpaceX · 미국 케이프커내버럴");
+    expect(
+      [...document.querySelectorAll("#launch-countdown .countdown-value")].map((node) => node.textContent),
+    ).toEqual(["02", "03", "27", "41"]);
+    expect(getComputedStyle(document.querySelector(".countdown-seconds") as HTMLElement).color).toBe(
+      "rgb(245, 181, 68)",
+    );
+    expect(getComputedStyle(document.querySelector(".countdown-value") as HTMLElement).fontFamily).toContain(
+      "Space Grotesk",
+    );
+
+    const link = document.querySelector<HTMLAnchorElement>("#launch-webcast");
+    expect(link?.hidden).toBe(false);
+    expect(link?.getAttribute("href")).toBe("https://example.com/live");
+    expect(link?.getAttribute("target")).toBe("_blank");
+    expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link?.textContent).toContain("생중계 보기");
+    expect(getComputedStyle(link as HTMLElement).backgroundColor).toBe("rgb(245, 181, 68)");
+
+    const rows = [...document.querySelectorAll(".launch-row")];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.querySelector(".card-title")?.textContent).toBe("Electron");
+    expect(rows[0]?.querySelector(".stat-label")?.textContent).toBe("Rocket Lab · 뉴질랜드");
+    expect(rows[0]?.querySelector(".launch-time")?.textContent).toBe("11/16 (월) 09:30");
+    expect(rows[0]?.querySelector(".launch-dday")?.textContent).toBe("D-4");
+    expect(getComputedStyle(rows[0]?.querySelector(".launch-dday") as HTMLElement).color).toBe(
+      "rgb(108, 196, 255)",
+    );
+    expect(document.querySelector("#launch-source")?.textContent).toBe(
+      "발사 데이터: The Space Devs · 12:00 갱신",
+    );
+    expect(document.querySelector("#panel-launches")?.textContent).not.toContain("Past Rocket");
+    expect(document.body.innerHTML).not.toContain("javascript:");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    current = new Date(NOW.getTime() + 1000);
+    document.querySelector<HTMLButtonElement>("#tab-tonight")?.click();
+    document.querySelector<HTMLButtonElement>("#tab-launches")?.click();
+    expect(
+      [...document.querySelectorAll("#launch-countdown .countdown-value")].map((node) => node.textContent),
+    ).toEqual(["02", "03", "27", "40"]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const rootWidth = document.documentElement.clientWidth || 390;
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(rootWidth);
+  });
+
+  it("explains an empty launch list", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ fetched_at: "2026-11-12T03:00:00.000Z", items: [] }),
+      })),
+    );
+
+    renderApp({ now: () => NOW });
+    document.querySelector<HTMLButtonElement>("#tab-launches")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#launch-status")?.textContent).toBe("다가오는 발사 일정이 없습니다.");
+    });
+
+    expect(document.querySelector<HTMLElement>("#launch-countdown")?.hidden).toBe(true);
+    expect(document.querySelector("#next-launch-title")?.textContent).toBe("");
+    expect(document.querySelector("#launch-webcast")?.hasAttribute("href")).toBe(false);
+    expect(document.querySelector("#launch-source")?.textContent).toBe(
+      "발사 데이터: The Space Devs · 12:00 갱신",
+    );
+    expect(document.querySelector("#launch-countdown .countdown-value")?.textContent).not.toMatch(/^\d/);
+  });
+
+  it("explains a failed launch file without showing the raw error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ error: "Launch Library 2 요청 실패: HTTP 503", items: [] }),
+      })),
+    );
+
+    renderApp({ now: () => NOW });
+    document.querySelector<HTMLButtonElement>("#tab-launches")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#launch-status")?.textContent).toBe("발사 일정을 불러오지 못했습니다.");
+    });
+
+    expect(document.querySelector("#panel-launches")?.textContent).not.toContain("HTTP 503");
+    expect(document.querySelector("#panel-launches")?.textContent).not.toContain("Launch Library");
+    expect(document.querySelector<HTMLElement>("#launch-countdown")?.hidden).toBe(true);
+    expect(document.querySelector(".launch-row")).toBeNull();
   });
 });

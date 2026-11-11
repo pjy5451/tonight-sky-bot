@@ -80,6 +80,7 @@ button {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -592,9 +593,130 @@ h1 {
   text-align: center;
 }
 
+.countdown[hidden],
+.webcast-button[hidden],
+.section-label[hidden] {
+  display: none;
+}
+
 .countdown-value {
-  font-size: 13px;
+  font-size: 24px;
   overflow-wrap: anywhere;
+}
+
+.countdown-seconds {
+  color: #f5b544;
+}
+
+.next-launch-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.next-launch-head .badge {
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.next-launch-when {
+  flex-shrink: 0;
+  color: #a9b3c7;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.next-launch-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.next-launch-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.next-launch-meta {
+  color: #a9b3c7;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.next-launch-title:empty,
+.next-launch-meta:empty,
+.next-launch-when:empty,
+#launch-source:empty {
+  display: none;
+}
+
+#next-launch {
+  gap: 14px;
+  border-radius: 20px;
+  padding: 20px 18px;
+}
+
+.webcast-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border-radius: 12px;
+  background: #f5b544;
+  color: #0b1020;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.later-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.later-list:empty {
+  display: none;
+}
+
+.launch-row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.launch-when {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.launch-time {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.launch-dday {
+  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  color: #6cc4ff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .section-label {

@@ -20,6 +20,25 @@ import {
   type StationCatalog,
 } from "./satellites";
 import {
+  COUNTDOWN_UPDATE_MS,
+  LAUNCH_EMPTY_MESSAGE,
+  LAUNCH_LOADING_MESSAGE,
+  LAUNCH_LOAD_ERROR,
+  countdownParts,
+  formatCountdownUnit,
+  formatKstLaunchDateTime,
+  formatLaunchDday,
+  kstCalendarDayIndex,
+  launchOperatorPlace,
+  launchVehicle,
+  nextLaunchTitle,
+  parseLaunchDocument,
+  upcomingLaunches,
+  type CountdownParts,
+  type LaunchCatalog,
+  type LaunchItem,
+} from "./launches";
+import {
   computeTonightSky,
   directionSkyLabel,
   formatKstTime,
@@ -679,17 +698,28 @@ function bindSatellites(panel: HTMLElement, now: () => Date): SatelliteBinding {
   };
 }
 
+function createPlayIcon(): SVGSVGElement {
+  const svg = createSvg();
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  polygon.setAttribute("points", "7 4 20 12 7 20 7 4");
+  svg.append(polygon);
+  return svg;
+}
+
 function createCountdown(): HTMLElement {
   const grid = document.createElement("div");
   grid.className = "countdown";
+  grid.setAttribute("aria-label", "남은 시간");
 
   for (const unit of ["일", "시간", "분", "초"]) {
     const cell = document.createElement("div");
     cell.className = "countdown-cell";
 
     const value = document.createElement("span");
-    value.className = "countdown-value";
-    value.textContent = PENDING_LABEL;
+    value.className = unit === "초" ? "countdown-value countdown-seconds" : "countdown-value";
+    value.textContent = "—";
 
     const label = document.createElement("span");
     label.className = "stat-label";
@@ -702,23 +732,297 @@ function createCountdown(): HTMLElement {
   return grid;
 }
 
+function launchSourceLabel(fetchedAt: string | null): string {
+  if (!fetchedAt) {
+    return "발사 데이터: The Space Devs";
+  }
+  const date = new Date(fetchedAt);
+  if (Number.isNaN(date.getTime())) {
+    return "발사 데이터: The Space Devs";
+  }
+  return `발사 데이터: The Space Devs · ${formatKstTime(date)} 갱신`;
+}
+
+function fillCountdown(countdown: HTMLElement, parts: CountdownParts | null): void {
+  const values = ["—", "—", "—", "—"];
+  if (parts) {
+    values[0] = formatCountdownUnit(parts.days);
+    values[1] = formatCountdownUnit(parts.hours);
+    values[2] = formatCountdownUnit(parts.minutes);
+    values[3] = formatCountdownUnit(parts.seconds);
+  }
+  const nodes = countdown.querySelectorAll(".countdown-value");
+  nodes.forEach((node, index) => {
+    node.textContent = values[index] ?? "—";
+  });
+}
+
+function createLaterLaunchRow(launch: LaunchItem, now: Date): HTMLElement {
+  const row = document.createElement("article");
+  row.className = "card card-compact launch-row";
+
+  const copy = document.createElement("div");
+  copy.className = "card-copy";
+
+  const title = document.createElement("h3");
+  title.className = "card-title";
+  title.textContent = launchVehicle(launch);
+
+  const detail = document.createElement("span");
+  detail.className = "stat-label";
+  detail.textContent = launchOperatorPlace(launch);
+
+  copy.append(title, detail);
+
+  const when = document.createElement("div");
+  when.className = "launch-when";
+
+  const time = document.createElement("span");
+  time.className = "launch-time";
+  const net = new Date(launch.net);
+  time.textContent = formatKstLaunchDateTime(net);
+
+  const dday = document.createElement("span");
+  dday.className = "launch-dday";
+  dday.textContent = formatLaunchDday(net, now);
+
+  when.append(time, dday);
+  row.append(copy, when);
+  return row;
+}
+
+function bindLaunches(panel: HTMLElement, now: () => Date): { show: () => void; hide: () => void } | null {
+  const title = panel.querySelector("#next-launch-title");
+  const meta = panel.querySelector("#next-launch-meta");
+  const when = panel.querySelector("#next-launch-when");
+  const status = panel.querySelector("#launch-status");
+  const countdown = panel.querySelector("#launch-countdown");
+  const webcast = panel.querySelector("#launch-webcast");
+  const laterLabel = panel.querySelector("#later-label");
+  const later = panel.querySelector("#later-launches");
+  const source = panel.querySelector("#launch-source");
+  if (
+    !(title instanceof HTMLElement) ||
+    !(meta instanceof HTMLElement) ||
+    !(when instanceof HTMLElement) ||
+    !(status instanceof HTMLElement) ||
+    !(countdown instanceof HTMLElement) ||
+    !(webcast instanceof HTMLAnchorElement) ||
+    !(laterLabel instanceof HTMLElement) ||
+    !(later instanceof HTMLElement) ||
+    !(source instanceof HTMLElement)
+  ) {
+    return null;
+  }
+
+  let catalog: LaunchCatalog | null = null;
+  let started = false;
+  let timer = 0;
+  let builtKey = "";
+
+  const showMessage = (message: string, fetchedAt: string | null) => {
+    status.hidden = false;
+    status.textContent = message;
+    title.textContent = "";
+    meta.textContent = "";
+    when.textContent = "";
+    countdown.hidden = true;
+    webcast.hidden = true;
+    webcast.removeAttribute("href");
+    laterLabel.hidden = true;
+    later.replaceChildren();
+    source.textContent = fetchedAt ? launchSourceLabel(fetchedAt) : "";
+  };
+
+  const paint = () => {
+    if (!panel.isConnected) {
+      return;
+    }
+
+    const upcoming = catalog && !catalog.error ? upcomingLaunches(catalog.launches, now()) : [];
+    const next = upcoming[0] ?? null;
+    const key = catalog
+      ? [
+          catalog.error ?? "",
+          catalog.fetchedAt ?? "",
+          String(kstCalendarDayIndex(now())),
+          upcoming.map((launch) => `${launch.id}\u0000${launch.net}`).join("|"),
+        ].join("~")
+      : "loading";
+
+    if (key !== builtKey) {
+      builtKey = key;
+      if (!catalog) {
+        showMessage(LAUNCH_LOADING_MESSAGE, null);
+        countdown.hidden = false;
+        laterLabel.hidden = false;
+        fillCountdown(countdown, null);
+        source.textContent = "";
+      } else if (catalog.error || !next) {
+        showMessage(catalog.error ?? LAUNCH_EMPTY_MESSAGE, catalog.fetchedAt);
+      } else {
+        const net = new Date(next.net);
+        status.hidden = true;
+        status.textContent = "";
+        title.textContent = nextLaunchTitle(next);
+        meta.textContent = launchOperatorPlace(next);
+        when.textContent = formatKstLaunchDateTime(net);
+        countdown.hidden = false;
+        if (next.webcastUrl) {
+          webcast.hidden = false;
+          webcast.href = next.webcastUrl;
+        } else {
+          webcast.hidden = true;
+          webcast.removeAttribute("href");
+        }
+        laterLabel.hidden = upcoming.length < 2;
+        later.replaceChildren(
+          ...upcoming.slice(1).map((launch) => createLaterLaunchRow(launch, now())),
+        );
+        source.textContent = launchSourceLabel(catalog.fetchedAt);
+      }
+    }
+
+    if (next && catalog && !catalog.error) {
+      fillCountdown(countdown, countdownParts(new Date(next.net), now()));
+    }
+  };
+
+  const stopTimer = () => {
+    window.clearInterval(timer);
+    timer = 0;
+  };
+
+  const load = () => {
+    const url = `${import.meta.env.BASE_URL}data/launches.json`;
+    void fetch(url)
+      .then(async (response) => {
+        if (!panel.isConnected) {
+          return;
+        }
+        if (!response.ok) {
+          catalog = { fetchedAt: null, launches: [], error: LAUNCH_LOAD_ERROR };
+        } else {
+          catalog = parseLaunchDocument(await response.json());
+        }
+        builtKey = "";
+        paint();
+      })
+      .catch(() => {
+        if (!panel.isConnected) {
+          return;
+        }
+        catalog = { fetchedAt: null, launches: [], error: LAUNCH_LOAD_ERROR };
+        builtKey = "";
+        paint();
+      });
+  };
+
+  const onVisibility = () => {
+    if (!panel.isConnected) {
+      document.removeEventListener("visibilitychange", onVisibility);
+      stopTimer();
+      return;
+    }
+    if (document.visibilityState === "visible" && !panel.hidden) {
+      paint();
+    }
+  };
+
+  return {
+    show() {
+      if (!started) {
+        started = true;
+        load();
+        document.addEventListener("visibilitychange", onVisibility);
+      }
+      paint();
+      if (!timer) {
+        timer = window.setInterval(() => {
+          if (!panel.isConnected) {
+            stopTimer();
+            return;
+          }
+          if (panel.hidden || document.visibilityState === "hidden") {
+            return;
+          }
+          paint();
+        }, COUNTDOWN_UPDATE_MS);
+      }
+    },
+    hide() {
+      stopTimer();
+    },
+  };
+}
+
 function createLaunchesPanel(tab: Tab): HTMLElement {
   const panel = createPanel(tab);
 
   const next = createCard("card card-highlight");
+  next.id = "next-launch";
+
+  const head = document.createElement("div");
+  head.className = "next-launch-head";
+
   const badge = document.createElement("span");
   badge.className = "badge";
   badge.textContent = "다음 발사";
-  next.append(badge, createPendingText(), createCountdown());
+
+  const when = document.createElement("span");
+  when.id = "next-launch-when";
+  when.className = "next-launch-when";
+
+  head.append(badge, when);
+
+  const copy = document.createElement("div");
+  copy.className = "next-launch-copy";
+
+  const title = document.createElement("h2");
+  title.id = "next-launch-title";
+  title.className = "next-launch-title";
+
+  const meta = document.createElement("p");
+  meta.id = "next-launch-meta";
+  meta.className = "next-launch-meta";
+
+  copy.append(title, meta);
+
+  const status = document.createElement("p");
+  status.id = "launch-status";
+  status.className = "pending";
+  status.role = "status";
+  status.textContent = LAUNCH_LOADING_MESSAGE;
+
+  const countdown = createCountdown();
+  countdown.id = "launch-countdown";
+
+  const webcast = document.createElement("a");
+  webcast.id = "launch-webcast";
+  webcast.className = "webcast-button";
+  webcast.target = "_blank";
+  webcast.rel = "noopener noreferrer";
+  webcast.hidden = true;
+  const webcastLabel = document.createElement("span");
+  webcastLabel.textContent = "생중계 보기";
+  webcast.append(createPlayIcon(), webcastLabel);
+
+  next.append(head, copy, status, countdown, webcast);
 
   const laterLabel = document.createElement("h2");
+  laterLabel.id = "later-label";
   laterLabel.className = "section-label";
   laterLabel.textContent = "이후 일정";
 
-  const later = createCard("card card-compact");
-  later.append(createPendingText());
+  const later = document.createElement("div");
+  later.id = "later-launches";
+  later.className = "later-list";
 
-  panel.append(next, laterLabel, later);
+  const source = document.createElement("p");
+  source.id = "launch-source";
+  source.className = "orbit-source";
+
+  panel.append(next, laterLabel, later, source);
   return panel;
 }
 
@@ -992,6 +1296,8 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const satellitesPanel = panelElements.find((panel) => panel.id === "panel-satellites");
   const satellites = satellitesPanel ? bindSatellites(satellitesPanel, now) : null;
+  const launchesPanel = panelElements.find((panel) => panel.id === "panel-launches");
+  const launches = launchesPanel ? bindLaunches(launchesPanel, now) : null;
 
   const setActiveTab = (activeTab: TabId) => {
     buttons.forEach((button) => {
@@ -1008,6 +1314,12 @@ export function createApp(options: AppOptions = {}): HTMLElement {
       satellites?.show();
     } else {
       satellites?.hide();
+    }
+
+    if (activeTab === "launches") {
+      launches?.show();
+    } else {
+      launches?.hide();
     }
   };
 
