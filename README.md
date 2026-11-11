@@ -30,7 +30,7 @@
 - `src/location.ts` — 시·도 좌표와 위치 저장
 - `src/sources.ts` — 화면 하단의 데이터 출처와 갱신 시각
 - `public/data/` — `tle.json`, `launches.json`. 브라우저는 이 파일만 읽습니다
-- `public/textures/` — 지구본에 쓰는 낮·밤 사진
+- `public/textures/` — 지구본 낮·밤 사진(처음 2K, 이어서 고해상도)과 지형·바다 텍스처. 출처는 `CREDITS.md`
 - `scripts/fetch-data.js` — 빌드 전에 CelesTrak과 Launch Library 2에서 JSON을 저장합니다
 
 ## 개발

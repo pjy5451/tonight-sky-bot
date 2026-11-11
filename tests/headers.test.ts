@@ -110,9 +110,12 @@ describe("security headers", () => {
     expect(html.includes("<iframe")).toBe(false);
 
     const globeSource = readText(join(ROOT, "src/globe-view.ts"));
-    expect(globeSource).toContain("textures/earth-day.jpg");
-    expect(globeSource).toContain("textures/earth-night.jpg");
+    const textureSource = readText(join(ROOT, "src/earth-textures.ts"));
+    expect(textureSource).toContain("textures/earth-day.jpg");
+    expect(textureSource).toContain("textures/earth-night.jpg");
+    expect(globeSource).toContain("startupTextures()");
     expect(globeSource.includes("https://") || globeSource.includes("http://")).toBe(false);
+    expect(textureSource.includes("https://") || textureSource.includes("http://")).toBe(false);
 
     const appSource = readText(join(ROOT, "src/app.ts"));
     expect(appSource).toContain("fetch(`${import.meta.env.BASE_URL}data/${fileName}`)");
@@ -122,7 +125,7 @@ describe("security headers", () => {
     const styleSource = readText(join(ROOT, "src/styles.css"));
     expect(styleSource.includes("url(")).toBe(false);
 
-    const browserSource = ["app.ts", "globe-view.ts", "launches.ts", "main.ts", "sky.ts", "satellites.ts", "meteors.ts", "location.ts", "sources.ts"]
+    const browserSource = ["app.ts", "globe-view.ts", "earth-textures.ts", "launches.ts", "main.ts", "sky.ts", "satellites.ts", "meteors.ts", "location.ts", "sources.ts"]
       .map((name) => readText(join(ROOT, "src", name)))
       .join("\n");
     for (const host of ["unpkg.com", "jsdelivr.net", "cdnjs.cloudflare.com"]) {

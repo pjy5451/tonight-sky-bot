@@ -18,11 +18,18 @@ declare module "three" {
 
   export class Texture {
     colorSpace: string;
+    anisotropy: number;
+    needsUpdate: boolean;
     dispose(): void;
   }
 
   export class TextureLoader {
-    load(url: string): Texture;
+    load(
+      url: string,
+      onLoad?: (texture: Texture) => void,
+      onProgress?: ((event: ProgressEvent) => void) | undefined,
+      onError?: (error: unknown) => void,
+    ): Texture;
   }
 
   export class Material {
@@ -40,10 +47,17 @@ declare module "three" {
     emissiveIntensity: number;
     map: Texture | null;
     emissiveMap: Texture | null;
+    bumpMap: Texture | null;
+    bumpScale: number;
+    specularMap: Texture | null;
   }
 
   export class WebGLRenderer {
     setPixelRatio(ratio: number): void;
+    capabilities: {
+      getMaxAnisotropy(): number;
+      maxTextureSize: number;
+    };
   }
 
   export interface WebGLRendererParameters {

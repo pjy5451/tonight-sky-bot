@@ -5,15 +5,17 @@ import {
   Vector3,
   type Texture,
 } from "three";
+import {
+  EARTH_BUMP_SCALE,
+  EarthTextureSchedule,
+  anisotropyLevel,
+  startupTextures,
+  type PhotoRequest,
+  type TextureKind,
+  type TextureView,
+} from "./earth-textures";
 import type { OrbitPath, SatellitePoint } from "./satellites";
 import { subsolarPoint } from "./sky";
-
-/**
- * 낮·밤 지구 사진.
- * 개발 때 three-globe 예제 영상(NASA 블루마블·도시 불빛)을 2048×1024 JPEG로 줄여 둔 파일이다.
- */
-const EARTH_DAY_URL = `${import.meta.env.BASE_URL}textures/earth-day.jpg`;
-const EARTH_NIGHT_URL = `${import.meta.env.BASE_URL}textures/earth-night.jpg`;
 
 /** 태양 직하점을 다시 읽어 낮·밤 경계를 옮기는 간격. */
 export const SUNLIGHT_REFRESH_MS = 60_000;
@@ -58,7 +60,7 @@ export function sunDirectionFromSubsolar(
 
 /**
  * 퐁 조명 대신, 태양 쪽은 낮 사진(`diffuseColor`)을, 밤 쪽은 도시 불빛(`totalEmissiveRadiance`)을 쓴다.
- * `smoothstep` 구간이 낮·밤 경계다.
+ * `smoothstep` 구간이 낮·밤 경계다. 범프 노멀로 요철을 주고, 바다 맵이 있을 때만 반짝임을 더한다.
  */
 export function patchDayNightFragmentShader(fragmentShader: string): string {
   if (
@@ -75,7 +77,12 @@ export function patchDayNightFragmentShader(fragmentShader: string): string {
         "vec3 sunView = normalize((viewMatrix * vec4(uSunDirection, 0.0)).xyz);",
         "float sunDot = dot(normalize(normal), sunView);",
         "float dayFactor = smoothstep(-0.12, 0.28, sunDot);",
-        "vec3 outgoingLight = mix(totalEmissiveRadiance, diffuseColor.rgb, dayFactor);",
+        "float relief = clamp(0.62 + 0.48 * sunDot, 0.4, 1.2);",
+        "vec3 dayColor = diffuseColor.rgb * relief;",
+        "#ifdef USE_SPECULARMAP",
+        "dayColor += vec3(0.28, 0.36, 0.42) * specularStrength * pow(max(sunDot, 0.0), 36.0);",
+        "#endif",
+        "vec3 outgoingLight = mix(totalEmissiveRadiance, dayColor, dayFactor);",
       ].join("\n"),
     );
 }
@@ -93,10 +100,16 @@ function isNarrowScreen(): boolean {
   return window.matchMedia("(max-width: 1023px)").matches;
 }
 
-function loadEarthTexture(loader: TextureLoader, url: string): Texture {
-  const texture = loader.load(url);
-  texture.colorSpace = SRGBColorSpace;
-  return texture;
+function assetUrl(path: string): string {
+  return `${import.meta.env.BASE_URL}${path}`;
+}
+
+function applySampling(texture: Texture, kind: TextureKind, anisotropy: number): void {
+  if (kind === "color") {
+    texture.colorSpace = SRGBColorSpace;
+  }
+  texture.anisotropy = anisotropy;
+  texture.needsUpdate = true;
 }
 
 export async function mountSatelliteGlobe(container: HTMLElement): Promise<SatelliteGlobe | null> {
@@ -149,14 +162,134 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
   }
 
   const loader = new TextureLoader();
-  const dayTexture = loadEarthTexture(loader, EARTH_DAY_URL);
-  const nightTexture = loadEarthTexture(loader, EARTH_NIGHT_URL);
+  const renderer = globe.renderer();
+  const anisotropy = anisotropyLevel(renderer.capabilities.getMaxAnisotropy());
+  const maxTextureSize = renderer.capabilities.maxTextureSize;
+  const schedule = new EarthTextureSchedule();
+  const tracked = new Set<Texture>();
+  let disposed = false;
+  let armUpgrades = false;
+  const pendingStartup: Array<"day" | "night"> = [];
+
+  const currentView = (): TextureView => {
+    const altitude = globe.pointOfView().altitude;
+    return {
+      narrow: isNarrowScreen(),
+      maxTextureSize,
+      altitude: typeof altitude === "number" && Number.isFinite(altitude) ? altitude : 2.5,
+    };
+  };
+
+  const beginUpgrade = (requests: PhotoRequest[]) => {
+    if (requests.length === 0 || disposed) {
+      return;
+    }
+    let remaining = requests.length;
+    let failed = false;
+    const next = new Map<"day" | "night", Texture>();
+    const finish = () => {
+      const day = next.get("day");
+      const night = next.get("night");
+      if (failed || disposed || !day || !night) {
+        for (const texture of [day, night]) {
+          if (!texture) {
+            continue;
+          }
+          tracked.delete(texture);
+          texture.dispose();
+        }
+        return;
+      }
+      const previousDay = material.map;
+      const previousNight = material.emissiveMap;
+      material.map = day;
+      material.emissiveMap = night;
+      material.needsUpdate = true;
+      if (previousDay && previousDay !== day) {
+        tracked.delete(previousDay);
+        previousDay.dispose();
+      }
+      if (previousNight && previousNight !== night) {
+        tracked.delete(previousNight);
+        previousNight.dispose();
+      }
+    };
+    for (const item of requests) {
+      const texture = loader.load(
+        assetUrl(item.path),
+        (loaded) => {
+          applySampling(loaded, "color", anisotropy);
+          remaining -= 1;
+          if (remaining === 0) {
+            finish();
+          }
+        },
+        undefined,
+        () => {
+          failed = true;
+          remaining -= 1;
+          if (remaining === 0) {
+            finish();
+          }
+        },
+      );
+      applySampling(texture, "color", anisotropy);
+      tracked.add(texture);
+      next.set(item.role, texture);
+    }
+  };
+
+  const flushStartup = (role?: "day" | "night") => {
+    if (role) {
+      pendingStartup.push(role);
+    }
+    if (!armUpgrades || disposed) {
+      return;
+    }
+    while (pendingStartup.length > 0) {
+      const nextRole = pendingStartup.shift();
+      if (nextRole) {
+        beginUpgrade(schedule.noteStartupPhoto(nextRole, currentView()));
+      }
+    }
+  };
+
+  const loaded = new Map<string, Texture>();
+  for (const item of startupTextures()) {
+    const texture = loader.load(
+      assetUrl(item.path),
+      (ready) => {
+        applySampling(ready, item.kind, anisotropy);
+        if (item.role === "day" || item.role === "night") {
+          flushStartup(item.role);
+        }
+      },
+    );
+    applySampling(texture, item.kind, anisotropy);
+    tracked.add(texture);
+    loaded.set(item.role, texture);
+  }
+
+  const dayTexture = loaded.get("day");
+  const nightTexture = loaded.get("night");
+  const topologyTexture = loaded.get("topology");
+  const waterTexture = loaded.get("water");
+  if (!dayTexture || !nightTexture || !topologyTexture || !waterTexture) {
+    globe._destructor();
+    throw new Error("지구본 텍스처를 준비하지 못했습니다.");
+  }
+
   material.color.setHex(0xffffff);
   material.emissive.setHex(0xffffff);
   material.emissiveIntensity = 1;
   material.map = dayTexture;
   material.emissiveMap = nightTexture;
+  material.bumpMap = topologyTexture;
+  material.bumpScale = EARTH_BUMP_SCALE;
+  material.specularMap = waterTexture;
   material.customProgramCacheKey = () => "argonova-day-night";
+  armUpgrades = true;
+  flushStartup();
 
   const sunDirection = new Vector3();
   const applySun = (date: Date) => {
@@ -175,6 +308,15 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
   const controls = globe.controls();
   controls.autoRotate = false;
   controls.enableDamping = true;
+  globe.onZoom((pov) => {
+    beginUpgrade(
+      schedule.noteViewChange({
+        narrow: isNarrowScreen(),
+        maxTextureSize,
+        altitude: pov.altitude,
+      }),
+    );
+  });
 
   const resize = () => {
     const width = container.clientWidth;
@@ -184,6 +326,7 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
     }
     globe.width(width);
     globe.height(height);
+    beginUpgrade(schedule.noteViewChange(currentView()));
   };
   resize();
 
@@ -214,10 +357,17 @@ export async function mountSatelliteGlobe(container: HTMLElement): Promise<Satel
       resize();
     },
     destroy() {
+      disposed = true;
       window.clearInterval(sunTimer);
       observer?.disconnect();
-      nightTexture.dispose();
+      for (const texture of tracked) {
+        texture.dispose();
+      }
+      tracked.clear();
+      material.map = null;
       material.emissiveMap = null;
+      material.bumpMap = null;
+      material.specularMap = null;
       globe.pauseAnimation();
       globe._destructor();
     },
