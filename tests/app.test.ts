@@ -1,15 +1,24 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "../src/app";
-import { LOCATION_STORAGE_KEY } from "../src/location";
+import { createApp, type AppOptions } from "../src/app";
+import { LOCATION_STORAGE_KEY, saveLocation } from "../src/location";
 import indexHtml from "../index.html?raw";
 import manifestText from "../public/manifest.webmanifest?raw";
 import "../src/styles.css";
 
-function renderApp() {
+function renderApp(options?: AppOptions) {
   document.body.innerHTML = "";
-  const app = createApp();
+  const app = createApp(options);
   document.body.append(app);
   return app;
+}
+
+const FIXED_NOON = new Date("2026-11-12T03:00:00.000Z");
+const USNO_SUNSET = Date.parse("2026-11-12T08:24:00.000Z");
+
+function kstClockToUtc(kstDay: string, clock: string): number {
+  const [year, month, day] = kstDay.split("-").map(Number);
+  const [hour, minute] = clock.split(":").map(Number);
+  return Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1, (hour ?? 0) - 9, minute ?? 0, 0, 0);
 }
 
 function installGeolocation(geolocation: Geolocation) {
@@ -259,5 +268,138 @@ describe("Argonova frame", () => {
     }
 
     expect(tooWide).toEqual([]);
+  });
+});
+
+describe("tonight panel", () => {
+  it("shows KST sun, moon, and planets after a region is chosen", () => {
+    renderApp({ now: () => FIXED_NOON });
+
+    document.querySelector<HTMLButtonElement>("#location-button")?.click();
+    document.querySelector<HTMLButtonElement>("#region-seoul")?.click();
+
+    const sunset = document.querySelector("#sunset-value")?.textContent ?? "";
+    const sunrise = document.querySelector("#sunrise-value")?.textContent ?? "";
+    expect(sunset).toMatch(/^\d{2}:\d{2}$/);
+    expect(Math.abs(kstClockToUtc("2026-11-12", sunset) - USNO_SUNSET)).toBeLessThanOrEqual(2 * 60 * 1000);
+    expect(sunrise).toBe("07:08");
+    expect(document.querySelector("#moon-value")?.textContent).toBe("8%");
+    expect(document.querySelector("#moon-phase-name")?.textContent).toBe("초승달");
+    expect(document.querySelector("#moon-icon svg circle")?.getAttribute("fill")).toBe("#2A3550");
+    expect(document.querySelector("#moon-icon svg path")?.getAttribute("fill")).toBe("#F2F4F8");
+
+    const names = [...document.querySelectorAll(".planet-name")].map((node) => node.textContent);
+    const details = [...document.querySelectorAll(".planet-detail")].map((node) => node.textContent);
+    expect(names).toEqual(["금성", "화성", "목성"]);
+    expect(details).toEqual(["남남서 하늘", "서쪽 하늘", "서쪽 하늘"]);
+    expect(getComputedStyle(document.querySelector(".planet-dot-jupiter") as HTMLElement).backgroundColor).toBe(
+      "rgb(245, 181, 68)",
+    );
+    expect(document.querySelector<HTMLElement>("#planet-empty")?.hidden).toBe(true);
+    expect(document.querySelector("#panel-tonight")?.textContent).toContain("ISS 통과");
+    expect(document.querySelector("#panel-tonight")?.textContent).toContain("준비 중");
+    expect(getComputedStyle(document.querySelector("#sunset-value") as HTMLElement).fontFamily).toContain(
+      "Space Grotesk",
+    );
+  });
+
+  it("updates the sunset when the selected region changes", () => {
+    renderApp({ now: () => FIXED_NOON });
+    document.querySelector<HTMLButtonElement>("#location-button")?.click();
+    document.querySelector<HTMLButtonElement>("#region-seoul")?.click();
+    const seoulSunset = document.querySelector("#sunset-value")?.textContent;
+
+    document.querySelector<HTMLButtonElement>("#location-button")?.click();
+    document.querySelector<HTMLButtonElement>("#region-jeju")?.click();
+
+    expect(document.querySelector("#location-label")?.textContent).toBe("제주");
+    expect(document.querySelector("#sunset-value")?.textContent).toBe("17:34");
+    expect(seoulSunset).toBe("17:24");
+  });
+
+  it("shows the planets above the horizon at the current time", () => {
+    renderApp({ now: () => new Date("2026-11-12T12:00:00.000Z") });
+    document.querySelector<HTMLButtonElement>("#location-button")?.click();
+    document.querySelector<HTMLButtonElement>("#region-seoul")?.click();
+
+    expect([...document.querySelectorAll(".planet-name")].map((node) => node.textContent)).toEqual(["토성"]);
+    expect(document.querySelector(".planet-detail")?.textContent).toBe("남남동 하늘");
+    expect(getComputedStyle(document.querySelector(".planet-dot-saturn") as HTMLElement).backgroundColor).toBe(
+      "rgb(232, 211, 160)",
+    );
+  });
+
+  it("says the sun does not rise or set during the midnight sun", () => {
+    saveLocation(localStorage, {
+      latitude: 78.2,
+      longitude: 15.7,
+      label: "극지방",
+      source: "geolocation",
+    });
+    renderApp({ now: () => new Date("2026-06-21T12:00:00.000Z") });
+
+    expect(document.querySelector("#sunrise-value")?.textContent).toBe("뜨지 않음");
+    expect(document.querySelector("#sunset-value")?.textContent).toBe("지지 않음");
+    expect(document.querySelector("#sunrise-value")?.classList.contains("is-note")).toBe(true);
+    expect([...document.querySelectorAll(".planet-name")].map((node) => node.textContent)).toEqual([
+      "금성",
+      "화성",
+      "목성",
+      "토성",
+    ]);
+  });
+
+  it("asks for a location instead of showing sample times", () => {
+    renderApp({ now: () => FIXED_NOON });
+    expect(document.querySelector("#sunset-value")?.textContent).toBe("—");
+    expect(document.querySelector("#sunrise-value")?.textContent).toBe("—");
+    expect(document.querySelector("#moon-value")?.textContent).toBe("—");
+    expect(document.querySelector("#planet-empty")?.textContent).toBe(
+      "위치를 선택하면 오늘 밤 하늘을 계산합니다.",
+    );
+    expect(document.querySelector("#panel-tonight")?.textContent).not.toMatch(/\d{1,2}:\d{2}/);
+  });
+
+  it("keeps a filled tonight panel inside a 390px screen", () => {
+    saveLocation(localStorage, {
+      latitude: 37.6,
+      longitude: 127,
+      label: "서울",
+      source: "region",
+    });
+    document.documentElement.style.width = "390px";
+    document.body.style.width = "390px";
+    renderApp({ now: () => new Date("2026-11-20T03:00:00.000Z") });
+
+    expect(document.querySelector("#moon-phase-name")?.textContent).toBe("상현달과 보름달 사이");
+    const rootWidth = document.documentElement.clientWidth || 390;
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(rootWidth);
+
+    const tooWide: string[] = [];
+    for (const element of document.querySelectorAll<HTMLElement>("*")) {
+      for (const value of [getComputedStyle(element).width, getComputedStyle(element).minWidth]) {
+        const match = /^(\d+(?:\.\d+)?)px$/.exec(value);
+        if (match && Number(match[1]) > 390) {
+          tooWide.push(`${element.id || element.className || element.tagName}: ${value}`);
+        }
+      }
+    }
+    expect(tooWide).toEqual([]);
+  });
+
+  it("flips the moon's bright limb south of the equator", () => {
+    saveLocation(localStorage, {
+      latitude: -33.9,
+      longitude: 151.2,
+      label: "남반구",
+      source: "geolocation",
+    });
+    renderApp({ now: () => FIXED_NOON });
+    const path = document.querySelector("#moon-icon svg path")?.getAttribute("d") ?? "";
+    const numbers = [...path.matchAll(/-?\d+\.\d+/g)].map((match) => Number(match[0]));
+    const xs = numbers.filter((_, index) => index % 2 === 0);
+    expect(xs.length).toBeGreaterThan(10);
+    expect(Math.max(...xs)).toBeLessThan(10.5);
+    expect(Math.min(...xs)).toBeLessThan(3);
   });
 });

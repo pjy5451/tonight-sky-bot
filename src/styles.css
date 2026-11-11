@@ -327,6 +327,88 @@ h1 {
 
 .stat-value {
   font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.stat-value.is-note {
+  font-family: "Noto Sans KR", sans-serif;
+  font-size: 14px;
+}
+
+.moon-readout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.moon-icon {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.moon-icon:empty,
+.moon-phase-name:empty {
+  display: none;
+}
+
+.moon-phase-name {
+  color: #a9b3c7;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.planet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.planet-list:empty {
+  display: none;
+}
+
+.planet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.planet-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 5px;
+}
+
+.planet-dot-venus {
+  background: #f2f4f8;
+}
+
+.planet-dot-mars {
+  background: #6cc4ff;
+}
+
+.planet-dot-jupiter {
+  background: #f5b544;
+}
+
+.planet-dot-saturn {
+  background: #e8d3a0;
+}
+
+.planet-name {
+  width: 44px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.planet-detail {
+  min-width: 0;
+  color: #a9b3c7;
 }
 
 .pending {
