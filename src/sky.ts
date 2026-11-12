@@ -84,6 +84,8 @@ export type TonightSky = {
   sunrise: Date | null;
   sunset: Date | null;
   moonPhaseAngle: number;
+  /** 달 조도 0~1. 관측 지수는 반올림 전의 이 값을 쓴다. */
+  moonIllumination: number;
   moonIlluminationPercent: number;
   moonPhaseName: string;
   /** 행성 목록을 계산한 시각. 해가 떠 있으면 다음 태양 고도 −6° 시각이다. */
@@ -309,10 +311,8 @@ export function computeTonightSky(place: SkyPlace, date: Date): TonightSky {
 
   const moonPhaseAngle = MoonPhase(date);
   const illumination = Illumination(Body.Moon, date);
-  const moonIlluminationPercent = Math.min(
-    100,
-    Math.max(0, Math.round(illumination.phase_fraction * 100)),
-  );
+  const moonIllumination = Math.min(1, Math.max(0, illumination.phase_fraction));
+  const moonIlluminationPercent = Math.min(100, Math.max(0, Math.round(moonIllumination * 100)));
 
   const planetTime = planetMoment(observer, date);
   const planets: PlanetPlacement[] = [];
@@ -334,6 +334,7 @@ export function computeTonightSky(place: SkyPlace, date: Date): TonightSky {
     sunrise,
     sunset,
     moonPhaseAngle,
+    moonIllumination,
     moonIlluminationPercent,
     moonPhaseName: moonPhaseName(moonPhaseAngle, moonIlluminationPercent),
     planetTime,

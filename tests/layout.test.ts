@@ -67,7 +67,9 @@ describe("responsive layout", () => {
     );
     expect(document.querySelector("#desk-stats")?.hasAttribute("hidden")).toBe(true);
     expect(document.querySelector(".hero-copy")?.contains(document.querySelector("#tracked-summary"))).toBe(true);
-    expect(document.querySelector("#summary-cloud")).toBeNull();
+    expect(document.querySelector("#desk-stats")?.contains(document.querySelector("#summary-cloud"))).toBe(true);
+    expect(document.querySelector("#summary-cloud")?.textContent).toBe("—");
+    expect(document.querySelector("#summary-index")?.textContent).toBe("—");
     expect(getComputedStyle(document.querySelector(".globe-stage") as HTMLElement).height).toBe("340px");
     expect(document.querySelector(".globe-stage .globe-hud #iss-card")).toBeNull();
     expect(document.querySelector("#sat-detail")).toBeNull();
@@ -108,7 +110,9 @@ describe("responsive layout", () => {
       document.querySelector(".desktop-tools")?.contains(document.querySelector("#location-button")),
     ).toBe(true);
 
-    expect(document.querySelector("#summary-cloud")).toBeNull();
+    expect(document.querySelector("#desk-stats")?.contains(document.querySelector("#summary-cloud"))).toBe(true);
+    expect(document.querySelector("#summary-cloud")?.textContent).toBe("—");
+    expect(document.querySelector("#summary-index")?.textContent).toBe("—");
     expect(document.querySelector("#desk-stats")?.hasAttribute("hidden")).toBe(false);
     expect(document.querySelector("#summary-moon")?.textContent).toBe("—");
     expect(document.querySelector("#tracked-slot")?.contains(document.querySelector("#tracked-summary"))).toBe(
