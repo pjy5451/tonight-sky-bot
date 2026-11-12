@@ -11,6 +11,7 @@ import {
   kstDayOffset,
   predictIssPasses,
   predictStationPasses,
+  sampleIssTrack,
   satrecFromIssTle,
   upcomingIssPasses,
   type IssPass,
@@ -204,6 +205,32 @@ describe("ISS pass prediction", () => {
       expect(Math.abs(jsonPass.start.time.getTime() - tlePass.start.time.getTime())).toBeLessThanOrEqual(MINUTE_MS);
       expect(Math.abs(jsonPass.peak.elevation - tlePass.peak.elevation)).toBeLessThanOrEqual(3);
     }
+  });
+
+  it("samples azimuth and elevation along a pass, including the time marks", () => {
+    const station = parseTleDocument({ items: [REFERENCE_OMM] }).stations[0];
+    expect(station).toBeDefined();
+    if (!station) {
+      return;
+    }
+    const passes = predictStationPasses(
+      station,
+      SEOUL,
+      new Date("2026-11-12T08:00:00.000Z"),
+      new Date("2026-11-12T11:00:00.000Z"),
+    );
+    const pass = passes?.[0];
+    expect(pass).toBeDefined();
+    if (!pass) {
+      return;
+    }
+    const samples = sampleIssTrack(station, SEOUL, pass, 15_000);
+    expect(samples.length).toBeGreaterThan(2);
+    expect(samples[0]?.time.getTime()).toBe(pass.start.time.getTime());
+    expect(samples[samples.length - 1]?.time.getTime()).toBe(pass.end.time.getTime());
+    expect(samples.some((sample) => sample.mark && sample.time.getTime() === pass.peak.time.getTime())).toBe(true);
+    expect(Math.abs((samples[0]?.azimuth ?? 0) - pass.start.azimuth)).toBeLessThan(0.5);
+    expect(samples.every((sample) => Number.isFinite(sample.elevation) && sample.elevation >= 0)).toBe(true);
   });
 
   it("keeps the rise time of a pass that is already under way", () => {

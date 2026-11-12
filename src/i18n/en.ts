@@ -189,4 +189,13 @@ export const en = {
   regionGyeongnamShort: "Gyeongnam",
   regionJejuName: "Jeju",
   regionJejuShort: "Jeju",
+  skyMapTitle: "Sky map",
+  skyMapPoint: "Point at the sky",
+  skyMapAria: "The sky overhead right now",
+  skyMapChoose: "Choose a location to draw the sky map.",
+  skyMapDrag: "Drag to turn the chart.",
+  skyMapSensorOn: "The chart turns toward the top of the device.",
+  skyMapSensorDenied: "The direction sensor is unavailable. Drag to turn the chart.",
+  skyMapStarLoading: "Loading the star list",
+  skyMapStarError: "Could not load the star list.",
 } satisfies Record<MessageKey, string>;

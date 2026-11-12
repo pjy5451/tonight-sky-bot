@@ -187,6 +187,15 @@ export const ko = {
   regionGyeongnamShort: "경남",
   regionJejuName: "제주특별자치도",
   regionJejuShort: "제주",
+  skyMapTitle: "하늘 지도",
+  skyMapPoint: "폰을 하늘로",
+  skyMapAria: "지금 머리 위 하늘",
+  skyMapChoose: "위치를 선택하면 하늘 지도를 그립니다.",
+  skyMapDrag: "끌어 돌려 방향을 바꿉니다.",
+  skyMapSensorOn: "기기가 향하는 쪽으로 지도를 돌립니다.",
+  skyMapSensorDenied: "방향 센서를 쓸 수 없습니다. 끌어 돌리세요.",
+  skyMapStarLoading: "별 목록을 불러오는 중",
+  skyMapStarError: "별 목록을 불러오지 못했습니다.",
 } as const;
 
 export type MessageKey = keyof typeof ko;

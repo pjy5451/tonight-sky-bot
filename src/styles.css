@@ -317,11 +317,70 @@ h1 {
   background: transparent;
 }
 
+.board > .sky-map + .stat-grid,
 .board > .stat-grid + .card,
 .board > .card + .card,
 .launch-board .section-label,
 .launch-row {
   border-top: 1px solid var(--line);
+}
+
+.sky-map {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 16px 16px;
+}
+
+.sky-map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sky-map-head .card-title {
+  min-width: 0;
+}
+
+.sky-map-point {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sky-map-point[aria-pressed="true"] {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.sky-map-svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  touch-action: none;
+  user-select: none;
+}
+
+.sky-map-svg[hidden] {
+  display: none;
+}
+
+.sky-map-svg text {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  fill: var(--label);
 }
 
 .launch-board .section-label {
