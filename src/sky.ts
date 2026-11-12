@@ -274,8 +274,25 @@ function assertPlace(place: SkyPlace): void {
 }
 
 /**
+ * 태양 중심이 굴절 없이 `altitude`를 지나는 시각.
+ * `direction` +1은 떠오를 때, −1은 내려갈 때다.
+ * 오늘 밤 행성의 −6°와 타임라인의 박명 끝이 이 함수를 같이 쓴다.
+ * astronomy-engine은 박명에 굴절을 넣지 않는다.
+ */
+export function sunCenterAltitudeCrossing(
+  observer: Observer,
+  start: Date,
+  direction: 1 | -1,
+  altitude: number,
+  limitDays = 2,
+): Date | null {
+  const found = SearchAltitude(Body.Sun, observer, direction, start, limitDays, altitude);
+  return found ? found.date : null;
+}
+
+/**
  * 행성 목록을 볼 시각.
- * 태양 중심 고도(굴절 없음, SearchAltitude와 같은 기준)가 −6°보다 높으면
+ * 태양 중심 고도(굴절 없음)가 −6°보다 높으면
  * 다음에 그 고도를 지나 내려가는 시각을 쓴다. 이미 −6° 이하이거나
  * 그 시각이 없으면(극주) 지금 시각을 쓴다.
  */
@@ -285,8 +302,7 @@ function planetMoment(observer: Observer, date: Date): Date {
   if (!(sunAltitude > -6)) {
     return date;
   }
-  const found = SearchAltitude(Body.Sun, observer, -1, date, 2, -6);
-  return found ? found.date : date;
+  return sunCenterAltitudeCrossing(observer, date, -1, -6) ?? date;
 }
 
 /**

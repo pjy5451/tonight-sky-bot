@@ -3,7 +3,9 @@ import {
   constants,
   degreesToRadians,
   eciToEcf,
+  ecfToEci,
   ecfToLookAngles,
+  geodeticToEcf,
   gstime,
   jday,
   json2satrec,
@@ -417,4 +419,96 @@ export function sampleIssTrack(
     });
   }
   return samples;
+}
+
+/**
+ * ISS 표준 등급 −1.3.
+ * 1000 km, 위상각 90°에서의 평균 밝기다.
+ * Ted Molczan, SeeSat-L 2005-08-16, Russell의 2002–2005 관측.
+ * https://satobs.org/seesat/Aug-2005/0114.html
+ */
+export const ISS_STANDARD_MAGNITUDE = -1.3;
+
+/** satellite.js `sunPos`는 태양 위치를 AU로 준다. IAU 천문단위. */
+const SUN_AU_KM = 149_597_870.7;
+
+/**
+ * 표준 등급에서 거리와 위상각을 반영한 겉보기 등급.
+ * Mag = std + 5·log10(rangeKm/1000) − 2.5·log10(sin B + (π−B)·cos B)
+ * B는 태양–위성–관측자 각(라디안). 0이 완전 조명, π/2가 표준 등급의 기준이다.
+ * https://satobs.org/seesat/Apr-2001/0295.html
+ */
+export function visualMagnitudeFromPhase(
+  standardMagnitude: number,
+  rangeKm: number,
+  phaseAngleRad: number,
+): number | null {
+  if (!Number.isFinite(standardMagnitude) || !(rangeKm > 0) || !Number.isFinite(phaseAngleRad)) {
+    return null;
+  }
+  const phase = Math.min(Math.PI, Math.max(0, phaseAngleRad));
+  const illuminated = Math.sin(phase) + (Math.PI - phase) * Math.cos(phase);
+  // B=π이면 위상 함수가 0이라 공식이 발산한다. sin(π)의 부동소수 잔여도 거른다.
+  if (!(illuminated > 1e-3)) {
+    return null;
+  }
+  const magnitude =
+    standardMagnitude + 5 * Math.log10(rangeKm / 1000) - 2.5 * Math.log10(illuminated);
+  return Number.isFinite(magnitude) ? magnitude : null;
+}
+
+function angleBetween(left: Vec3, right: Vec3): number | null {
+  const leftLength = Math.hypot(left.x, left.y, left.z);
+  const rightLength = Math.hypot(right.x, right.y, right.z);
+  if (leftLength === 0 || rightLength === 0) {
+    return null;
+  }
+  const cosine = (left.x * right.x + left.y * right.y + left.z * right.z) / (leftLength * rightLength);
+  return Math.acos(Math.min(1, Math.max(-1, cosine)));
+}
+
+/** 한 시각의 ISS 겉보기 등급. 위치를 못 구하면 null. */
+export function issApparentMagnitude(satrec: SatRec, place: PassObserver, time: Date): number | null {
+  const observer = geodeticOf(place);
+  if (!observer || Number.isNaN(time.getTime())) {
+    return null;
+  }
+  const propagated = propagate(satrec, time);
+  const position = finiteVector(propagated?.position);
+  if (!position) {
+    return null;
+  }
+  const gmst = gstime(time);
+  const observerEci = ecfToEci(geodeticToEcf(observer), gmst);
+  const sunAu = sunPos(jday(time)).rsun;
+  const sun = {
+    x: sunAu[0] * SUN_AU_KM,
+    y: sunAu[1] * SUN_AU_KM,
+    z: sunAu[2] * SUN_AU_KM,
+  };
+  const phase = angleBetween(
+    { x: sun.x - position.x, y: sun.y - position.y, z: sun.z - position.z },
+    { x: observerEci.x - position.x, y: observerEci.y - position.y, z: observerEci.z - position.z },
+  );
+  const rangeKm = Math.hypot(
+    observerEci.x - position.x,
+    observerEci.y - position.y,
+    observerEci.z - position.z,
+  );
+  if (phase === null) {
+    return null;
+  }
+  return visualMagnitudeFromPhase(ISS_STANDARD_MAGNITUDE, rangeKm, phase);
+}
+
+export function issPassPeakMagnitude(station: Station, place: PassObserver, pass: IssPass): number | null {
+  try {
+    const satrec = json2satrec(station.omm);
+    if (satrec.error !== 0) {
+      return null;
+    }
+    return issApparentMagnitude(satrec, place, pass.peak.time);
+  } catch {
+    return null;
+  }
 }

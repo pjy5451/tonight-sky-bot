@@ -212,6 +212,23 @@ export const ko = {
   skyMapSensorDenied: "방향 센서를 쓸 수 없습니다. 끌어 돌리세요.",
   skyMapStarLoading: "별 목록을 불러오는 중",
   skyMapStarError: "별 목록을 불러오지 못했습니다.",
+  timelineTitle: "오늘 밤 타임라인",
+  timelineNext: "다음 이벤트 {countdown}",
+  timelineChoose: "위치를 선택하면 오늘 밤 타임라인을 계산합니다.",
+  timelineNone: "이 날짜의 저녁 일정이 없습니다.",
+  timelineCivil: "시민 박명 끝",
+  timelineNautical: "항해 박명 끝",
+  timelineFullNight: "완전한 밤",
+  timelineFullNightNote: "천문 박명 끝 · 별 보기 시작",
+  timelineIss: "ISS 통과 · 최고 {elevation}°",
+  timelineIssDetail: "{from} → {to} · {magnitude}",
+  timelineIssRoute: "{from} → {to}",
+  timelineMagnitude: "{value}등급",
+  timelineRecommend: "추천",
+  timelinePlanet: "{name} 남중",
+  timelinePlanetAlt: "고도 {altitude}°",
+  timelineMoonrise: "달 뜸",
+  timelineMoonset: "달 짐",
 } as const;
 
 export type MessageKey = keyof typeof ko;

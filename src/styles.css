@@ -317,6 +317,8 @@ h1 {
 }
 
 .board > .sky-map + .stat-grid,
+.board > .sky-map + .card,
+.board > .card + .stat-grid,
 .board > .stat-grid + .card,
 .board > .card + .card,
 .launch-board .section-label,
@@ -380,6 +382,79 @@ h1 {
   font-family: var(--font-mono);
   font-size: 7px;
   fill: var(--label);
+}
+
+.tonight-timeline {
+  gap: 0;
+}
+
+.timeline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.timeline-countdown {
+  flex-shrink: 0;
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-rows {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.timeline-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.timeline-row.is-past {
+  opacity: 0.4;
+}
+
+.timeline-time,
+.timeline-badge {
+  font-family: var(--font-mono);
+}
+
+.timeline-time {
+  font-size: 13px;
+}
+
+.timeline-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.timeline-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.timeline-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timeline-badge {
+  color: var(--amber);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .launch-board .section-label {
