@@ -208,7 +208,7 @@ function createSvg(): SVGSVGElement {
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
   svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-width", "1.6");
   svg.setAttribute("stroke-linecap", "round");
   svg.setAttribute("stroke-linejoin", "round");
   svg.setAttribute("aria-hidden", "true");
@@ -250,7 +250,7 @@ function createBrandIcon(): SVGSVGElement {
   const svg = createSvg();
   svg.setAttribute("width", "26");
   svg.setAttribute("height", "26");
-  svg.setAttribute("stroke", "#F5B544");
+  svg.setAttribute("stroke", "#E8B04A");
 
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", "M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z");
@@ -262,7 +262,7 @@ function createPinIcon(): SVGSVGElement {
   const svg = createSvg();
   svg.setAttribute("width", "16");
   svg.setAttribute("height", "16");
-  svg.setAttribute("stroke", "#F5B544");
+  svg.setAttribute("stroke", "#E8B04A");
 
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", "M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z");
@@ -341,14 +341,14 @@ function renderMoonIcon(phaseAngle: number, latitude: number): SVGSVGElement {
   disk.setAttribute("cx", "10");
   disk.setAttribute("cy", "10");
   disk.setAttribute("r", "9");
-  disk.setAttribute("fill", "#2A3550");
+  disk.setAttribute("fill", "#1C2333");
   svg.append(disk);
 
   const lit = moonLitPath(phaseAngle, latitude < 0);
   if (lit) {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", lit);
-    path.setAttribute("fill", "#F2F4F8");
+    path.setAttribute("fill", "#E9EDF5");
     svg.append(path);
   }
 
@@ -810,7 +810,11 @@ function createTonightPanel(tab: Tab): HTMLElement {
   meteorDday.textContent = "—";
   meteor.append(meteorCopy, meteorDday);
 
-  panel.append(status, stats, iss, planets, meteor);
+  const board = document.createElement("div");
+  board.className = "board";
+  board.append(stats, iss, planets, meteor);
+
+  panel.append(status, board);
   return panel;
 }
 
@@ -882,7 +886,10 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   globeStatus.setAttribute("aria-live", "polite");
   globeStatus.textContent = tr("orbitLoading");
 
-  stage.append(mount, globeStatus);
+  const hud = document.createElement("div");
+  hud.className = "globe-hud";
+
+  stage.append(mount, globeStatus, hud);
 
   const legend = document.createElement("div");
   legend.className = "legend";
@@ -935,6 +942,7 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
     createIssStat("sat-detail-altitude", "altitude", "iss-metric"),
   );
   detail.append(detailTitle, detailStats);
+  hud.append(detail);
 
   const catalogStatus = document.createElement("p");
   catalogStatus.id = "catalog-status";
@@ -967,13 +975,14 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   pass.textContent = tr("orbitLoading");
 
   iss.append(head, stats, pass);
+  hud.append(iss);
 
   const source = document.createElement("p");
   source.id = "orbit-source";
   source.className = "orbit-source";
   source.textContent = tr("orbitSource");
 
-  panel.append(desktopHead, stage, legend, filters, detail, catalogStatus, iss, source);
+  panel.append(desktopHead, stage, legend, filters, catalogStatus, source);
   panel.setAttribute("aria-busy", "true");
   return panel;
 }
@@ -1377,6 +1386,12 @@ function createCountdown(): HTMLElement {
   grid.className = "countdown";
   bindAria(grid, "countdownAria");
 
+  const mark = document.createElement("span");
+  mark.className = "t-minus";
+  mark.textContent = "T\u2212";
+  mark.setAttribute("aria-hidden", "true");
+  grid.append(mark);
+
   COUNTDOWN_UNITS.forEach((key, index) => {
     const cell = document.createElement("div");
     cell.className = "countdown-cell";
@@ -1700,6 +1715,9 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
 
   next.append(head, copy, status, countdown, webcast);
 
+  const board = document.createElement("div");
+  board.className = "board launch-board";
+
   const laterBlock = document.createElement("div");
   laterBlock.id = "later-block";
   laterBlock.className = "later-block";
@@ -1714,12 +1732,13 @@ function createLaunchesPanel(tab: Tab): HTMLElement {
   later.className = "later-list";
 
   laterBlock.append(laterLabel, later);
+  board.append(next, laterBlock);
 
   const source = document.createElement("p");
   source.id = "launch-source";
   source.className = "orbit-source";
 
-  panel.append(next, laterBlock, source);
+  panel.append(board, source);
   panel.setAttribute("aria-busy", "true");
   return panel;
 }

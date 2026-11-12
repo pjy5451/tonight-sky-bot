@@ -20,18 +20,18 @@ export const FILTER_GROUPS = [
 export type FilterGroup = (typeof FILTER_GROUPS)[number];
 
 /**
- * 종류별 점 색. 디자인 토큰(#F5B544, #6CC4FF, #FFD58A, #A9B3C7, #F2F4F8)과
- * 같은 남색 배경 위의 하늘색·회색 계열만 쓴다.
+ * 종류별 점 색. styles.css의 디자인 토큰과 같은 값이다.
+ * 한국·스타링크·항법·정지궤도는 DESIGN.md 5장, 그 외는 시안·본문색.
  */
 export const GROUP_COLOR: Record<FilterGroup, string> = {
-  stations: "#6CC4FF",
-  starlink: "#D5DDEA",
-  "gps-ops": "#F5B544",
-  galileo: "#FFD58A",
-  geo: "#A9B3C7",
-  weather: "#9FD4FF",
-  science: "#F2F4F8",
-  korea: "#6CC4FF",
+  stations: "#7FD3FF",
+  starlink: "#A9B8D6",
+  "gps-ops": "#7BD88F",
+  galileo: "#7BD88F",
+  geo: "#C59BFF",
+  weather: "#7FD3FF",
+  science: "#E9EDF5",
+  korea: "#FF7A59",
 };
 
 export type GlobeFilter = {

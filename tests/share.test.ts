@@ -46,7 +46,7 @@ function expectShareMarkup(html: string, manifestText: string): void {
   expect(html).toContain('property="og:image:height" content="630"');
   expect(html).toContain('property="og:image:alt" content="Argonova"');
   expect(html).toContain('name="twitter:title" content="Argonova"');
-  expect(html).toContain('name="theme-color" content="#0B1020"');
+  expect(html).toContain('name="theme-color" content="#05070D"');
   expect(html).toContain('name="mobile-web-app-capable" content="yes"');
   expect(html).toContain('name="apple-mobile-web-app-capable" content="yes"');
   expect(html).toContain('name="apple-mobile-web-app-title" content="Argonova"');
@@ -71,8 +71,8 @@ function expectShareMarkup(html: string, manifestText: string): void {
   expect(manifest.start_url).toBe("./");
   expect(manifest.scope).toBe("./");
   expect(manifest.display).toBe("standalone");
-  expect(manifest.background_color).toBe("#0B1020");
-  expect(manifest.theme_color).toBe("#0B1020");
+  expect(manifest.background_color).toBe("#05070D");
+  expect(manifest.theme_color).toBe("#05070D");
   expect(manifest.icons.map((icon) => icon.sizes)).toEqual(["192x192", "512x512"]);
   for (const icon of manifest.icons) {
     expect(icon.type).toBe("image/png");
@@ -87,8 +87,8 @@ describe("share metadata and home screen", () => {
     expectShareMarkup(html, manifestText);
 
     const favicon = readText(join(ROOT, "public/favicon.svg"));
-    expect(favicon).toContain("#0B1020");
-    expect(favicon).toContain("#F5B544");
+    expect(favicon).toContain("#05070D");
+    expect(favicon).toContain("#E8B04A");
     expect(favicon).toContain(STAR_PATH);
 
     const og = readFileSync(join(ROOT, "public/og.png"));

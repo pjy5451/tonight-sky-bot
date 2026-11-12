@@ -90,7 +90,7 @@ describe("security headers", () => {
       return tag.toLowerCase() === "stylesheet";
     });
     expect(stylesheets).toEqual([
-      "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap",
+      "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap",
     ]);
 
     const links = [...html.matchAll(/<link\b[^>]*>/gi)].map((match) => match[0]);

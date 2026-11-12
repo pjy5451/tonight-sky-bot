@@ -24,7 +24,7 @@ import {
   sunDirectionFromSubsolar,
   type Vec3,
 } from "./satellite-shape";
-import type { OrbitPath, SatellitePoint } from "./satellites";
+import { ISS_COLOR, OTHER_SATELLITE_COLOR, type OrbitPath, type SatellitePoint } from "./satellites";
 
 export type GlobeMountOptions = {
   onSelect?: (point: SatellitePoint | null) => void;
@@ -136,13 +136,13 @@ export async function mountSatelliteGlobe(
   globe
     .backgroundColor("rgba(0,0,0,0)")
     .showAtmosphere(true)
-    .atmosphereColor("#6CC4FF")
+    .atmosphereColor(OTHER_SATELLITE_COLOR)
     .atmosphereAltitude(0.18)
     .pathPoints("points")
     .pathPointLat("lat")
     .pathPointLng("lng")
     .pathPointAlt("alt")
-    .pathColor(() => "#F5B544")
+    .pathColor(() => ISS_COLOR)
     .pathStroke(1.2)
     .pathDashLength(0.4)
     .pathDashGap(0.6)
