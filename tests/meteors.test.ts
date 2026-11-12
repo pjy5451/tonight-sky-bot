@@ -100,13 +100,27 @@ describe("next meteor shower", () => {
     });
   });
 
-  it("uses the Korean calendar date around midnight", () => {
+  it("counts today on the Seoul calendar around midnight", () => {
     expect(nextMeteorShower(new Date("2026-11-16T14:59:59.000Z"))).toMatchObject({
       shower: { id: "leo" },
       peakDate: "2026-11-17",
       daysUntil: 1,
     });
     expect(nextMeteorShower(new Date("2026-11-16T15:00:00.000Z"))).toMatchObject({
+      shower: { id: "leo" },
+      peakDate: "2026-11-17",
+      daysUntil: 0,
+    });
+  });
+
+  it("keeps the peak month and day and counts today in the given zone", () => {
+    const atSeoulMidnight = new Date("2026-11-16T15:00:00.000Z");
+    expect(nextMeteorShower(atSeoulMidnight, "America/New_York")).toMatchObject({
+      shower: { id: "leo" },
+      peakDate: "2026-11-17",
+      daysUntil: 1,
+    });
+    expect(nextMeteorShower(atSeoulMidnight, "Asia/Seoul")).toMatchObject({
       shower: { id: "leo" },
       peakDate: "2026-11-17",
       daysUntil: 0,

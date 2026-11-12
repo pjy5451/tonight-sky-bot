@@ -181,6 +181,7 @@ describe("English screen", () => {
     expect(document.querySelector(".planet-detail")?.textContent).toBe("SSE sky");
     expect(document.querySelector("#moon-phase-name")?.textContent).toBe("Waxing crescent");
     expect(document.querySelector("#sunset-value")?.textContent).toBe("17:24");
+    expect(document.querySelector("#time-zone")?.textContent).toBe("GMT+9");
     expect(document.querySelector("#meteor-name")?.textContent).toBe("Leonids peak");
     expect(directionSkyLabel("남남동", "en")).toBe("SSE sky");
     expect(moonPhaseName(19.3, 3, "en")).toBe("Waxing crescent");

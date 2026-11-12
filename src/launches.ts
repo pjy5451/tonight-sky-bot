@@ -1,8 +1,5 @@
+import { calendarDayIndex, zonedParts } from "./clock";
 import { translate, weekdayLabel, type Locale } from "./i18n";
-
-/** 한국표준시는 일광절약시간 없이 UTC+9로 고정이다. */
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-const DAY_MS = 86_400_000;
 
 export const LAUNCH_LOAD_ERROR = "발사 일정을 불러오지 못했습니다.";
 export const LAUNCH_EMPTY_MESSAGE = "다가오는 발사 일정이 없습니다.";
@@ -131,32 +128,31 @@ export function upcomingLaunches(launches: readonly LaunchItem[], now: Date): La
   return launches.filter((launch) => Date.parse(launch.net) >= nowMs);
 }
 
-export function kstCalendarDayIndex(date: Date): number {
-  return Math.floor((date.getTime() + KST_OFFSET_MS) / DAY_MS);
+/** 기기 시간대 달력의 날짜 번호. 시간대를 넘기면 그 달력이다. */
+export function kstCalendarDayIndex(date: Date, timeZone?: string): number {
+  return calendarDayIndex(date, timeZone);
 }
 
 /**
- * `M/D (요일) HH:MM`. 날짜 숫자는 한국시간이고, 요일 이름만 언어를 따른다.
- * 시각은 초를 버리지 않고 그 시각의 시·분만 적는다.
+ * `M/D (요일) HH:MM`. 날짜와 시·분은 기기 시간대이고, 요일 이름만 언어를 따른다.
+ * 초는 올리지 않고 그 시각의 시·분만 적는다.
  */
-export function formatLaunchDateTime(date: Date, locale: Locale = "ko"): string {
-  const shifted = new Date(date.getTime() + KST_OFFSET_MS);
-  const month = shifted.getUTCMonth() + 1;
-  const day = shifted.getUTCDate();
-  const weekday = weekdayLabel(shifted.getUTCDay(), locale);
-  const hour = String(shifted.getUTCHours()).padStart(2, "0");
-  const minute = String(shifted.getUTCMinutes()).padStart(2, "0");
-  return `${month}/${day} (${weekday}) ${hour}:${minute}`;
+export function formatLaunchDateTime(date: Date, locale: Locale = "ko", timeZone?: string): string {
+  const parts = zonedParts(date, timeZone);
+  const weekday = weekdayLabel(parts.weekday, locale);
+  const hour = String(parts.hour).padStart(2, "0");
+  const minute = String(parts.minute).padStart(2, "0");
+  return `${parts.month}/${parts.day} (${weekday}) ${hour}:${minute}`;
 }
 
-/** 한국어 요일의 한국시간 발사 시각. */
-export function formatKstLaunchDateTime(date: Date): string {
-  return formatLaunchDateTime(date, "ko");
+/** 한국어 요일의 기기 시간대 발사 시각. Asia/Seoul에서는 한국시간과 같다. */
+export function formatKstLaunchDateTime(date: Date, timeZone?: string): string {
+  return formatLaunchDateTime(date, "ko", timeZone);
 }
 
-/** 한국시간 달력 기준 D-day. 당일은 D-Day, 미래는 D-N. */
-export function formatLaunchDday(target: Date, now: Date): string {
-  const diff = kstCalendarDayIndex(target) - kstCalendarDayIndex(now);
+/** 같은 시간대 달력의 D-day. 당일은 D-Day, 미래는 D-N. */
+export function formatLaunchDday(target: Date, now: Date, timeZone?: string): string {
+  const diff = kstCalendarDayIndex(target, timeZone) - kstCalendarDayIndex(now, timeZone);
   if (diff <= 0) {
     return "D-Day";
   }

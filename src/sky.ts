@@ -12,13 +12,9 @@ import {
   SearchRiseSet,
   VectorObserver,
 } from "astronomy-engine";
+import { formatClock, localDayStart } from "./clock";
 import { translate, type Locale, type MessageKey } from "./i18n";
 
-/**
- * 한국표준시는 UTC+9이고 서머타임을 쓰지 않는다.
- * 기기 시간대와 상관없이 이 오프셋으로 날짜·시각을 정한다.
- */
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const COMPASS_16 = [
@@ -95,20 +91,20 @@ export type TonightSky = {
   planets: PlanetPlacement[];
 };
 
-export function kstDayStart(date: Date): Date {
-  const shifted = new Date(date.getTime() + KST_OFFSET_MS);
-  return new Date(
-    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()) - KST_OFFSET_MS,
-  );
+/**
+ * 기기 시간대에서 그 날짜의 자정.
+ * 시간대를 넘기면 그 달력이다. 테스트 프로세스는 Asia/Seoul이라 한국 자정과 같다.
+ */
+export function kstDayStart(date: Date, timeZone?: string): Date {
+  return localDayStart(date, timeZone);
 }
 
-/** 가장 가까운 분으로 반올림한 한국표준시 `HH:MM`. */
-export function formatKstTime(date: Date): string {
-  const rounded = new Date(Math.round(date.getTime() / 60_000) * 60_000);
-  const shifted = new Date(rounded.getTime() + KST_OFFSET_MS);
-  const hour = String(shifted.getUTCHours()).padStart(2, "0");
-  const minute = String(shifted.getUTCMinutes()).padStart(2, "0");
-  return `${hour}:${minute}`;
+/**
+ * 기기 시간대의 `HH:MM`. 분은 가장 가까운 분으로 반올림한다.
+ * 시간대를 넘기면 그 달력의 시·분이다. Asia/Seoul에서는 한국시간과 같다.
+ */
+export function formatKstTime(date: Date, timeZone?: string): string {
+  return formatClock(date, timeZone);
 }
 
 function normalizeDegrees(degrees: number): number {
@@ -294,8 +290,9 @@ function planetMoment(observer: Observer, date: Date): Date {
 }
 
 /**
- * 선택한 위치의 오늘(한국 날짜) 일출·일몰, 그 시각의 달,
+ * 선택한 위치의 오늘(기기 시간대 날짜) 일출·일몰, 그 시각의 달,
  * 오늘 밤(태양 고도 −6° 이하) 지평선 위의 행성.
+ * 프로세스가 Asia/Seoul이면 오늘 날짜는 한국 날짜와 같다.
  * 고도는 저장하지 않으므로 평균 해수면(0m)에서 본다.
  * 일출·일몰은 astronomy-engine `SearchRiseSet`(태양 윗가장자리와 표준 대기굴절)을 쓴다.
  */

@@ -1,3 +1,4 @@
+import { formatShortOffset } from "./clock";
 import {
   FILTER_GROUPS,
   countryMessageKey,
@@ -2159,12 +2160,16 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const title = document.createElement("h1");
   title.id = "date-heading";
 
+  const timeZoneLabel = document.createElement("p");
+  timeZoneLabel.id = "time-zone";
+  timeZoneLabel.className = "time-zone";
+
   const trackedSummary = document.createElement("p");
   trackedSummary.id = "tracked-summary";
   trackedSummary.className = "tracked-summary";
   bindText(trackedSummary, "trackedPending");
 
-  heroCopy.append(title, trackedSummary);
+  heroCopy.append(title, timeZoneLabel, trackedSummary);
 
   const deskStats = document.createElement("div");
   deskStats.id = "desk-stats";
@@ -2278,7 +2283,14 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const setLocationLabel = () => {
     const stored = loadLocation(localStorage);
     const label = stored ? locationDisplay(stored) : tr("locationChoose");
-    title.textContent = formatDatePlace(now(), stored ? label : "", locale);
+    const instant = now();
+    if (Number.isNaN(instant.getTime())) {
+      title.textContent = "";
+      timeZoneLabel.textContent = "";
+    } else {
+      title.textContent = formatDatePlace(instant, stored ? label : "", locale);
+      timeZoneLabel.textContent = formatShortOffset(instant);
+    }
     locationLabel.textContent = label;
     locationButton.setAttribute("aria-label", stored ? tr("locationChange", { label }) : label);
 

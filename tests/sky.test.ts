@@ -36,7 +36,8 @@ function pathPoints(path: string): Array<[number, number]> {
 }
 
 describe("Korean Standard Time", () => {
-  it("formats clock times in KST even when the runtime zone is UTC", () => {
+  it("formats Seoul hour and minute when the process starts in Asia/Seoul", () => {
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("Asia/Seoul");
     expect(formatKstTime(new Date("2026-11-12T08:23:39.335Z"))).toBe("17:24");
     expect(formatKstTime(new Date("2026-11-11T22:08:08.268Z"))).toBe("07:08");
     expect(formatKstTime(new Date("2026-11-12T14:59:30.000Z"))).toBe("00:00");
