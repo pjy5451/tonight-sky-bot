@@ -1,7 +1,7 @@
 import { beforeEach } from "vitest";
 
-// jsdom starts at 1024px, which is already the desktop dashboard.
-// Phone tests stay on the narrow layout unless a test sets a width.
+// jsdom starts at 1024px. The year1 dashboard begins at 1200px,
+// so phone tests stay on the tab layout unless a test sets a wider width.
 beforeEach(() => {
   Object.defineProperty(window, "innerWidth", {
     configurable: true,
