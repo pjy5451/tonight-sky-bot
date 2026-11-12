@@ -10,6 +10,7 @@ import {
   type GlobeFilter,
 } from "./catalog";
 import { canRenderGlobe, mountSatelliteGlobe, type SatelliteGlobe } from "./globe-view";
+import { exclusiveHighlight } from "./globe-style";
 import {
   meteorNameKey,
   planetNameKey,
@@ -35,6 +36,7 @@ import {
   SCENE_BATCH,
   buildSatelliteScene,
   findNextKoreaPass,
+  orbitPathsForStation,
   formatAltitude,
   formatGroundPosition,
   formatKoreaPassLabel,
@@ -1203,18 +1205,19 @@ function bindSatellites(
     date: Date,
     paths: ReturnType<typeof buildSatelliteScene>["paths"] | undefined,
     focus: { lat: number; lng: number } | undefined,
+    frame: { highlight: ReturnType<typeof exclusiveHighlight>; selectedPaths: ReturnType<typeof orbitPathsForStation> },
   ) => {
     const token = ++sceneToken;
     if (extrasToDraw.length === 0) {
       latestPoints = stationPoints;
-      globe?.update(stationPoints, paths, focus);
+      globe?.update(stationPoints, paths, focus, frame);
       renderDetail();
       return;
     }
 
     const collected = stationPoints.slice();
     latestPoints = collected.slice();
-    globe?.update(collected, paths, focus);
+    globe?.update(collected, paths, focus, frame);
     let index = 0;
     const step = () => {
       if (token !== sceneToken || !panel.isConnected) {
@@ -1229,7 +1232,7 @@ function bindSatellites(
         return;
       }
       latestPoints = collected;
-      globe?.update(collected);
+      globe?.update(collected, undefined, undefined, frame);
       renderDetail();
     };
     window.requestAnimationFrame(step);
@@ -1247,7 +1250,9 @@ function bindSatellites(
     }
 
     const date = now();
-    const showStations = isSatelliteShown({ group: "stations", korean: false }, filter);
+    const highlight = exclusiveHighlight(filter);
+    const showDimmed = highlight !== null;
+    const showStations = showDimmed || isSatelliteShown({ group: "stations", korean: false }, filter);
     const scene = catalog.error
       ? null
       : buildSatelliteScene(catalog.stations, date, { includeOrbit: refreshOrbit && showStations });
@@ -1267,8 +1272,16 @@ function bindSatellites(
     }
     const paths = !showStations ? [] : refreshOrbit ? (scene?.paths ?? []) : undefined;
     const stationPoints = showStations ? (scene?.points ?? []) : [];
-    const extrasToDraw = extras.filter((satellite) => isSatelliteShown(satellite, filter));
-    publishScene(stationPoints, extrasToDraw, date, paths, focus);
+    const extrasToDraw = showDimmed ? extras : extras.filter((satellite) => isSatelliteShown(satellite, filter));
+    const selected = selectedId === null
+      ? null
+      : catalog.stations.find((station) => station.noradId === selectedId) ??
+        extras.find((station) => station.noradId === selectedId) ??
+        null;
+    const selectedPaths = selected && selected.noradId !== ISS_NORAD_CATALOG_ID
+      ? orbitPathsForStation(selected, date)
+      : [];
+    publishScene(stationPoints, extrasToDraw, date, paths, focus, { highlight, selectedPaths });
     renderCard(scene?.iss ?? null);
     renderSource();
     publishGlobeStatus();
