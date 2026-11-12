@@ -67,11 +67,18 @@ export type GlobeFrame = {
   selectedPaths?: OrbitPath[];
 };
 
+export type GlobeFocus = {
+  lat: number;
+  lng: number;
+  /** 0이면 바로 맞추고, 양수면 그 밀리초 동안 돈다. */
+  durationMs?: number;
+};
+
 export type SatelliteGlobe = {
   update(
     points: SatellitePoint[],
     paths?: OrbitPath[],
-    focus?: { lat: number; lng: number },
+    focus?: GlobeFocus,
     frame?: GlobeFrame,
   ): void;
   resize(): void;
@@ -526,9 +533,21 @@ export async function mountSatelliteGlobe(
       }
       publishPaths();
       if (focus) {
-        userZoomed = false;
-        hasFrame = true;
-        frameCamera(focus.lat, focus.lng);
+        const duration = focus.durationMs ?? 0;
+        if (duration > 0) {
+          const pov = globe.pointOfView();
+          const altitude =
+            typeof pov.altitude === "number" && Number.isFinite(pov.altitude) ? pov.altitude : frameAltitude;
+          framing = true;
+          globe.pointOfView({ lat: focus.lat, lng: focus.lng, altitude }, duration);
+          window.setTimeout(() => {
+            framing = false;
+          }, duration);
+        } else {
+          userZoomed = false;
+          hasFrame = true;
+          frameCamera(focus.lat, focus.lng);
+        }
       }
       syncScene();
     },

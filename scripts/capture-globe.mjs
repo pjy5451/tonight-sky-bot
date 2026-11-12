@@ -14,6 +14,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
 const outDir = path.join(root, "tests", "screenshots");
 const outFile = path.join(outDir, "globe-default.png");
+const layoutShots = [
+  { width: 390, height: 844, file: "globe-layout-390.png" },
+  { width: 1440, height: 1000, file: "globe-layout-1440.png" },
+];
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -82,6 +86,34 @@ try {
   await page.waitForTimeout(300);
   await mkdir(outDir, { recursive: true });
   await page.locator("#globe-mount canvas").screenshot({ path: outFile });
+
+  for (const shot of layoutShots) {
+    const layout = await browser.newPage({
+      viewport: { width: shot.width, height: shot.height },
+      deviceScaleFactor: 1,
+      locale: "ko-KR",
+    });
+    await layout.addInitScript(() => {
+      localStorage.setItem(
+        "tonight-sky-location",
+        JSON.stringify({ latitude: 37.6, longitude: 127, label: "서울", source: "region" }),
+      );
+    });
+    await layout.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
+    if (shot.width < 1024) {
+      await layout.click("#tab-satellites");
+    }
+    await layout.waitForFunction(() => {
+      const name = document.querySelector("#sat-selection-name")?.textContent ?? "";
+      const pass = document.querySelector("#sat-selection-pass")?.textContent ?? "";
+      const readyName = name.length > 0 && name !== "—" && name !== "-";
+      const readyPass = /\d{2}:\d{2}/.test(pass) || pass.includes("예정된 통과 없음");
+      return readyName && readyPass;
+    }, { timeout: 20000 });
+    await layout.waitForTimeout(400);
+    await layout.screenshot({ path: path.join(outDir, shot.file), fullPage: true });
+    await layout.close();
+  }
 } finally {
   await browser.close();
   server.close();

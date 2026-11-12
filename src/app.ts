@@ -12,6 +12,19 @@ import {
 import { canRenderGlobe, mountSatelliteGlobe, type SatelliteGlobe } from "./globe-view";
 import { exclusiveHighlight } from "./globe-style";
 import {
+  GLOBE_VIEWS,
+  SELECTION_LOOK_MS,
+  countGlobeViews,
+  filterForView,
+  formatSelectionAltitudeKm,
+  formatSelectionSpeedKms,
+  isGlobeView,
+  officialLiveUrl,
+  satelliteDisplayName,
+  viewFromFilter,
+  type GlobeView,
+} from "./globe-layout";
+import {
   meteorNameKey,
   planetNameKey,
   regionNameKey,
@@ -41,6 +54,7 @@ import {
   formatGroundPosition,
   formatKoreaPassLabel,
   formatSpeed,
+  propagateStation,
   parseCatalogDocument,
   parseTleDocument,
   type CatalogLoad,
@@ -72,6 +86,7 @@ import {
   issPassRoute,
   issPassTimeRange,
   kstDayOffset,
+  nextObserverPass,
   predictStationPasses,
   sampleIssTrack,
   upcomingIssPasses,
@@ -877,6 +892,16 @@ function createLegendItem(className: string, label: string): HTMLElement {
   return item;
 }
 
+function createSelectionCell(labelKey: MessageKey, value: HTMLElement): HTMLElement {
+  const cell = document.createElement("div");
+  cell.className = "sat-selection-cell";
+  const label = document.createElement("span");
+  label.className = "stat-label";
+  bindText(label, labelKey);
+  cell.append(label, value);
+  return cell;
+}
+
 function createIssStat(id: string, labelKey: MessageKey, valueClass: string): HTMLElement {
   const cell = document.createElement("div");
   cell.className = "iss-stat";
@@ -913,6 +938,38 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
 
   desktopCopy.append(desktopTitle, desktopNote);
   desktopHead.append(desktopCopy);
+
+  const cardHead = document.createElement("div");
+  cardHead.className = "globe-card-head";
+  const cardLabel = document.createElement("span");
+  cardLabel.className = "globe-card-label";
+  bindText(cardLabel, "globeCardLabel");
+  const viewFilters = document.createElement("div");
+  viewFilters.className = "globe-view-filters";
+  viewFilters.setAttribute("role", "group");
+  bindAria(viewFilters, "viewFiltersAria");
+  const viewLabelKey: Record<GlobeView, MessageKey> = {
+    all: "viewAll",
+    korea: "viewKorea",
+    starlink: "groupStarlink",
+    nav: "viewNav",
+    geo: "groupGeo",
+  };
+  for (const view of GLOBE_VIEWS) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "globe-view";
+    button.dataset.view = view;
+    button.setAttribute("aria-pressed", view === "all" ? "true" : "false");
+    const label = document.createElement("span");
+    bindText(label, viewLabelKey[view]);
+    const count = document.createElement("span");
+    count.className = "globe-view-count";
+    count.textContent = "0";
+    button.append(label, count);
+    viewFilters.append(button);
+  }
+  cardHead.append(cardLabel, viewFilters);
 
   const stage = document.createElement("div");
   stage.className = "globe-stage";
@@ -1021,12 +1078,50 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   iss.append(head, stats, pass);
   hud.append(iss);
 
+  const selection = document.createElement("div");
+  selection.id = "sat-selection";
+  selection.className = "sat-selection";
+  const selectionName = document.createElement("span");
+  selectionName.id = "sat-selection-name";
+  selectionName.className = "sat-selection-value";
+  selectionName.textContent = "—";
+  const selectionAlt = document.createElement("span");
+  selectionAlt.id = "sat-selection-alt";
+  selectionAlt.className = "sat-selection-value";
+  selectionAlt.textContent = "—";
+  const selectionSpeed = document.createElement("span");
+  selectionSpeed.id = "sat-selection-speed";
+  selectionSpeed.className = "sat-selection-value";
+  selectionSpeed.textContent = "—";
+  const selectionPass = document.createElement("span");
+  selectionPass.id = "sat-selection-pass";
+  selectionPass.className = "sat-selection-value";
+  selectionPass.textContent = "—";
+  const passCell = createSelectionCell("nextPassLabel", selectionPass);
+  passCell.classList.add("sat-selection-wide");
+  selection.append(
+    createSelectionCell("selectionLabel", selectionName),
+    createSelectionCell("altitude", selectionAlt),
+    createSelectionCell("speed", selectionSpeed),
+    passCell,
+  );
+  const liveLink = document.createElement("a");
+  liveLink.id = "sat-live";
+  liveLink.className = "sat-live";
+  liveLink.hidden = true;
+  liveLink.target = "_blank";
+  liveLink.rel = "noopener noreferrer";
+  const liveLabel = document.createElement("span");
+  bindText(liveLabel, "watchLive");
+  liveLink.append(liveLabel, document.createTextNode(" ↗"));
+  selection.append(liveLink);
+
   const source = document.createElement("p");
   source.id = "orbit-source";
   source.className = "orbit-source";
   source.textContent = tr("orbitSource");
 
-  panel.append(desktopHead, stage, legend, filters, catalogStatus, source);
+  panel.append(desktopHead, cardHead, stage, selection, legend, filters, catalogStatus, source);
   panel.setAttribute("aria-busy", "true");
   return panel;
 }
@@ -1055,6 +1150,11 @@ function bindSatellites(
   const detailCountry = panel.querySelector("#sat-detail-country");
   const detailAltitude = panel.querySelector("#sat-detail-altitude");
   const catalogStatus = panel.querySelector("#catalog-status");
+  const selectionName = panel.querySelector("#sat-selection-name");
+  const selectionAlt = panel.querySelector("#sat-selection-alt");
+  const selectionSpeed = panel.querySelector("#sat-selection-speed");
+  const selectionPass = panel.querySelector("#sat-selection-pass");
+  const liveLink = panel.querySelector("#sat-live");
 
   if (
     !(place instanceof HTMLElement) ||
@@ -1069,7 +1169,12 @@ function bindSatellites(
     !(detailKind instanceof HTMLElement) ||
     !(detailCountry instanceof HTMLElement) ||
     !(detailAltitude instanceof HTMLElement) ||
-    !(catalogStatus instanceof HTMLElement)
+    !(catalogStatus instanceof HTMLElement) ||
+    !(selectionName instanceof HTMLElement) ||
+    !(selectionAlt instanceof HTMLElement) ||
+    !(selectionSpeed instanceof HTMLElement) ||
+    !(selectionPass instanceof HTMLElement) ||
+    !(liveLink instanceof HTMLAnchorElement)
   ) {
     return { show() {}, hide() {}, refresh() {} };
   }
@@ -1089,6 +1194,83 @@ function bindSatellites(
   let selectedId: number | null = null;
   let latestPoints: SatellitePoint[] = [];
   let sceneToken = 0;
+  let passToken = 0;
+  let passCache: { key: string; at: Date | null } | null = null;
+  let pendingLook: { lat: number; lng: number; durationMs: number } | null = null;
+
+  const publishTracked = (count: number | null) => {
+    const summary = document.getElementById("tracked-summary");
+    if (!(summary instanceof HTMLElement)) {
+      return;
+    }
+    if (count === null) {
+      bindText(summary, "trackedPending");
+      return;
+    }
+    bindText(summary, "trackedCount", { count });
+  };
+
+  const publishCounts = (stations: readonly Station[]) => {
+    const counts = countGlobeViews([...stations, ...extras]);
+    for (const view of GLOBE_VIEWS) {
+      const node = panel.querySelector(`[data-view="${view}"] .globe-view-count`);
+      if (node) {
+        node.textContent = String(counts[view]);
+      }
+    }
+  };
+
+  const syncFilterButtons = () => {
+    const view = viewFromFilter(filter);
+    panel.querySelectorAll<HTMLButtonElement>(".globe-view").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.view === view));
+    });
+    panel.querySelectorAll<HTMLButtonElement>(".sat-filter").forEach((button) => {
+      const group = button.dataset.group;
+      const pressed =
+        button.dataset.filter === "korea-only"
+          ? filter.koreaOnly
+          : Boolean(group && isFilterGroup(group) && filter.enabled[group]);
+      button.setAttribute("aria-pressed", String(pressed));
+    });
+  };
+
+  const writePass = (at: Date | null) => {
+    selectionPass.textContent = at ? tr("nextPassAt", { time: formatKstTime(at) }) : tr("nextPassNone");
+  };
+
+  const schedulePass = (station: Station, date: Date) => {
+    const stored = loadLocation(localStorage);
+    if (!stored) {
+      selectionPass.textContent = tr("issPassChoose");
+      return;
+    }
+    const key = `${station.noradId}|${stored.latitude}|${stored.longitude}|${Math.floor(date.getTime() / 60_000)}`;
+    if (passCache?.key === key) {
+      writePass(passCache.at);
+      return;
+    }
+    if (selectionPass.dataset.passKey === key) {
+      return;
+    }
+    selectionPass.dataset.passKey = key;
+    const token = ++passToken;
+    window.setTimeout(() => {
+      if (token !== passToken || !panel.isConnected) {
+        return;
+      }
+      const at = nextObserverPass(
+        station,
+        { latitude: stored.latitude, longitude: stored.longitude, heightMeters: 0 },
+        date,
+      );
+      if (token !== passToken || !panel.isConnected) {
+        return;
+      }
+      passCache = { key, at };
+      writePass(at);
+    }, 0);
+  };
 
   const publishGlobeStatus = () => {
     if (catalog?.error) {
@@ -1189,6 +1371,41 @@ function bindSatellites(
       typeof point.altKm === "number" ? formatAltitude(point.altKm, locale) : "—";
   };
 
+  const renderSelection = (
+    station: Station | null,
+    iss: { station: Station; fix: { altKm: number; speedKmh: number } } | null,
+    date: Date,
+  ) => {
+    const fix = !station
+      ? null
+      : iss && station.noradId === iss.station.noradId
+        ? iss.fix
+        : propagateStation(station, date);
+    if (!station || !fix) {
+      selectionName.textContent = "—";
+      selectionAlt.textContent = "—";
+      selectionSpeed.textContent = "—";
+      selectionPass.textContent = "—";
+      delete selectionPass.dataset.passKey;
+      liveLink.hidden = true;
+      liveLink.removeAttribute("href");
+      return;
+    }
+    selectionName.textContent =
+      station.noradId === ISS_NORAD_CATALOG_ID ? tr("issShortName") : satelliteDisplayName(station.name, locale);
+    selectionAlt.textContent = formatSelectionAltitudeKm(fix.altKm);
+    selectionSpeed.textContent = formatSelectionSpeedKms(fix.speedKmh);
+    const url = officialLiveUrl(station.noradId);
+    if (url) {
+      liveLink.href = url;
+      liveLink.hidden = false;
+    } else {
+      liveLink.hidden = true;
+      liveLink.removeAttribute("href");
+    }
+    schedulePass(station, date);
+  };
+
   const publishCatalogStatus = () => {
     if (extraLoad?.error) {
       catalogStatus.hidden = false;
@@ -1243,6 +1460,7 @@ function bindSatellites(
     if (!panel.isConnected || !catalog) {
       renderCard(null);
       renderDetail();
+      renderSelection(null, null, now());
       renderSource();
       publishGlobeStatus();
       publishCatalogStatus();
@@ -1264,25 +1482,36 @@ function bindSatellites(
       passResult = null;
     }
 
-    const focus = showStations && scene?.iss && globe && !aimedAtIss
-      ? { lat: scene.iss.fix.lat, lng: scene.iss.fix.lng }
-      : undefined;
+    let selected =
+      selectedId === null
+        ? null
+        : catalog.stations.find((station) => station.noradId === selectedId) ??
+          extras.find((station) => station.noradId === selectedId) ??
+          null;
+    if (!selected && scene?.iss) {
+      selected = scene.iss.station;
+      selectedId = selected.noradId;
+    }
+    const focus = pendingLook
+      ? pendingLook
+      : showStations && scene?.iss && globe && !aimedAtIss
+        ? { lat: scene.iss.fix.lat, lng: scene.iss.fix.lng }
+        : undefined;
     if (focus) {
       aimedAtIss = true;
     }
+    pendingLook = null;
     const paths = !showStations ? [] : refreshOrbit ? (scene?.paths ?? []) : undefined;
     const stationPoints = showStations ? (scene?.points ?? []) : [];
     const extrasToDraw = showDimmed ? extras : extras.filter((satellite) => isSatelliteShown(satellite, filter));
-    const selected = selectedId === null
-      ? null
-      : catalog.stations.find((station) => station.noradId === selectedId) ??
-        extras.find((station) => station.noradId === selectedId) ??
-        null;
     const selectedPaths = selected && selected.noradId !== ISS_NORAD_CATALOG_ID
       ? orbitPathsForStation(selected, date)
       : [];
-    publishScene(stationPoints, extrasToDraw, date, paths, focus, { highlight, selectedPaths });
+    publishScene(stationPoints, extrasToDraw, date, paths, focus ?? undefined, { highlight, selectedPaths });
     renderCard(scene?.iss ?? null);
+    renderSelection(selected, scene?.iss ?? null, date);
+    publishCounts(catalog.stations);
+    publishTracked(countGlobeViews([...catalog.stations, ...extras]).all);
     renderSource();
     publishGlobeStatus();
     publishCatalogStatus();
@@ -1292,6 +1521,7 @@ function bindSatellites(
     window.clearInterval(timer);
     timer = 0;
     sceneToken += 1;
+    passToken += 1;
     globe?.destroy();
     globe = null;
   };
@@ -1324,8 +1554,17 @@ function bindSatellites(
     globeStarting = true;
     void mountSatelliteGlobe(mount, {
       onSelect(point) {
-        selectedId = point?.noradId ?? null;
-        renderDetail(point);
+        if (point && typeof point.noradId === "number") {
+          selectedId = point.noradId;
+          pendingLook = { lat: point.lat, lng: point.lng, durationMs: SELECTION_LOOK_MS };
+        } else {
+          selectedId = ISS_NORAD_CATALOG_ID;
+          const issPoint = latestPoints.find((item) => item.iss);
+          if (issPoint) {
+            pendingLook = { lat: issPoint.lat, lng: issPoint.lng, durationMs: SELECTION_LOOK_MS };
+          }
+        }
+        paint(false);
       },
     })
       .then((mounted) => {
@@ -1378,12 +1617,19 @@ function bindSatellites(
       } else if (button.dataset.filter === "korea-only") {
         filter = toggleKoreaOnly(filter);
       }
-      button.setAttribute(
-        "aria-pressed",
-        button.dataset.filter === "korea-only"
-          ? String(filter.koreaOnly)
-          : String(group !== undefined && isFilterGroup(group) ? filter.enabled[group] : false),
-      );
+      syncFilterButtons();
+      paint(false);
+    });
+  });
+
+  panel.querySelectorAll<HTMLButtonElement>(".globe-view").forEach((button) => {
+    button.addEventListener("click", () => {
+      const view = button.dataset.view;
+      if (!view || !isGlobeView(view)) {
+        return;
+      }
+      filter = filterForView(view);
+      syncFilterButtons();
       paint(false);
     });
   });
@@ -1882,7 +2128,12 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const title = document.createElement("h1");
   title.textContent = BRAND_NAME;
 
-  heroCopy.append(eyebrow, title);
+  const trackedSummary = document.createElement("p");
+  trackedSummary.id = "tracked-summary";
+  trackedSummary.className = "tracked-summary";
+  bindText(trackedSummary, "trackedPending");
+
+  heroCopy.append(eyebrow, title, trackedSummary);
 
   const heroActions = document.createElement("div");
   heroActions.className = "hero-actions";
