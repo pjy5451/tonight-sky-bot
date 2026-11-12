@@ -202,6 +202,8 @@ describe("globe card", () => {
     expect(getComputedStyle(starlink as HTMLElement).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(all?.querySelector(".globe-view-count")?.textContent).toBe("0");
     expect(document.querySelector("#sat-selection-name")?.textContent).toBe("—");
+    expect(document.querySelector("#sat-detail")).toBeNull();
+    expect(document.querySelector(".globe-stage")?.contains(document.querySelector("#iss-card"))).toBe(false);
     expect(document.querySelector<HTMLAnchorElement>("#sat-live")?.hidden).toBe(true);
 
     starlink?.click();
@@ -248,6 +250,20 @@ describe("globe card", () => {
     expect(document.querySelector("#sat-selection-speed")?.textContent).toBe(formatSelectionSpeedKms(fix.speedKmh));
     expect(document.querySelector("#iss-altitude")?.textContent).toBe(formatAltitude(fix.altKm));
     expect(document.querySelector("#iss-speed")?.textContent).toBe(formatSpeed(fix.speedKmh));
+    expect(document.querySelector("#hud-altitude")?.textContent).toBe(formatAltitude(fix.altKm));
+    expect(document.querySelector("#hud-speed")?.textContent).toBe(formatSpeed(fix.speedKmh));
+    const detail = document.querySelector("#sat-detail");
+    const legend = document.querySelector(".legend");
+    expect(detail).not.toBeNull();
+    expect(document.querySelector(".globe-stage")?.contains(detail)).toBe(false);
+    expect(document.querySelector(".globe-hud")?.contains(detail)).toBe(false);
+    expect(
+      (legend as HTMLElement).compareDocumentPosition(detail as HTMLElement) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(document.querySelector("#sat-detail-name")?.textContent).toBe("ISS (ZARYA)");
+    expect(document.querySelector("#sat-detail-kind")?.textContent).toBe("우주정거장");
+    expect(document.querySelector("#sat-detail-country")?.textContent).toBe("알 수 없음");
+    expect(document.querySelector("#sat-detail-altitude")?.textContent).toBe(formatAltitude(fix.altKm));
     expect(document.querySelector("#sat-selection-pass")?.textContent).toBe(
       "위치를 선택하면 통과 시각을 계산합니다.",
     );

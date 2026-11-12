@@ -955,6 +955,93 @@ function createIssStat(id: string, labelKey: MessageKey, valueClass: string): HT
   return cell;
 }
 
+/** 1024px 미만에서는 카드가 지구본을 덮지 않게 무대 밖에 둔다. */
+const PHONE_GLOBE_MAX_WIDTH = 1023;
+
+function isPhoneGlobe(): boolean {
+  return window.innerWidth <= PHONE_GLOBE_MAX_WIDTH;
+}
+
+function createSatDetailCard(): HTMLElement {
+  const detail = createCard("card");
+  detail.id = "sat-detail";
+  const detailTitle = document.createElement("h2");
+  detailTitle.id = "sat-detail-name";
+  detailTitle.className = "card-title";
+  detailTitle.textContent = tr("satDetailHint");
+  const detailStats = document.createElement("div");
+  detailStats.className = "iss-stats";
+  detailStats.append(
+    createIssStat("sat-detail-kind", "satKind", "iss-place"),
+    createIssStat("sat-detail-country", "satCountry", "iss-place"),
+    createIssStat("sat-detail-altitude", "altitude", "iss-metric"),
+  );
+  detail.append(detailTitle, detailStats);
+  return detail;
+}
+
+function createHudMetrics(): HTMLElement {
+  const line = document.createElement("p");
+  line.id = "globe-hud-metrics";
+  line.className = "globe-hud-metrics";
+
+  const altitudeLabel = document.createElement("span");
+  altitudeLabel.className = "stat-label";
+  bindText(altitudeLabel, "altitude");
+  const altitudeValue = document.createElement("span");
+  altitudeValue.id = "hud-altitude";
+  altitudeValue.className = "iss-metric";
+  altitudeValue.textContent = "—";
+
+  const speedLabel = document.createElement("span");
+  speedLabel.className = "stat-label";
+  bindText(speedLabel, "speed");
+  const speedValue = document.createElement("span");
+  speedValue.id = "hud-speed";
+  speedValue.className = "iss-metric";
+  speedValue.textContent = "—";
+
+  const altitudeGroup = document.createElement("span");
+  altitudeGroup.className = "globe-hud-metric";
+  altitudeGroup.append(altitudeLabel, altitudeValue);
+  const speedGroup = document.createElement("span");
+  speedGroup.className = "globe-hud-metric";
+  speedGroup.append(speedLabel, speedValue);
+  line.append(altitudeGroup, speedGroup);
+  return line;
+}
+
+function layoutGlobeCards(panel: HTMLElement): void {
+  const hud = panel.querySelector(".globe-hud");
+  const legend = panel.querySelector(".legend");
+  const iss = panel.querySelector("#iss-card");
+  const metrics = panel.querySelector("#globe-hud-metrics");
+  const slot = panel.querySelector("#globe-metric-slot");
+  if (
+    !(hud instanceof HTMLElement) ||
+    !(legend instanceof HTMLElement) ||
+    !(iss instanceof HTMLElement) ||
+    !(metrics instanceof HTMLElement) ||
+    !(slot instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  const detail = panel.querySelector("#sat-detail");
+  if (isPhoneGlobe()) {
+    legend.after(iss);
+    if (detail instanceof HTMLElement) {
+      iss.after(detail);
+    }
+    hud.replaceChildren(metrics);
+    return;
+  }
+
+  const mounted = detail instanceof HTMLElement ? detail : createSatDetailCard();
+  hud.replaceChildren(mounted, iss);
+  slot.append(metrics);
+}
+
 function createSatellitesPanel(tab: Tab): HTMLElement {
   const panel = createPanel(tab);
 
@@ -1065,22 +1152,6 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   koreaOnly.append(koreaLabel);
   filters.append(koreaOnly);
 
-  const detail = createCard("card");
-  detail.id = "sat-detail";
-  const detailTitle = document.createElement("h2");
-  detailTitle.id = "sat-detail-name";
-  detailTitle.className = "card-title";
-  detailTitle.textContent = tr("satDetailHint");
-  const detailStats = document.createElement("div");
-  detailStats.className = "iss-stats";
-  detailStats.append(
-    createIssStat("sat-detail-kind", "satKind", "iss-place"),
-    createIssStat("sat-detail-country", "satCountry", "iss-place"),
-    createIssStat("sat-detail-altitude", "altitude", "iss-metric"),
-  );
-  detail.append(detailTitle, detailStats);
-  hud.append(detail);
-
   const catalogStatus = document.createElement("p");
   catalogStatus.id = "catalog-status";
   catalogStatus.className = "catalog-status";
@@ -1112,7 +1183,6 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   pass.textContent = tr("orbitLoading");
 
   iss.append(head, stats, pass);
-  hud.append(iss);
 
   const selection = document.createElement("div");
   selection.id = "sat-selection";
@@ -1157,8 +1227,15 @@ function createSatellitesPanel(tab: Tab): HTMLElement {
   source.className = "orbit-source";
   source.textContent = tr("orbitSource");
 
-  panel.append(desktopHead, cardHead, stage, selection, legend, filters, catalogStatus, source);
+  const metrics = createHudMetrics();
+  const metricSlot = document.createElement("div");
+  metricSlot.id = "globe-metric-slot";
+  metricSlot.hidden = true;
+  metricSlot.append(metrics);
+
+  panel.append(desktopHead, cardHead, stage, selection, legend, iss, filters, catalogStatus, source, metricSlot);
   panel.setAttribute("aria-busy", "true");
+  layoutGlobeCards(panel);
   return panel;
 }
 
@@ -1181,10 +1258,6 @@ function bindSatellites(
   const globeStatus = panel.querySelector("#globe-status");
   const source = panel.querySelector("#orbit-source");
   const mount = panel.querySelector("#globe-mount");
-  const detailTitle = panel.querySelector("#sat-detail-name");
-  const detailKind = panel.querySelector("#sat-detail-kind");
-  const detailCountry = panel.querySelector("#sat-detail-country");
-  const detailAltitude = panel.querySelector("#sat-detail-altitude");
   const catalogStatus = panel.querySelector("#catalog-status");
   const selectionName = panel.querySelector("#sat-selection-name");
   const selectionAlt = panel.querySelector("#sat-selection-alt");
@@ -1201,10 +1274,6 @@ function bindSatellites(
     !(globeStatus instanceof HTMLElement) ||
     !(source instanceof HTMLElement) ||
     !(mount instanceof HTMLElement) ||
-    !(detailTitle instanceof HTMLElement) ||
-    !(detailKind instanceof HTMLElement) ||
-    !(detailCountry instanceof HTMLElement) ||
-    !(detailAltitude instanceof HTMLElement) ||
     !(catalogStatus instanceof HTMLElement) ||
     !(selectionName instanceof HTMLElement) ||
     !(selectionAlt instanceof HTMLElement) ||
@@ -1346,6 +1415,17 @@ function bindSatellites(
     source.textContent = tr("orbitSourceUpdated", { time: formatKstTime(fetched) });
   };
 
+  const syncHudMetrics = () => {
+    const hudAltitude = panel.querySelector("#hud-altitude");
+    const hudSpeed = panel.querySelector("#hud-speed");
+    if (hudAltitude) {
+      hudAltitude.textContent = altitude.textContent;
+    }
+    if (hudSpeed) {
+      hudSpeed.textContent = speed.textContent;
+    }
+  };
+
   const renderCard = (sceneIss: ReturnType<typeof buildSatelliteScene>["iss"]) => {
     if (!catalog) {
       place.textContent = "—";
@@ -1353,6 +1433,7 @@ function bindSatellites(
       speed.textContent = "—";
       live.textContent = "";
       setPassMessage(tr("orbitLoading"), "status");
+      syncHudMetrics();
       return;
     }
 
@@ -1362,6 +1443,7 @@ function bindSatellites(
       speed.textContent = "—";
       live.textContent = "";
       setPassMessage(tr("orbitLoadError"), "alert");
+      syncHudMetrics();
       return;
     }
 
@@ -1371,6 +1453,7 @@ function bindSatellites(
       speed.textContent = "—";
       live.textContent = "";
       setPassMessage(tr("issMissing"), "alert");
+      syncHudMetrics();
       return;
     }
 
@@ -1384,6 +1467,7 @@ function bindSatellites(
         : tr("koreaPassFailed"),
       passResult ? "status" : "alert",
     );
+    syncHudMetrics();
   };
 
   const renderDetail = (picked?: SatellitePoint | null) => {
@@ -1393,6 +1477,27 @@ function bindSatellites(
           ? undefined
           : latestPoints.find((item) => item.noradId === selectedId)
         : picked ?? undefined;
+    if (!point && isPhoneGlobe()) {
+      panel.querySelector("#sat-detail")?.remove();
+      layoutGlobeCards(panel);
+      return;
+    }
+    if (!(panel.querySelector("#sat-detail") instanceof HTMLElement)) {
+      panel.append(createSatDetailCard());
+    }
+    layoutGlobeCards(panel);
+    const detailTitle = panel.querySelector("#sat-detail-name");
+    const detailKind = panel.querySelector("#sat-detail-kind");
+    const detailCountry = panel.querySelector("#sat-detail-country");
+    const detailAltitude = panel.querySelector("#sat-detail-altitude");
+    if (
+      !(detailTitle instanceof HTMLElement) ||
+      !(detailKind instanceof HTMLElement) ||
+      !(detailCountry instanceof HTMLElement) ||
+      !(detailAltitude instanceof HTMLElement)
+    ) {
+      return;
+    }
     if (!point) {
       detailTitle.textContent = tr("satDetailHint");
       detailKind.textContent = "—";
@@ -1471,6 +1576,7 @@ function bindSatellites(
     const collected = stationPoints.slice();
     latestPoints = collected.slice();
     globe?.update(collected, paths, focus, frame);
+    renderDetail();
     let index = 0;
     const step = () => {
       if (token !== sceneToken || !panel.isConnected) {
@@ -1682,6 +1788,15 @@ function bindSatellites(
     }
     globe?.resume();
   };
+
+  const onGlobeResize = () => {
+    if (!panel.isConnected) {
+      window.removeEventListener("resize", onGlobeResize);
+      return;
+    }
+    renderDetail();
+  };
+  window.addEventListener("resize", onGlobeResize);
 
   return {
     show() {

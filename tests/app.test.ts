@@ -42,6 +42,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  document.documentElement.style.width = "";
+  document.body.style.width = "";
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -271,7 +273,16 @@ describe("Argonova frame", () => {
     expect(starlinkFilter?.getAttribute("aria-pressed")).toBe("false");
     koreaOnly?.click();
     expect(koreaOnly?.getAttribute("aria-pressed")).toBe("true");
-    expect(document.querySelector("#sat-detail-name")?.textContent).toContain("위성을 누르면");
+    expect(document.querySelector("#sat-detail")).toBeNull();
+    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).toBeNull();
+    expect(document.querySelector("#iss-card")).not.toBeNull();
+    expect(document.querySelector(".globe-stage")?.contains(document.querySelector("#iss-card"))).toBe(false);
+    expect(document.querySelector("#iss-place")).not.toBeNull();
+    expect(document.querySelector("#iss-altitude")).not.toBeNull();
+    expect(document.querySelector("#iss-speed")).not.toBeNull();
+    expect(document.querySelector("#iss-pass")).not.toBeNull();
+    expect(document.querySelector(".globe-hud #hud-altitude")).not.toBeNull();
+    expect(document.querySelector(".globe-hud #hud-speed")).not.toBeNull();
     expect(getComputedStyle(satellites?.querySelector(".legend-dot-iss") as HTMLElement).backgroundColor).toBe(
       "rgb(232, 176, 74)",
     );
@@ -314,6 +325,21 @@ describe("Argonova frame", () => {
     }
 
     expect(tooWide).toEqual([]);
+  });
+
+  it("keeps both globe cards inside the HUD at 1440 before a satellite is chosen", () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    });
+    document.documentElement.style.width = "1440px";
+    document.body.style.width = "1440px";
+    renderApp();
+
+    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).not.toBeNull();
+    expect(document.querySelector(".globe-stage .globe-hud #sat-detail")).not.toBeNull();
+    expect(document.querySelector("#sat-detail-name")?.textContent).toContain("위성을 누르면");
   });
 });
 
