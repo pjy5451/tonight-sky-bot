@@ -323,3 +323,80 @@ export function issPassLater(pass: IssPass, locale: Locale): string {
     elevation: Math.round(pass.peak.elevation),
   });
 }
+
+export type IssTrackSample = {
+  time: Date;
+  azimuth: number;
+  elevation: number;
+  /** 시작·최고·종료처럼 시각을 적어 둘 점. */
+  mark: boolean;
+};
+
+/**
+ * 이미 고른 통과를 방위·고도로 따라간다.
+ * 각도는 predictIssPasses와 같이 satellite.js의 시선각이다.
+ */
+export function sampleIssTrack(
+  station: Station,
+  place: PassObserver,
+  pass: IssPass,
+  stepMs = 15_000,
+): IssTrackSample[] {
+  const observer = geodeticOf(place);
+  if (!observer) {
+    return [];
+  }
+  let satrec: SatRec;
+  try {
+    satrec = json2satrec(station.omm);
+  } catch {
+    return [];
+  }
+  if (satrec.error !== 0) {
+    return [];
+  }
+
+  const lookAt = (time: number): { azimuth: number; elevation: number } | null => {
+    const date = new Date(time);
+    const propagated = propagate(satrec, date);
+    const position = finiteVector(propagated?.position);
+    if (!position) {
+      return null;
+    }
+    const ecf = eciToEcf(position, gstime(date));
+    const look = ecfToLookAngles(observer, ecf);
+    return {
+      azimuth: (radiansToDegrees(look.azimuth) + 360) % 360,
+      elevation: radiansToDegrees(look.elevation),
+    };
+  };
+
+  const start = pass.start.time.getTime();
+  const peak = pass.peak.time.getTime();
+  const end = pass.end.time.getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(peak) || !Number.isFinite(end) || end < start) {
+    return [];
+  }
+
+  const marks = new Set([start, peak, end]);
+  const times = new Set<number>(marks);
+  const step = Number.isFinite(stepMs) && stepMs >= 1000 ? stepMs : 15_000;
+  for (let time = start; time < end; time += step) {
+    times.add(time);
+  }
+
+  const samples: IssTrackSample[] = [];
+  for (const time of [...times].sort((left, right) => left - right)) {
+    const look = lookAt(time);
+    if (!look) {
+      continue;
+    }
+    samples.push({
+      time: new Date(time),
+      azimuth: look.azimuth,
+      elevation: look.elevation,
+      mark: marks.has(time),
+    });
+  }
+  return samples;
+}

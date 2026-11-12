@@ -73,9 +73,11 @@ import {
   issPassTimeRange,
   kstDayOffset,
   predictStationPasses,
+  sampleIssTrack,
   upcomingIssPasses,
   type IssPass,
 } from "./iss-passes";
+import { createSkyMap, parseStarCatalog, type StarCatalog } from "./sky-map";
 import { formatMeteorDday, nextMeteorShower } from "./meteors";
 import { dataSourceFooter, staleDataNotice } from "./sources";
 import {
@@ -97,6 +99,10 @@ type Tab = {
 const BRAND_NAME = "Argonova";
 
 let locale: Locale = "ko";
+const skyMaps = new WeakMap<HTMLElement, ReturnType<typeof createSkyMap>>();
+let starCatalog: StarCatalog | null = null;
+let starStatus: "loading" | "ready" | "error" = "loading";
+let starGeneration = 0;
 
 function tr(key: MessageKey, values?: Record<string, string | number>): string {
   return translate(locale, key, values);
@@ -619,8 +625,41 @@ function renderIssPassCard(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad
   divider.hidden = passes.length < 2;
 }
 
+function skyIssTrack(
+  date: Date,
+  issLoad: IssOrbitLoad,
+  place: { latitude: number; longitude: number } | null,
+) {
+  if (!place || issLoad.state !== "ready" || !issLoad.station) {
+    return [];
+  }
+  const pass = issLoad.cache.find(
+    (item) => kstDayOffset(date, item.start.time) <= 0 && item.end.time.getTime() >= date.getTime(),
+  );
+  if (!pass) {
+    return [];
+  }
+  return sampleIssTrack(
+    issLoad.station,
+    { latitude: place.latitude, longitude: place.longitude, heightMeters: 0 },
+    pass,
+    15_000,
+  );
+}
+
 function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad): void {
   renderIssPassCard(panel, date, issLoad);
+  const locationForMap = loadLocation(localStorage);
+  skyMaps.get(panel)?.update({
+    locale,
+    place: locationForMap
+      ? { latitude: locationForMap.latitude, longitude: locationForMap.longitude }
+      : null,
+    date,
+    stars: starCatalog,
+    starStatus,
+    issTrack: skyIssTrack(date, issLoad, locationForMap),
+  });
   try {
     fillMeteorShower(panel, date);
   } catch {
@@ -797,6 +836,9 @@ function createTonightPanel(tab: Tab): HTMLElement {
   bindText(planetEmpty, "chooseLocationSky");
   planets.append(planetList, planetEmpty);
 
+  const skyMap = createSkyMap();
+  skyMaps.set(panel, skyMap);
+
   const meteor = createCard("card card-row");
   const meteorCopy = document.createElement("div");
   meteorCopy.className = "card-copy";
@@ -814,7 +856,7 @@ function createTonightPanel(tab: Tab): HTMLElement {
 
   const board = document.createElement("div");
   board.className = "board";
-  board.append(stats, iss, planets, meteor);
+  board.append(skyMap.element, stats, iss, planets, meteor);
 
   panel.append(status, board);
   return panel;
@@ -1811,6 +1853,9 @@ function locationDisplay(stored: StoredLocation): string {
 export function createApp(options: AppOptions = {}): HTMLElement {
   locale = resolveLanguage(localStorage, navigator.language || "");
   document.documentElement.lang = locale;
+  const generation = ++starGeneration;
+  starCatalog = null;
+  starStatus = "loading";
 
   const now = () => options.now?.() ?? new Date();
   document.title = BRAND_NAME;
@@ -2285,6 +2330,20 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     }
   };
   refreshTonight();
+  void readJson("stars.json").then((file) => {
+    if (generation !== starGeneration || !root.isConnected) {
+      return;
+    }
+    const parsed = file.ok ? parseStarCatalog(file.payload) : null;
+    if (parsed) {
+      starCatalog = parsed;
+      starStatus = "ready";
+    } else {
+      starCatalog = null;
+      starStatus = "error";
+    }
+    refreshTonight();
+  });
 
   const applyLocale = () => {
     document.documentElement.lang = locale;
