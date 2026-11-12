@@ -126,7 +126,7 @@ describe("observatory design tokens", () => {
     fits(390);
 
     renderAt(1440);
-    expect(getComputedStyle(document.querySelector(".eyebrow") as HTMLElement).fontSize).toBe("34px");
+    expect(getComputedStyle(document.querySelector("h1") as HTMLElement).fontSize).toBe("34px");
     expect(document.querySelector(".app-shell")?.classList.contains("is-desktop")).toBe(true);
     fits(1440);
   });

@@ -50,6 +50,22 @@ export function translate(
   });
 }
 
+/** 화면의 날짜는 지금처럼 한국표준시(UTC+9, 일광절약시간 없음) 달력을 쓴다. */
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * 첫 화면 제목. 장소가 있으면 `11월 12일 (목) · 서울`, 없으면 날짜만.
+ * 슬로건을 붙이지 않는다.
+ */
+export function formatDatePlace(date: Date, place: string, locale: Locale): string {
+  const shifted = new Date(date.getTime() + KST_OFFSET_MS);
+  const month = shifted.getUTCMonth() + 1;
+  const day = shifted.getUTCDate();
+  const weekday = weekdayLabel(shifted.getUTCDay(), locale);
+  const values = { month, day, weekday, place };
+  return place ? translate(locale, "datePlace", values) : translate(locale, "dateLine", values);
+}
+
 const WEEKDAY_KEYS = [
   "weekdaySun",
   "weekdayMon",

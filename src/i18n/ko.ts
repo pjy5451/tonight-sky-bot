@@ -1,6 +1,7 @@
 /** 화면 문구 한국어 사전. 영어 사전과 키가 같아야 한다. */
 export const ko = {
-  brandTagline: "오늘 밤, 하늘을 탐험하다",
+  dateLine: "{month}월 {day}일 ({weekday})",
+  datePlace: "{month}월 {day}일 ({weekday}) · {place}",
   tabTonight: "오늘 밤",
   tabSatellites: "위성 지구본",
   tabLaunches: "발사 일정",

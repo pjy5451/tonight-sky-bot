@@ -312,7 +312,6 @@ describe("basic accessibility", () => {
     renderApp();
     const pairs: Array<[string, string]> = [
       ["h1", "h1"],
-      [".eyebrow", ".eyebrow"],
       [".stat-label", ".stat-card"],
       [".pending", ".card"],
       [".source-footer", ".source-footer"],
