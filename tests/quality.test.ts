@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app";
 import { saveLocation } from "../src/location";
-import { dataSourceFooter } from "../src/sources";
+import { dataSourceFooter, staleDataNotice } from "../src/sources";
 import "../src/styles.css";
 
 function renderApp(options?: { now?: () => Date }) {
@@ -66,6 +66,17 @@ describe("data refresh label", () => {
     );
     expect(dataSourceFooter(null, "not-a-date")).toBe("데이터: CelesTrak · The Space Devs");
     expect(dataSourceFooter(null, null)).toBe("데이터: CelesTrak · The Space Devs");
+  });
+
+  it("names data that is at least 24 hours old and ignores newer files", () => {
+    const fresh = "2026-11-12T00:00:00.000Z";
+    expect(staleDataNotice([fresh], new Date("2026-11-12T23:59:00.000Z"))).toBeNull();
+    expect(staleDataNotice([fresh], new Date("2026-11-13T00:00:00.000Z"))).toBe("24시간 전 데이터");
+    expect(staleDataNotice([fresh, "2026-11-11T12:00:00.000Z"], new Date("2026-11-13T00:00:00.000Z"))).toBe(
+      "36시간 전 데이터",
+    );
+    expect(staleDataNotice([fresh], new Date("2026-11-13T06:30:00.000Z"), "en")).toBe("Data from 30 hours ago");
+    expect(staleDataNotice([null, "not-a-date"], new Date("2026-11-13T00:00:00.000Z"))).toBeNull();
   });
 });
 
@@ -197,6 +208,81 @@ describe("refresh time on the page", () => {
       );
     });
     expect(document.body.textContent).not.toContain(fetchedAt);
+  });
+
+  it("keeps showing satellites and launches when the files are more than a day old", async () => {
+    const epoch = new Date("2000-06-27T18:50:19.733Z");
+    const fetchedAt = new Date(epoch.getTime() - 30 * 60 * 60 * 1000).toISOString();
+    const iss = {
+      OBJECT_NAME: "ISS (ZARYA)",
+      OBJECT_ID: "1998-067A",
+      EPOCH: "2000-06-27T18:50:19.733568Z",
+      MEAN_MOTION: 10.82419157,
+      ECCENTRICITY: 0.1859667,
+      INCLINATION: 34.2682,
+      RA_OF_ASC_NODE: 348.7242,
+      ARG_OF_PERICENTER: 331.7664,
+      MEAN_ANOMALY: 19.3264,
+      NORAD_CAT_ID: 25544,
+      BSTAR: 2.8098e-5,
+      MEAN_MOTION_DOT: 2.3e-7,
+      MEAN_MOTION_DDOT: 0,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        expect(url).not.toContain("celestrak.org");
+        expect(url).not.toContain("thespacedevs.com");
+        expect(url).not.toContain("raw.githubusercontent.com");
+        if (url.includes("data/launches.json")) {
+          return {
+            ok: true,
+            json: async () => ({
+              fetched_at: fetchedAt,
+              items: [
+                {
+                  id: "next",
+                  name: "Falcon 9 | Starlink",
+                  net: "2000-07-01T00:00:00Z",
+                  provider: "SpaceX",
+                  rocket: "Falcon 9",
+                  location: "플로리다",
+                },
+              ],
+            }),
+          };
+        }
+        if (url.includes("data/catalog.json")) {
+          return { ok: true, json: async () => ({ fetched_at: fetchedAt, items: [] }) };
+        }
+        return { ok: true, json: async () => ({ fetched_at: fetchedAt, items: [iss] }) };
+      }),
+    );
+
+    renderApp({ now: () => epoch });
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#stale-notice")?.textContent).toBe("30시간 전 데이터");
+    });
+    expect(document.querySelector<HTMLElement>("#stale-notice")?.hidden).toBe(false);
+    expect(document.body.textContent).not.toContain("위성 궤도 데이터를 불러오지 못했습니다.");
+    expect(document.body.textContent).not.toContain("발사 일정을 불러오지 못했습니다.");
+
+    document.querySelector<HTMLButtonElement>("#tab-satellites")?.click();
+    await vi.waitFor(() => {
+      expect(document.querySelector("#iss-altitude")?.textContent).not.toBe("—");
+    });
+    expect(document.querySelector("#iss-place")?.textContent).not.toBe("—");
+    expect(document.querySelector("#globe-status")?.textContent).not.toBe("위성 궤도 데이터를 불러오지 못했습니다.");
+
+    document.querySelector<HTMLButtonElement>("#tab-launches")?.click();
+    await vi.waitFor(() => {
+      expect(document.querySelector("#next-launch-title")?.textContent).toBe("Falcon 9 · Starlink");
+    });
+    expect(document.querySelector("#launch-status")?.textContent).not.toBe("발사 일정을 불러오지 못했습니다.");
+    expect(document.querySelector<HTMLElement>("#launch-countdown")?.hidden).toBe(false);
+    expect(document.querySelector("#stale-notice")?.textContent).toBe("30시간 전 데이터");
   });
 });
 

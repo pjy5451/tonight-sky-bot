@@ -112,6 +112,7 @@ export const ko = {
   footerBoth: "데이터: CelesTrak · The Space Devs · {time} 갱신",
   footerSplit: "데이터: CelesTrak {orbit} · The Space Devs {launch} 갱신",
   footerPlain: "데이터: CelesTrak · The Space Devs",
+  staleData: "{hours}시간 전 데이터",
   weekdaySun: "일",
   weekdayMon: "월",
   weekdayTue: "화",

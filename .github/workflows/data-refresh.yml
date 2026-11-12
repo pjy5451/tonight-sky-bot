@@ -1,0 +1,108 @@
+name: data-refresh
+
+# CelesTrak·Launch Library는 이 워크플로에서만 부른다.
+# 성공한 파일만 data 브랜치 public/data/에 남기고, 실패한 묶음은 이전 성공본을 유지한다.
+# 커밋한 뒤에 Cloudflare 배포 훅을 불러 사이트를 다시 빌드한다.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/fetch-data.js
+      - .github/workflows/data-refresh.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore previous data branch files
+        run: |
+          set -eu
+          mkdir -p public/data
+          if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
+            git fetch --depth=1 origin data
+            for file in tle.json launches.json catalog.json; do
+              if git cat-file -e "origin/data:public/data/${file}" 2>/dev/null; then
+                git show "origin/data:public/data/${file}" > "public/data/${file}"
+              fi
+            done
+          fi
+
+      - name: Fetch upstream bundles
+        env:
+          FETCH_DATA_MODE: refresh
+        run: npm run fetch-data
+
+      - name: Commit successful files to data
+        id: publish
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          work=/tmp/argonova-data
+          git worktree prune
+          rm -rf "$work"
+          if git show-ref --verify --quiet refs/remotes/origin/data; then
+            git worktree add --detach "$work" origin/data
+          else
+            git worktree add --detach "$work" HEAD
+            git -C "$work" switch --orphan data-publish
+            git -C "$work" reset
+            git -C "$work" clean -fd
+          fi
+          mkdir -p "$work/public/data"
+          copied=0
+          for file in tle.json launches.json catalog.json; do
+            if [ -f "public/data/$file" ]; then
+              cp "public/data/$file" "$work/public/data/$file"
+              git -C "$work" add -- "public/data/$file"
+              copied=1
+            fi
+          done
+          if [ "$copied" -eq 0 ]; then
+            echo "저장할 데이터 파일이 없습니다."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git -C "$work" diff --cached --quiet; then
+            echo "변경된 데이터 파일이 없습니다."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git -C "$work" commit -m "data: refresh satellite and launch files"
+            git -C "$work" push origin HEAD:data
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger Cloudflare Pages deploy hook
+        if: steps.publish.outputs.changed == 'true'
+        env:
+          HOOK: ${{ secrets.CF_DEPLOY_HOOK }}
+        run: |
+          set -eu
+          if [ -z "$HOOK" ]; then
+            echo "CF_DEPLOY_HOOK 비밀값이 없습니다. 저장소 Settings → Secrets and variables → Actions 에 추가하세요."
+            exit 1
+          fi
+          code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "$HOOK")
+          echo "Cloudflare deploy hook HTTP ${code}"
+          [ "$code" -ge 200 ] && [ "$code" -lt 300 ]

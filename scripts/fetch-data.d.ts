@@ -1,6 +1,13 @@
 export const CELESTRAK_STATIONS_URL: string;
 export const LAUNCH_LIBRARY_UPCOMING_URL: string;
 export const USER_AGENT: string;
+export const DATA_MIRROR_BASE: string;
+export const DATA_FILES: readonly string[];
+
+export type FetchMode = "upstream" | "refresh" | "mirror";
+
+export function mirrorFileUrl(filename: string): string;
+export function fetchModeFromEnv(env?: Record<string, string | undefined>): FetchMode;
 export const CATALOG_BYTE_BUDGET: number;
 export const CATALOG_GROUPS: readonly string[];
 export const GROUP_COUNTRY: Record<string, string>;
@@ -39,12 +46,16 @@ export type DataWriter = (path: URL, contents: string) => Promise<void>;
 
 export type DataDirectoryMaker = (path: URL, options?: { recursive?: boolean }) => Promise<void>;
 
+export type DataReader = (path: URL, encoding?: string) => Promise<string>;
+
 export interface CollectDataOptions {
   fetchImpl?: FetchLike;
   now?: () => Date;
   dataDir?: URL;
   writeFileImpl?: DataWriter;
+  readFileImpl?: DataReader;
   mkdirImpl?: DataDirectoryMaker;
+  mode?: FetchMode;
 }
 
 export function parseStationItems(payload: unknown): unknown[];
@@ -71,6 +82,8 @@ export function compactGpItem(
 ): unknown[];
 
 export function serializeCatalog(document: unknown): string;
+
+export function mergeCatalogWithPrevious<T>(next: T, previous: unknown): T;
 
 export function collectCatalog(fetchImpl: FetchLike): Promise<{
   fetched_at?: string;

@@ -1,8 +1,12 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 // Build-time fetch only. The browser reads public/data JSON and does not call these APIs.
 // A failed request still exits 0 so `npm run fetch-data && npm run build` can continue.
+//
+// Cloudflare 빌드(기본, FETCH_DATA_MODE 없음)는 CelesTrak·Launch Library를 부르지 않고
+// data 브랜치의 raw JSON을 받아 쓴다. 받지 못하면 저장소에 있는 파일을 그대로 둔다.
+// 원본 요청은 data-refresh 워크플로가 FETCH_DATA_MODE=refresh 로만 한다.
 
 export const CELESTRAK_STATIONS_URL =
   "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=json";
@@ -12,6 +16,25 @@ export const LAUNCH_LIBRARY_UPCOMING_URL =
   "https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=20&mode=detailed";
 
 export const USER_AGENT = "Argonova/0.1 (tonight-sky-bot; +https://argonova.pages.dev)";
+
+/** Cloudflare 빌드가 읽는 data 브랜치. 묶음당 원본 요청은 워크플로가 6시간에 한 번 한다. */
+export const DATA_MIRROR_BASE =
+  "https://raw.githubusercontent.com/pjy5451/tonight-sky-bot/data/public/data/";
+
+export const DATA_FILES = ["tle.json", "launches.json", "catalog.json"];
+
+export function mirrorFileUrl(filename) {
+  return `${DATA_MIRROR_BASE}${filename}`;
+}
+
+/** 환경 변수가 없으면 빌드용 미러. refresh·upstream만 원본을 부른다. */
+export function fetchModeFromEnv(env = process.env) {
+  const mode = env?.FETCH_DATA_MODE;
+  if (mode === "refresh" || mode === "upstream") {
+    return mode;
+  }
+  return "mirror";
+}
 
 /** 브라우저용 위성 목록은 이 크기를 넘기지 않는다. */
 export const CATALOG_BYTE_BUDGET = 3 * 1024 * 1024;
@@ -294,6 +317,90 @@ async function writeDocument(writeFileImpl, dataDir, filename, document) {
   await writeFileImpl(new URL(filename, dataDir), `${JSON.stringify(document, null, 2)}\n`);
 }
 
+async function readExistingDocument(readFileImpl, dataDir, filename) {
+  try {
+    const text = await readFileImpl(new URL(filename, dataDir), "utf8");
+    const document = JSON.parse(text);
+    if (!document || typeof document !== "object" || Array.isArray(document)) {
+      return null;
+    }
+    return document;
+  } catch {
+    return null;
+  }
+}
+
+/** 오류 문서가 아닌, 이전에 받아 둔 목록. 빈 목록도 성공이다. */
+function isSuccessDocument(document) {
+  return Boolean(document) && Array.isArray(document.items) && typeof document.error !== "string";
+}
+
+/**
+ * 이번에 실패한 묶음의 위성만 이전 성공본에서 다시 붙인다.
+ * 묶음이 모두 실패하면 이전 파일 전체를 그대로 돌려준다.
+ */
+export function mergeCatalogWithPrevious(next, previous) {
+  if (!isSuccessDocument(previous)) {
+    return next;
+  }
+  const groups = next?.groups && typeof next.groups === "object" ? next.groups : {};
+  const failedGroups = Object.keys(groups).filter((name) => groups[name]?.ok === false);
+  if (failedGroups.length === 0) {
+    return next;
+  }
+
+  const tracked = [...CATALOG_GROUPS, "korea"];
+  const allFailed = tracked.every((name) => groups[name]?.ok !== true);
+  if (allFailed) {
+    return previous;
+  }
+
+  const failed = new Set(failedGroups);
+  const nextItems = Array.isArray(next.items) ? next.items : [];
+  const seen = new Set();
+  for (const row of nextItems) {
+    if (Array.isArray(row)) {
+      seen.add(row[CATALOG_COLUMN.norad]);
+    }
+  }
+
+  const restored = [];
+  for (const row of previous.items) {
+    if (!Array.isArray(row)) {
+      continue;
+    }
+    const group = row[CATALOG_COLUMN.group];
+    if (!failed.has(group)) {
+      continue;
+    }
+    const norad = row[CATALOG_COLUMN.norad];
+    if (seen.has(norad)) {
+      continue;
+    }
+    seen.add(norad);
+    restored.push(row);
+  }
+
+  if (restored.length === 0) {
+    return next;
+  }
+
+  const mergedGroups = { ...groups };
+  for (const name of failed) {
+    const count = restored.filter((row) => row[CATALOG_COLUMN.group] === name).length;
+    if (count > 0) {
+      mergedGroups[name] = { ok: true, count, preserved: true };
+    }
+  }
+
+  const items = [...restored, ...nextItems];
+  const document = { ...next, groups: mergedGroups, items };
+  if (document.error && items.length > 0) {
+    delete document.error;
+  }
+  return document;
+}
+
 async function readCatalogGroup(url, fetchImpl) {
   const payload = await requestJson(url, fetchImpl);
   return parseCatalogGroupItems(payload);
@@ -379,7 +486,8 @@ export async function collectCatalog(fetchImpl) {
   return document;
 }
 
-async function saveCatalog({ fetchImpl, writeFileImpl, dataDir, fetchedAt }) {
+async function saveCatalog({ fetchImpl, writeFileImpl, readFileImpl, dataDir, fetchedAt, preservePrevious }) {
+  const previous = preservePrevious ? await readExistingDocument(readFileImpl, dataDir, "catalog.json") : null;
   let document;
   try {
     document = await collectCatalog(fetchImpl);
@@ -391,6 +499,15 @@ async function saveCatalog({ fetchImpl, writeFileImpl, dataDir, fetchedAt }) {
       items: [],
     };
     console.error(document.error);
+  }
+
+  if (preservePrevious) {
+    const merged = mergeCatalogWithPrevious(document, previous);
+    if (merged === previous && previous) {
+      console.error("catalog.json 이전 성공본을 유지합니다.");
+      return;
+    }
+    document = merged;
   }
 
   const text = serializeCatalog(document);
@@ -405,16 +522,37 @@ async function saveCatalog({ fetchImpl, writeFileImpl, dataDir, fetchedAt }) {
   }
 }
 
-async function saveSource({ label, filename, url, parse, fetchImpl, writeFileImpl, dataDir, fetchedAt }) {
+async function saveSource({
+  label,
+  filename,
+  url,
+  parse,
+  fetchImpl,
+  writeFileImpl,
+  readFileImpl,
+  dataDir,
+  fetchedAt,
+  preservePrevious,
+}) {
   let document;
+  let failed = false;
   try {
     document = {
       fetched_at: fetchedAt,
       items: parse(await requestJson(url, fetchImpl)),
     };
   } catch (error) {
+    failed = true;
     document = failureDocument(label, error);
     console.error(document.error);
+  }
+
+  if (failed && preservePrevious) {
+    const previous = await readExistingDocument(readFileImpl, dataDir, filename);
+    if (isSuccessDocument(previous)) {
+      console.error(`${filename} 이전 성공본을 유지합니다.`);
+      return;
+    }
   }
 
   try {
@@ -424,12 +562,52 @@ async function saveSource({ label, filename, url, parse, fetchImpl, writeFileImp
   }
 }
 
+async function saveMirrorFile({ filename, fetchImpl, writeFileImpl, readFileImpl, dataDir }) {
+  try {
+    const payload = await requestJson(mirrorFileUrl(filename), fetchImpl);
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("응답이 JSON 객체가 아닙니다.");
+    }
+    await writeDocument(writeFileImpl, dataDir, filename, payload);
+  } catch (error) {
+    const previous = await readExistingDocument(readFileImpl, dataDir, filename);
+    if (previous) {
+      console.error(`${filename} 미러를 받지 못해 저장소 파일을 유지합니다: ${errorMessage(error)}`);
+      return;
+    }
+    console.error(`${filename} 미러와 저장소 파일이 모두 없습니다: ${errorMessage(error)}`);
+  }
+}
+
+async function collectMirror(options) {
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const dataDir = options.dataDir ?? defaultDataDirectory();
+  const writeFileImpl = options.writeFileImpl ?? writeFile;
+  const readFileImpl = options.readFileImpl ?? readFile;
+  const mkdirImpl = options.mkdirImpl ?? mkdir;
+
+  await mkdirImpl(dataDir, { recursive: true });
+  await Promise.all(
+    DATA_FILES.map((filename) =>
+      saveMirrorFile({ filename, fetchImpl, writeFileImpl, readFileImpl, dataDir }),
+    ),
+  );
+}
+
 export async function collectData(options = {}) {
+  const mode = options.mode ?? "upstream";
+  if (mode === "mirror") {
+    await collectMirror(options);
+    return;
+  }
+
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const now = options.now ?? (() => new Date());
   const dataDir = options.dataDir ?? defaultDataDirectory();
   const writeFileImpl = options.writeFileImpl ?? writeFile;
+  const readFileImpl = options.readFileImpl ?? readFile;
   const mkdirImpl = options.mkdirImpl ?? mkdir;
+  const preservePrevious = mode === "refresh";
 
   await mkdirImpl(dataDir, { recursive: true });
   const fetchedAt = now().toISOString();
@@ -442,8 +620,10 @@ export async function collectData(options = {}) {
       parse: parseStationItems,
       fetchImpl,
       writeFileImpl,
+      readFileImpl,
       dataDir,
       fetchedAt,
+      preservePrevious,
     }),
     saveSource({
       label: "Launch Library 2",
@@ -452,10 +632,12 @@ export async function collectData(options = {}) {
       parse: parseLaunchItems,
       fetchImpl,
       writeFileImpl,
+      readFileImpl,
       dataDir,
       fetchedAt,
+      preservePrevious,
     }),
-    saveCatalog({ fetchImpl, writeFileImpl, dataDir, fetchedAt }),
+    saveCatalog({ fetchImpl, writeFileImpl, readFileImpl, dataDir, fetchedAt, preservePrevious }),
   ]);
 }
 
@@ -477,5 +659,5 @@ function isDirectRun() {
 }
 
 if (isDirectRun()) {
-  process.exitCode = await runFetchData();
+  process.exitCode = await runFetchData({ mode: fetchModeFromEnv(process.env) });
 }
