@@ -270,6 +270,23 @@ export function satrecFromIssTle(tle: string): SatRec | null {
   }
 }
 
+/** 선택 위성의 다음 통과를 찾을 때 앞으로 보는 시간. */
+export const SELECTION_PASS_HORIZON_MS = 24 * 60 * 60 * 1000;
+
+/** 선택 지역에서 지금 보이거나 다음에 보이는 통과의 시작 시각. 없으면 null. */
+export function nextObserverPass(station: Station, place: PassObserver, start: Date): Date | null {
+  const begin = start.getTime();
+  if (Number.isNaN(begin)) {
+    return null;
+  }
+  const passes = predictStationPasses(station, place, start, new Date(begin + SELECTION_PASS_HORIZON_MS));
+  if (!passes) {
+    return null;
+  }
+  const next = passes.find((pass) => pass.end.time.getTime() >= begin);
+  return next ? next.start.time : null;
+}
+
 export function predictStationPasses(
   station: Station,
   place: PassObserver,
