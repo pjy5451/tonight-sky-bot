@@ -118,8 +118,13 @@ describe("observatory design tokens", () => {
       "IBM Plex Mono",
     );
     expect(getComputedStyle(document.querySelector(".stat-label") as HTMLElement).color).toBe("rgb(124, 134, 154)");
-    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).not.toBeNull();
-    expect(document.querySelector(".globe-stage .globe-hud #sat-detail")).not.toBeNull();
+    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).toBeNull();
+    expect(document.querySelector("#sat-detail")).toBeNull();
+    expect(document.querySelector("#iss-card")).not.toBeNull();
+    expect(document.querySelector(".globe-stage")?.contains(document.querySelector("#iss-card"))).toBe(false);
+    expect(document.querySelector(".globe-hud .card")).toBeNull();
+    expect(document.querySelector(".globe-hud #hud-altitude")).not.toBeNull();
+    expect(document.querySelector(".globe-hud #hud-speed")).not.toBeNull();
     expect(document.querySelector(".t-minus")?.textContent).toBe("T\u2212");
     expect(document.querySelector("#panel-launches .launch-board")).not.toBeNull();
     expect(document.querySelector("svg")?.getAttribute("stroke-width")).toBe("1.6");
@@ -128,6 +133,10 @@ describe("observatory design tokens", () => {
     renderAt(1440);
     expect(getComputedStyle(document.querySelector("h1") as HTMLElement).fontSize).toBe("34px");
     expect(document.querySelector(".app-shell")?.classList.contains("is-desktop")).toBe(true);
+    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).not.toBeNull();
+    expect(document.querySelector(".globe-stage .globe-hud #sat-detail")).not.toBeNull();
+    expect(document.querySelector("#sat-detail-name")?.textContent).toContain("위성을 누르면");
+    expect(document.querySelector(".globe-hud #hud-altitude")).toBeNull();
     fits(1440);
   });
 });

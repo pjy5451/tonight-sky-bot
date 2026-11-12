@@ -884,6 +884,42 @@ h1 {
   font-size: 12px;
 }
 
+.globe-hud-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 12px;
+  margin: 0;
+  min-width: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+.globe-hud-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.globe-hud-metrics .stat-label {
+  font-size: 10px;
+}
+
+.globe-hud-metrics .iss-metric {
+  font-size: 12px;
+}
+
+#panel-satellites > #iss-card,
+#panel-satellites > #sat-detail {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
 .globe-mount {
   width: 100%;
   height: 100%;

@@ -69,6 +69,9 @@ describe("responsive layout", () => {
     expect(document.querySelector(".hero-copy")?.contains(document.querySelector("#tracked-summary"))).toBe(true);
     expect(document.querySelector("#summary-cloud")).toBeNull();
     expect(getComputedStyle(document.querySelector(".globe-stage") as HTMLElement).height).toBe("340px");
+    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).toBeNull();
+    expect(document.querySelector("#sat-detail")).toBeNull();
+    expect(document.querySelector("#iss-card")).not.toBeNull();
 
     const satellites = document.querySelector("#panel-satellites") as HTMLElement;
     satellites.scrollIntoView = vi.fn();
@@ -114,6 +117,8 @@ describe("responsive layout", () => {
     expect(getComputedStyle(document.querySelector("#panel-tonight") as HTMLElement).width).toBe("380px");
     expect(getComputedStyle(document.querySelector("#panel-satellites") as HTMLElement).minHeight).toBe("560px");
     expect(getComputedStyle(document.querySelector(".globe-stage") as HTMLElement).height).toBe("560px");
+    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).not.toBeNull();
+    expect(document.querySelector(".globe-stage .globe-hud #sat-detail")).not.toBeNull();
     expect(getComputedStyle(document.querySelector("#panel-satellites") as HTMLElement).gridColumnStart).toBe("1");
     expect(getComputedStyle(document.querySelector("#panel-tonight") as HTMLElement).gridColumnStart).toBe("2");
     expect(getComputedStyle(document.querySelector("#panel-launches") as HTMLElement).gridColumnStart).toBe("1");
@@ -166,6 +171,10 @@ describe("responsive layout", () => {
     expect(document.querySelector<HTMLElement>("#panel-tonight")?.hidden).toBe(true);
     expect(document.querySelector<HTMLElement>("#panel-satellites")?.hidden).toBe(true);
     expect(document.querySelector(".hero-top")?.contains(document.querySelector("#location-button"))).toBe(true);
+    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).toBeNull();
+    expect(document.querySelector("#sat-detail")).toBeNull();
+    expect(document.querySelector("#iss-card")).not.toBeNull();
+    expect(document.querySelector(".globe-stage")?.contains(document.querySelector("#iss-card"))).toBe(false);
     fitsViewport(390);
   });
 
@@ -179,6 +188,8 @@ describe("responsive layout", () => {
     expect(document.querySelector<HTMLElement>("#panel-satellites")?.hidden).toBe(true);
     expect(document.querySelector<HTMLElement>("#panel-launches")?.hidden).toBe(true);
     expect(getComputedStyle(document.querySelector(".globe-stage") as HTMLElement).height).toBe("340px");
+    expect(document.querySelector(".globe-stage .globe-hud #iss-card")).not.toBeNull();
+    expect(document.querySelector(".globe-stage .globe-hud #sat-detail")).not.toBeNull();
     expect(document.querySelector("#desk-stats")?.hasAttribute("hidden")).toBe(true);
     fitsViewport(1024);
   });
