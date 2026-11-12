@@ -1,3 +1,4 @@
+import { Body, Equator, Horizon, Observer, SearchAltitude } from "astronomy-engine";
 import { describe, expect, it } from "vitest";
 import {
   compass16,
@@ -146,17 +147,49 @@ describe("tonight sky for a fixed place and time", () => {
 
   it("lists only the planets above the horizon, in Venus-Mars-Jupiter-Saturn order", () => {
     const noon = computeTonightSky(SEOUL, NOON_KST);
-    expect(noon.planets.map((planet) => planet.name)).toEqual(["금성", "화성", "목성"]);
-    expect(noon.planets.map((planet) => planet.direction)).toEqual(["남남서", "서", "서"]);
+    expect(noon.planets.map((planet) => planet.name)).toEqual(["토성"]);
+    expect(noon.planets.map((planet) => planet.direction)).toEqual(["동남동"]);
+    expect(Math.round(noon.planets[0]?.altitude ?? Number.NaN)).toBe(26);
     for (const planet of noon.planets) {
       expect(planet.altitude).toBeGreaterThan(0);
       expect(planet.direction).toBe(compass16(planet.azimuth));
     }
 
-    const evening = computeTonightSky(SEOUL, new Date("2026-11-12T12:00:00.000Z"));
+    const eveningDate = new Date("2026-11-12T12:00:00.000Z");
+    const evening = computeTonightSky(SEOUL, eveningDate);
     expect(evening.planets.map((planet) => planet.name)).toEqual(["토성"]);
     expect(evening.planets[0]?.direction).toBe("남남동");
     expect(evening.planets[0]?.altitude).toBeGreaterThan(0);
+    expect(evening.planetTime.toISOString()).toBe(eveningDate.toISOString());
+  });
+
+  it("uses the next sun altitude of -6° for planets while the sun is still up", () => {
+    const when = new Date("2026-11-12T04:39:00.000Z");
+    const sky = computeTonightSky(SEOUL, when);
+    const observer = new Observer(SEOUL.latitude, SEOUL.longitude, 0);
+    const next = SearchAltitude(Body.Sun, observer, -1, when, 2, -6);
+    expect(next).not.toBeNull();
+    const night = next?.date ?? when;
+    expect(night.toISOString()).not.toBe(when.toISOString());
+    expect(sky.planetTime.toISOString()).toBe(night.toISOString());
+    expect(formatKstTime(sky.planetTime)).toBe("17:51");
+
+    const bodies = [Body.Venus, Body.Mars, Body.Jupiter, Body.Saturn] as const;
+    const above = bodies.flatMap((body) => {
+      const equatorial = Equator(body, night, observer, true, true);
+      const horizontal = Horizon(night, observer, equatorial.ra, equatorial.dec, "normal");
+      return horizontal.altitude > 0
+        ? [{ body, altitude: horizontal.altitude, direction: compass16(horizontal.azimuth) }]
+        : [];
+    });
+    expect(above.map((row) => row.body)).toEqual([Body.Saturn]);
+    expect(sky.planets.map((planet) => planet.id)).toEqual(["saturn"]);
+    expect(sky.planets).toHaveLength(above.length);
+    for (const [index, row] of above.entries()) {
+      const planet = sky.planets[index];
+      expect(planet?.direction).toBe(row.direction);
+      expect(Math.abs((planet?.altitude ?? 0) - row.altitude)).toBeLessThanOrEqual(1);
+    }
   });
 
   it("does not invent a sunrise or sunset during the midnight sun", () => {
@@ -166,6 +199,7 @@ describe("tonight sky for a fixed place and time", () => {
     );
     expect(polarDay.sunrise).toBeNull();
     expect(polarDay.sunset).toBeNull();
+    expect(polarDay.planetTime.toISOString()).toBe("2026-06-21T12:00:00.000Z");
   });
 });
 
