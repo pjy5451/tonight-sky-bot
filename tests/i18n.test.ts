@@ -117,7 +117,7 @@ describe("language selection", () => {
     expect(document.documentElement.lang).toBe("en");
     expect(document.querySelector("h1")?.textContent).toBe("11/12 (Thu)");
     expect(document.querySelector("#tab-tonight span")?.textContent).toBe("Tonight");
-    expect(document.querySelector("#desktop-tab-satellites")?.textContent).toBe("Satellite globe");
+    expect(document.querySelector("#desktop-tab-satellites")?.textContent).toBe("Earth");
     expect(document.querySelector("#language-button [data-lang='en']")?.classList.contains("is-current")).toBe(
       true,
     );

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app";
 import "../src/styles.css";
@@ -64,6 +65,9 @@ describe("responsive layout", () => {
     expect(document.querySelector(".hero-top")?.contains(document.querySelector("#location-button"))).toBe(
       true,
     );
+    expect(document.querySelector("#desk-stats")?.hasAttribute("hidden")).toBe(true);
+    expect(document.querySelector(".hero-copy")?.contains(document.querySelector("#tracked-summary"))).toBe(true);
+    expect(document.querySelector("#summary-cloud")).toBeNull();
     expect(getComputedStyle(document.querySelector(".globe-stage") as HTMLElement).height).toBe("340px");
 
     const satellites = document.querySelector("#panel-satellites") as HTMLElement;
@@ -84,19 +88,49 @@ describe("responsive layout", () => {
     const desktopNav = document.querySelector(".desktop-nav");
     expect(getComputedStyle(tabList as HTMLElement).display).toBe("none");
     expect(getComputedStyle(desktopBar as HTMLElement).display).toBe("block");
-    expect(getComputedStyle(desktopBar as HTMLElement).backgroundColor).toBe("rgb(11, 15, 25)");
+    expect(getComputedStyle(desktopBar as HTMLElement).backgroundColor).toBe("rgb(5, 7, 13)");
     expect(getComputedStyle(document.querySelector(".panel-stack") as HTMLElement).display).toBe("grid");
     expect(document.querySelector(".app-shell")?.classList.contains("is-desktop")).toBe(true);
     expect(document.querySelector(".brand-name")?.textContent).toBe("Argonova");
-    expect(desktopNav?.textContent).toContain("오늘 밤");
-    expect(desktopNav?.textContent).toContain("위성 지구본");
-    expect(desktopNav?.textContent).toContain("발사 일정");
+    expect(desktopNav?.textContent).toContain("하늘");
+    expect(desktopNav?.textContent).toContain("지구");
+    expect(desktopNav?.textContent).toContain("발사");
+    for (const banned of ["참여", "커뮤니티", "배우기", "후원", "검색", "로그인"]) {
+      expect(desktopBar?.textContent ?? "").not.toContain(banned);
+    }
     expect(document.querySelector("#language-button")?.textContent).toBe("KO · EN");
     expect(getComputedStyle(document.querySelector("#language-button") as HTMLElement).minHeight).toBe("44px");
     expect(getComputedStyle(document.querySelector(".desktop-tab") as HTMLElement).minHeight).toBe("44px");
     expect(
       document.querySelector(".desktop-tools")?.contains(document.querySelector("#location-button")),
     ).toBe(true);
+
+    expect(document.querySelector("#summary-cloud")).toBeNull();
+    expect(document.querySelector("#desk-stats")?.hasAttribute("hidden")).toBe(false);
+    expect(document.querySelector("#summary-moon")?.textContent).toBe("—");
+    expect(document.querySelector("#tracked-slot")?.contains(document.querySelector("#tracked-summary"))).toBe(
+      true,
+    );
+    expect(getComputedStyle(document.querySelector("#panel-tonight") as HTMLElement).width).toBe("380px");
+    expect(getComputedStyle(document.querySelector("#panel-satellites") as HTMLElement).minHeight).toBe("560px");
+    expect(getComputedStyle(document.querySelector(".globe-stage") as HTMLElement).height).toBe("560px");
+    expect(getComputedStyle(document.querySelector("#panel-satellites") as HTMLElement).gridColumnStart).toBe("1");
+    expect(getComputedStyle(document.querySelector("#panel-tonight") as HTMLElement).gridColumnStart).toBe("2");
+    expect(getComputedStyle(document.querySelector("#panel-launches") as HTMLElement).gridColumnStart).toBe("1");
+    expect(getComputedStyle(document.querySelector("#panel-launches") as HTMLElement).gridColumnEnd).toBe("-1");
+
+    const later = document.querySelector("#later-launches");
+    expect(later).not.toBeNull();
+    for (let index = 0; index < 4; index += 1) {
+      const row = document.createElement("article");
+      row.className = "launch-row";
+      later?.append(row);
+    }
+    const rows = [...(later?.querySelectorAll(".launch-row") ?? [])];
+    expect(getComputedStyle(rows[0] as HTMLElement).display).not.toBe("none");
+    expect(getComputedStyle(rows[1] as HTMLElement).display).not.toBe("none");
+    expect(getComputedStyle(rows[2] as HTMLElement).display).toBe("none");
+    expect(getComputedStyle(rows[3] as HTMLElement).display).toBe("none");
 
     expect(document.querySelector<HTMLElement>("#panel-tonight")?.hidden).toBe(false);
     expect(document.querySelector<HTMLElement>("#panel-satellites")?.hidden).toBe(false);
@@ -133,5 +167,29 @@ describe("responsive layout", () => {
     expect(document.querySelector<HTMLElement>("#panel-satellites")?.hidden).toBe(true);
     expect(document.querySelector(".hero-top")?.contains(document.querySelector("#location-button"))).toBe(true);
     fitsViewport(390);
+  });
+
+  it("keeps the phone tabs at 1024px and does not scroll sideways", () => {
+    renderAt(1024);
+
+    expect(document.querySelector(".app-shell")?.classList.contains("is-desktop")).toBe(false);
+    expect(getComputedStyle(document.querySelector(".tab-list") as HTMLElement).display).toBe("grid");
+    expect(getComputedStyle(document.querySelector(".desktop-bar") as HTMLElement).display).toBe("none");
+    expect(document.querySelector<HTMLElement>("#panel-tonight")?.hidden).toBe(false);
+    expect(document.querySelector<HTMLElement>("#panel-satellites")?.hidden).toBe(true);
+    expect(document.querySelector<HTMLElement>("#panel-launches")?.hidden).toBe(true);
+    expect(getComputedStyle(document.querySelector(".globe-stage") as HTMLElement).height).toBe("340px");
+    expect(document.querySelector("#desk-stats")?.hasAttribute("hidden")).toBe(true);
+    fitsViewport(1024);
+  });
+});
+
+describe("year1 layout captures", () => {
+  it("stores Playwright captures at 1440, 1024, and 390", () => {
+    for (const name of ["layout-1440.png", "layout-1024.png", "layout-390.png"]) {
+      const bytes = readFileSync(`tests/screenshots/${name}`);
+      expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+      expect(bytes.byteLength).toBeGreaterThan(3000);
+    }
   });
 });

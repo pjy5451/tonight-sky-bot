@@ -214,8 +214,14 @@ const tabs: Tab[] = [
   { id: "launches", labelKey: "tabLaunches" },
 ];
 
-/** DESIGN.md 5-1: 1024px 이상이면 PC 대시보드, 미만이면 폰 탭. */
-const DESKTOP_MIN_WIDTH = 1024;
+/** 1200px 이상이면 1년 뒤 PC 배치, 미만이면 폰 탭. */
+const DESKTOP_MIN_WIDTH = 1200;
+
+const DESKTOP_NAV_KEY: Record<TabId, MessageKey> = {
+  tonight: "navSky",
+  satellites: "navEarth",
+  launches: "navLaunch",
+};
 
 function isDesktopViewport(): boolean {
   return window.innerWidth >= DESKTOP_MIN_WIDTH;
@@ -431,6 +437,13 @@ function setTonightStatus(panel: HTMLElement, message: string | null): void {
   setLiveRole(status, "alert");
 }
 
+function setSummaryMoon(text: string): void {
+  const summary = document.getElementById("summary-moon");
+  if (summary) {
+    summary.textContent = text;
+  }
+}
+
 function clearTonightNumbers(panel: HTMLElement): void {
   const sunset = panel.querySelector("#sunset-value");
   const sunrise = panel.querySelector("#sunrise-value");
@@ -448,6 +461,7 @@ function clearTonightNumbers(panel: HTMLElement): void {
   if (moonValue instanceof HTMLElement) {
     moonValue.textContent = "—";
     moonValue.classList.remove("is-note");
+    setSummaryMoon("—");
   }
   if (moonIcon instanceof HTMLElement) {
     moonIcon.replaceChildren();
@@ -717,6 +731,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     setClockValue(sunrise, null, "—");
     moonValue.textContent = "—";
     moonValue.classList.remove("is-note");
+    setSummaryMoon("—");
     moonIcon.replaceChildren();
     moonName.textContent = "";
     planetList.replaceChildren();
@@ -732,6 +747,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     setClockValue(sunrise, sky.sunrise, tr("noRise"));
     moonValue.textContent = `${sky.moonIlluminationPercent}%`;
     moonValue.classList.remove("is-note");
+    setSummaryMoon(`${sky.moonIlluminationPercent}%`);
     moonIcon.replaceChildren(renderMoonIcon(sky.moonPhaseAngle, location.latitude));
     moonName.textContent = moonPhaseName(sky.moonPhaseAngle, sky.moonIlluminationPercent, locale);
     renderPlanetRows(planetList, sky.planets);
@@ -2132,6 +2148,27 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   heroCopy.append(title, trackedSummary);
 
+  const deskStats = document.createElement("div");
+  deskStats.id = "desk-stats";
+  deskStats.className = "desk-stats";
+  deskStats.hidden = true;
+
+  const moonStat = document.createElement("div");
+  moonStat.className = "desk-stat";
+  const moonStatLabel = document.createElement("span");
+  moonStatLabel.className = "stat-label";
+  bindText(moonStatLabel, "moon");
+  const moonStatValue = document.createElement("span");
+  moonStatValue.id = "summary-moon";
+  moonStatValue.className = "desk-stat-value";
+  moonStatValue.textContent = "—";
+  moonStat.append(moonStatLabel, moonStatValue);
+
+  const trackedSlot = document.createElement("div");
+  trackedSlot.id = "tracked-slot";
+  trackedSlot.className = "desk-stat";
+  deskStats.append(moonStat, trackedSlot);
+
   const heroActions = document.createElement("div");
   heroActions.className = "hero-actions";
 
@@ -2148,7 +2185,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   locationButton.append(createPinIcon(), locationLabel);
 
   heroActions.append(locationButton);
-  heroTop.append(heroCopy, heroActions);
+  heroTop.append(heroCopy, deskStats, heroActions);
   header.append(heroTop);
 
   const dialog = document.createElement("div");
@@ -2401,7 +2438,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     button.id = `desktop-tab-${tab.id}`;
     button.className = "desktop-tab";
     button.dataset.desktopTab = tab.id;
-    bindText(button, tab.labelKey);
+    bindText(button, DESKTOP_NAV_KEY[tab.id]);
     button.setAttribute("aria-controls", `panel-${tab.id}`);
     return button;
   });
@@ -2423,12 +2460,16 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     if (desktop) {
       desktopTools.append(locationButton, languageButton);
       heroActions.remove();
+      trackedSlot.append(trackedSummary);
+      deskStats.hidden = false;
       return;
     }
     heroActions.append(locationButton, languageButton);
     if (heroActions.parentElement !== heroTop) {
       heroTop.append(heroActions);
     }
+    heroCopy.append(trackedSummary);
+    deskStats.hidden = true;
   };
 
   const setActiveTab = (activeTab: TabId) => {
