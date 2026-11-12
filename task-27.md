@@ -1,4 +1,4 @@
-status: fix-needed
+status: fixed
 attempts: 1
 pr: 28
 branch: task-27-drop-tagline
