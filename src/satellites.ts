@@ -26,8 +26,8 @@ export { HUBBLE_NORAD_CATALOG_ID, TIANGONG_NORAD_CATALOG_ID };
 /** 한 프레임에 궤도를 계산하는 위성 수. 나머진 다음 프레임으로 넘긴다. */
 export const SCENE_BATCH = 400;
 
-export const ISS_COLOR = "#F5B544";
-export const OTHER_SATELLITE_COLOR = "#6CC4FF";
+export const ISS_COLOR = "#E8B04A";
+export const OTHER_SATELLITE_COLOR = "#7FD3FF";
 
 /** 목업의 "5초마다 갱신". */
 export const POSITION_UPDATE_MS = 5_000;
@@ -584,17 +584,13 @@ export function formatSpeed(speedKmh: number): string {
   return `${grouped(speedKmh)} km/h`;
 }
 
+/** 남은 시간. 디자인 고정폭 `T−HH:MM` (빼기는 U+2212). */
 export function formatDuration(ms: number, locale: Locale = "ko"): string {
   const minutes = Math.max(0, Math.round(ms / 60_000));
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
-  if (hours === 0) {
-    return translate(locale, "durationMinutes", { n: rest });
-  }
-  if (rest === 0) {
-    return translate(locale, "durationHours", { n: hours });
-  }
-  return translate(locale, "durationHoursMinutes", { hours, minutes: rest });
+  void locale;
+  return `T\u2212${String(hours).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
 }
 
 export function formatKoreaPassLabel(pass: Overflight, now: Date, locale: Locale = "ko"): string {

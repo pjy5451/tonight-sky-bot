@@ -269,7 +269,7 @@ function createDotRig(capacity: number): DotRig {
 
 function cssColor(hex: string, target: Color): void {
   const match = /^#([0-9a-fA-F]{6})$/.exec(hex);
-  target.setHex(match ? Number.parseInt(match[1] ?? "6CC4FF", 16) : 0x6cc4ff);
+  target.setHex(match ? Number.parseInt(match[1] ?? "7FD3FF", 16) : 0x7fd3ff);
 }
 
 /**

@@ -147,7 +147,7 @@ describe("globe scene", () => {
     const catalog = parseTleDocument({ items: [other, iss] });
     const scene = buildSatelliteScene(catalog.stations, EPOCH);
 
-    expect(scene.points.map((point) => point.color)).toEqual(["#6CC4FF", "#F5B544"]);
+    expect(scene.points.map((point) => point.color)).toEqual(["#7FD3FF", "#E8B04A"]);
     expect(scene.points.map((point) => point.iss)).toEqual([false, true]);
     expect(scene.iss?.station.noradId).toBe(25544);
     expect(scene.paths.length).toBeGreaterThan(0);
@@ -263,15 +263,16 @@ describe("Korea overflights", () => {
 
   it("formats the countdown in hours and minutes", () => {
     const start = new Date("2026-01-01T00:00:00.000Z");
-    expect(formatDuration(12 * 60 * 1000)).toBe("12분");
-    expect(formatDuration(2 * 60 * 60 * 1000)).toBe("2시간");
-    expect(formatDuration((60 + 12) * 60 * 1000)).toBe("1시간 12분");
+    expect(formatDuration(12 * 60 * 1000)).toBe("T\u221200:12");
+    expect(formatDuration(2 * 60 * 60 * 1000)).toBe("T\u221202:00");
+    expect(formatDuration((60 + 12) * 60 * 1000)).toBe("T\u221201:12");
+    expect(formatDuration((60 + 12) * 60 * 1000, "en")).toBe("T\u221201:12");
     expect(
       formatKoreaPassLabel(
         { overheadNow: false, at: new Date(start.getTime() + (60 + 12) * 60 * 1000) },
         start,
       ),
-    ).toBe("다음 한국 상공 통과까지 1시간 12분");
+    ).toBe("다음 한국 상공 통과까지 T\u221201:12");
     expect(formatKoreaPassLabel({ overheadNow: true, at: start }, start)).toBe(
       "지금 한국 상공에 있습니다",
     );

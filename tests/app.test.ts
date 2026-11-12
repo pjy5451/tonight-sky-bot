@@ -190,8 +190,8 @@ describe("Argonova frame", () => {
     expect(html).toContain("<title>Argonova</title>");
     expect(html).toContain('rel="manifest"');
     expect(html).toContain("fonts.googleapis.com");
-    expect(html).toContain("Noto+Sans+KR");
-    expect(html).toContain("Space+Grotesk");
+    expect(html).toContain("IBM+Plex+Sans+KR");
+    expect(html).toContain("IBM+Plex+Mono");
     expect(manifest.name).toBe("Argonova");
     expect(manifest.short_name).toBe("Argonova");
 
@@ -199,7 +199,7 @@ describe("Argonova frame", () => {
     expect(document.title).toBe("Argonova");
     expect(document.querySelector("h1")?.textContent).toBe("Argonova");
     expect(document.querySelector(".eyebrow")?.textContent).toBe("오늘 밤, 하늘을 탐험하다");
-    expect(getComputedStyle(document.body).fontFamily).toContain("Noto Sans KR");
+    expect(getComputedStyle(document.body).fontFamily).toContain("IBM Plex Sans KR");
   });
 
   it("pins the tab bar to the bottom and highlights the current tab", () => {
@@ -217,18 +217,18 @@ describe("Argonova frame", () => {
     const barStyle = getComputedStyle(tabList as HTMLElement);
     expect(barStyle.position).toBe("fixed");
     expect(barStyle.bottom).toBe("0px");
-    expect(barStyle.backgroundColor).toBe("rgb(14, 20, 40)");
+    expect(barStyle.backgroundColor).toBe("rgb(11, 15, 25)");
 
     expect(getComputedStyle(document.querySelector("#tab-tonight") as HTMLElement).color).toBe(
-      "rgb(245, 181, 68)",
+      "rgb(232, 176, 74)",
     );
     expect(getComputedStyle(document.querySelector("#tab-launches") as HTMLElement).color).toBe(
-      "rgb(169, 179, 199)",
+      "rgb(138, 148, 168)",
     );
 
     document.querySelector<HTMLButtonElement>("#tab-launches")?.click();
     expect(getComputedStyle(document.querySelector("#tab-launches") as HTMLElement).color).toBe(
-      "rgb(245, 181, 68)",
+      "rgb(232, 176, 74)",
     );
   });
 
@@ -270,10 +270,10 @@ describe("Argonova frame", () => {
     expect(koreaOnly?.getAttribute("aria-pressed")).toBe("true");
     expect(document.querySelector("#sat-detail-name")?.textContent).toContain("위성을 누르면");
     expect(getComputedStyle(satellites?.querySelector(".legend-dot-iss") as HTMLElement).backgroundColor).toBe(
-      "rgb(245, 181, 68)",
+      "rgb(232, 176, 74)",
     );
     expect(getComputedStyle(satellites?.querySelector(".legend-dot-other") as HTMLElement).backgroundColor).toBe(
-      "rgb(108, 196, 255)",
+      "rgb(127, 211, 255)",
     );
     expect(satellites?.textContent).not.toContain("약 420 km");
     expect(satellites?.textContent).not.toContain("27,600");
@@ -328,15 +328,15 @@ describe("tonight panel", () => {
     expect(sunrise).toBe("07:08");
     expect(document.querySelector("#moon-value")?.textContent).toBe("8%");
     expect(document.querySelector("#moon-phase-name")?.textContent).toBe("초승달");
-    expect(document.querySelector("#moon-icon svg circle")?.getAttribute("fill")).toBe("#2A3550");
-    expect(document.querySelector("#moon-icon svg path")?.getAttribute("fill")).toBe("#F2F4F8");
+    expect(document.querySelector("#moon-icon svg circle")?.getAttribute("fill")).toBe("#1C2333");
+    expect(document.querySelector("#moon-icon svg path")?.getAttribute("fill")).toBe("#E9EDF5");
 
     const names = [...document.querySelectorAll(".planet-name")].map((node) => node.textContent);
     const details = [...document.querySelectorAll(".planet-detail")].map((node) => node.textContent);
     expect(names).toEqual(["금성", "화성", "목성"]);
     expect(details).toEqual(["남남서 하늘", "서쪽 하늘", "서쪽 하늘"]);
     expect(getComputedStyle(document.querySelector(".planet-dot-jupiter") as HTMLElement).backgroundColor).toBe(
-      "rgb(245, 181, 68)",
+      "rgb(232, 176, 74)",
     );
     expect(document.querySelector<HTMLElement>("#planet-empty")?.hidden).toBe(true);
     expect(document.querySelector("#panel-tonight")?.textContent).toContain("ISS 통과");
@@ -344,13 +344,13 @@ describe("tonight panel", () => {
     expect(document.querySelector("#meteor-name")?.textContent).toBe("사자자리 유성우 극대");
     expect(document.querySelector("#meteor-dday")?.textContent).toBe("D-5");
     expect(getComputedStyle(document.querySelector("#meteor-dday") as HTMLElement).color).toBe(
-      "rgb(108, 196, 255)",
+      "rgb(127, 211, 255)",
     );
     expect(getComputedStyle(document.querySelector("#meteor-dday") as HTMLElement).fontFamily).toContain(
-      "Space Grotesk",
+      "IBM Plex Mono",
     );
     expect(getComputedStyle(document.querySelector("#sunset-value") as HTMLElement).fontFamily).toContain(
-      "Space Grotesk",
+      "IBM Plex Mono",
     );
   });
 
@@ -645,11 +645,12 @@ describe("launch schedule", () => {
       [...document.querySelectorAll("#launch-countdown .countdown-value")].map((node) => node.textContent),
     ).toEqual(["02", "03", "27", "41"]);
     expect(getComputedStyle(document.querySelector(".countdown-seconds") as HTMLElement).color).toBe(
-      "rgb(245, 181, 68)",
+      "rgb(232, 176, 74)",
     );
     expect(getComputedStyle(document.querySelector(".countdown-value") as HTMLElement).fontFamily).toContain(
-      "Space Grotesk",
+      "IBM Plex Mono",
     );
+    expect(document.querySelector(".t-minus")?.textContent).toBe("T\u2212");
 
     const link = document.querySelector<HTMLAnchorElement>("#launch-webcast");
     expect(link?.hidden).toBe(false);
@@ -657,7 +658,7 @@ describe("launch schedule", () => {
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
     expect(link?.textContent).toContain("생중계 보기");
-    expect(getComputedStyle(link as HTMLElement).backgroundColor).toBe("rgb(245, 181, 68)");
+    expect(getComputedStyle(link as HTMLElement).backgroundColor).toBe("rgb(232, 176, 74)");
 
     const rows = [...document.querySelectorAll(".launch-row")];
     expect(rows).toHaveLength(1);
@@ -666,7 +667,7 @@ describe("launch schedule", () => {
     expect(rows[0]?.querySelector(".launch-time")?.textContent).toBe("11/16 (월) 09:30");
     expect(rows[0]?.querySelector(".launch-dday")?.textContent).toBe("D-4");
     expect(getComputedStyle(rows[0]?.querySelector(".launch-dday") as HTMLElement).color).toBe(
-      "rgb(108, 196, 255)",
+      "rgb(127, 211, 255)",
     );
     expect(document.querySelector("#launch-source")?.textContent).toBe(
       "발사 데이터: The Space Devs · 12:00 갱신",

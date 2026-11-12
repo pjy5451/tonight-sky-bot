@@ -84,7 +84,7 @@ describe("responsive layout", () => {
     const desktopNav = document.querySelector(".desktop-nav");
     expect(getComputedStyle(tabList as HTMLElement).display).toBe("none");
     expect(getComputedStyle(desktopBar as HTMLElement).display).toBe("block");
-    expect(getComputedStyle(desktopBar as HTMLElement).backgroundColor).toBe("rgb(14, 20, 40)");
+    expect(getComputedStyle(desktopBar as HTMLElement).backgroundColor).toBe("rgb(11, 15, 25)");
     expect(getComputedStyle(document.querySelector(".panel-stack") as HTMLElement).display).toBe("grid");
     expect(document.querySelector(".app-shell")?.classList.contains("is-desktop")).toBe(true);
     expect(document.querySelector(".brand-name")?.textContent).toBe("Argonova");
@@ -102,7 +102,7 @@ describe("responsive layout", () => {
     expect(document.querySelector<HTMLElement>("#panel-satellites")?.hidden).toBe(false);
     expect(document.querySelector<HTMLElement>("#panel-launches")?.hidden).toBe(false);
     expect(getComputedStyle(document.querySelector("#panel-tonight .card-highlight") as HTMLElement).borderTopColor).toBe(
-      "rgba(245, 181, 68, 0.333)",
+      "rgb(28, 35, 51)",
     );
 
     const satellites = document.querySelector("#panel-satellites") as HTMLElement;

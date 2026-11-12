@@ -1,7 +1,21 @@
 :root {
-  color: #f2f4f8;
-  background: #0b1020;
-  font-family: "Noto Sans KR", sans-serif;
+  --bg: #05070d;
+  --panel: #0b0f19;
+  --line: #1c2333;
+  --text: #e9edf5;
+  --muted: #8a94a8;
+  --label: #7c869a;
+  --amber: #e8b04a;
+  --cyan: #7fd3ff;
+  --sat-korea: #ff7a59;
+  --sat-starlink: #a9b8d6;
+  --sat-nav: #7bd88f;
+  --sat-geo: #c59bff;
+  --font-sans: "IBM Plex Sans KR", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -21,7 +35,7 @@ body {
 
 body {
   min-height: 100vh;
-  background: #0b1020;
+  background: var(--bg);
 }
 
 button {
@@ -70,7 +84,7 @@ button {
 
 .eyebrow {
   margin: 0;
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0;
@@ -86,9 +100,9 @@ p {
 }
 
 h1 {
-  color: #f2f4f8;
-  font-size: 28px;
-  font-weight: 700;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 600;
   letter-spacing: -0.5px;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -102,10 +116,10 @@ h1 {
   max-width: 46%;
   min-height: 44px;
   padding: 0 14px;
-  border-radius: 22px;
-  border: 1px solid #2a3550;
-  background: #141b30;
-  color: #f2f4f8;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -122,15 +136,14 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 1;
+  flex-shrink: 0;
   min-width: 0;
-  max-width: 68%;
+  max-width: 100%;
 }
 
 .hero-actions .location-button {
   max-width: none;
-  min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
 }
 
 .hero-actions .language-button {
@@ -139,11 +152,11 @@ h1 {
 }
 
 .language-button [data-lang] {
-  color: #8d97ad;
+  color: var(--label);
 }
 
 .language-button [data-lang].is-current {
-  color: #f5b544;
+  color: var(--amber);
 }
 
 .location-button:focus-visible,
@@ -156,7 +169,7 @@ h1 {
 .desktop-tab:focus-visible,
 .brand-logo:focus-visible,
 .webcast-button:focus-visible {
-  outline: 3px solid #f5b544;
+  outline: 3px solid var(--amber);
   outline-offset: 2px;
 }
 
@@ -168,7 +181,7 @@ h1 {
   align-items: flex-end;
   justify-content: center;
   padding: 16px;
-  background: rgba(11, 16, 32, 0.72);
+  background: rgba(5, 7, 13, 0.72);
 }
 
 .location-dialog[hidden] {
@@ -184,10 +197,10 @@ h1 {
   flex-direction: column;
   gap: 12px;
   padding: 18px;
-  border: 1px solid #2a3550;
-  border-radius: 20px;
-  background: #141b30;
-  color: #f2f4f8;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--text);
 }
 
 .location-dialog-header {
@@ -206,10 +219,10 @@ h1 {
   min-width: 44px;
   min-height: 44px;
   padding: 0 14px;
-  border: 1px solid #2a3550;
-  border-radius: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: transparent;
-  color: #a9b3c7;
+  color: var(--muted);
   cursor: pointer;
 }
 
@@ -220,19 +233,19 @@ h1 {
 }
 
 .location-help {
-  color: #a9b3c7;
+  color: var(--muted);
 }
 
 .location-error {
-  color: #f5b544;
+  color: var(--amber);
 }
 
 .location-primary {
   min-height: 44px;
   border: 0;
-  border-radius: 22px;
-  background: #f5b544;
-  color: #0b1020;
+  border-radius: 8px;
+  background: var(--amber);
+  color: var(--bg);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -256,18 +269,18 @@ h1 {
   width: 100%;
   min-height: 44px;
   padding: 0 14px;
-  border: 1px solid #2a3550;
-  border-radius: 16px;
-  background: #0b1020;
-  color: #f2f4f8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
   font-size: 14px;
   text-align: left;
   cursor: pointer;
 }
 
 .region-button[aria-pressed="true"] {
-  border-color: #f5b544;
-  color: #f5b544;
+  border-color: var(--amber);
+  color: var(--amber);
 }
 
 .panel-stack {
@@ -287,37 +300,70 @@ h1 {
   display: none;
 }
 
+.board {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.board > .stat-grid,
+.board > .card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.board > .stat-grid + .card,
+.board > .card + .card,
+.launch-board .section-label,
+.launch-row {
+  border-top: 1px solid var(--line);
+}
+
+.launch-board .section-label {
+  padding: 14px 16px 0;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 0;
 }
 
 .stat-card,
 .card {
   min-width: 0;
-  background: #141b30;
-  color: #f2f4f8;
+  background: var(--panel);
+  color: var(--text);
 }
 
 .stat-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  border-radius: 16px;
+  border-radius: 0;
   padding: 14px 12px;
+  background: transparent;
+}
+
+.stat-card + .stat-card {
+  border-left: 1px solid var(--line);
 }
 
 .card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-radius: 20px;
-  padding: 18px;
+  border-radius: 0;
+  padding: 16px 18px;
 }
 
 .card-highlight {
-  border: 1px solid #f5b54455;
+  border: 0;
 }
 
 #iss-pass-card {
@@ -335,11 +381,14 @@ h1 {
 .iss-badge {
   flex-shrink: 0;
   padding: 3px 10px;
-  border-radius: 10px;
-  background: #f5b544;
-  color: #0b1020;
-  font-size: 12px;
-  font-weight: 700;
+  border-radius: 8px;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   line-height: 1.4;
 }
 
@@ -352,22 +401,23 @@ h1 {
 
 .iss-pass-when,
 .iss-pass-detail {
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 14px;
   line-height: 1.4;
 }
 
 .iss-pass-time {
-  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  color: var(--amber);
+  font-family: var(--font-mono);
   font-size: 34px;
-  font-weight: 700;
-  letter-spacing: -1px;
+  font-weight: 500;
+  letter-spacing: 0;
   line-height: 1.1;
 }
 
 .iss-pass-divider {
   height: 1px;
-  background: #2a3550;
+  background: var(--line);
 }
 
 .iss-pass-list {
@@ -391,7 +441,7 @@ h1 {
 
 .iss-pass-row-label {
   flex-shrink: 0;
-  color: #a9b3c7;
+  color: var(--muted);
 }
 
 .iss-pass-row-value {
@@ -408,7 +458,7 @@ h1 {
 }
 
 .card-compact {
-  border-radius: 16px;
+  border-radius: 0;
   padding: 14px 16px;
 }
 
@@ -431,23 +481,28 @@ h1 {
 
 .meteor-dday {
   flex-shrink: 0;
-  color: #6cc4ff;
-  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  color: var(--cyan);
+  font-family: var(--font-mono);
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.2;
 }
 
 .stat-label {
-  color: #a9b3c7;
-  font-size: 12px;
+  color: var(--label);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .stat-value,
-.countdown-value {
-  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
-  font-weight: 700;
+.countdown-value,
+.t-minus {
+  font-family: var(--font-mono);
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -457,7 +512,7 @@ h1 {
 }
 
 .stat-value.is-note {
-  font-family: "Noto Sans KR", sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
 }
 
@@ -479,7 +534,7 @@ h1 {
 }
 
 .moon-phase-name {
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -511,15 +566,15 @@ h1 {
 }
 
 .planet-dot-venus {
-  background: #f2f4f8;
+  background: var(--text);
 }
 
 .planet-dot-mars {
-  background: #6cc4ff;
+  background: var(--cyan);
 }
 
 .planet-dot-jupiter {
-  background: #f5b544;
+  background: var(--amber);
 }
 
 .planet-dot-saturn {
@@ -534,11 +589,11 @@ h1 {
 
 .planet-detail {
   min-width: 0;
-  color: #a9b3c7;
+  color: var(--muted);
 }
 
 .pending {
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -546,7 +601,7 @@ h1 {
 .pending[role="alert"],
 .globe-status[role="alert"],
 .iss-pass[role="alert"] {
-  color: #f5b544;
+  color: var(--amber);
 }
 
 .globe-stage {
@@ -555,6 +610,41 @@ h1 {
   height: 340px;
   min-width: 0;
   overflow: hidden;
+}
+
+.globe-hud {
+  position: absolute;
+  z-index: 2;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.globe-hud .card {
+  pointer-events: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 8px 10px;
+  gap: 6px;
+}
+
+.globe-hud .card-title {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.globe-hud .iss-stats {
+  gap: 6px;
+}
+
+.globe-hud .iss-pass {
+  font-size: 12px;
 }
 
 .globe-mount {
@@ -570,13 +660,17 @@ h1 {
 
 .globe-status {
   position: absolute;
-  inset: 0;
+  z-index: 3;
+  top: 8px;
+  right: 8px;
+  left: 8px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   margin: 0;
-  padding: 18px;
+  padding: 8px;
   text-align: center;
+  pointer-events: none;
 }
 
 .globe-status:empty {
@@ -597,7 +691,7 @@ h1 {
 
 .iss-now {
   flex-shrink: 0;
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -628,21 +722,22 @@ h1 {
 }
 
 .iss-metric {
-  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  color: var(--amber);
+  font-family: var(--font-mono);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .iss-pass {
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .orbit-source {
-  color: #8d97ad;
+  color: var(--label);
   font-size: 11px;
   line-height: 1.5;
   text-align: center;
@@ -653,7 +748,7 @@ h1 {
   flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -672,11 +767,11 @@ h1 {
 }
 
 .legend-dot-iss {
-  background: #f5b544;
+  background: var(--amber);
 }
 
 .legend-dot-other {
-  background: #6cc4ff;
+  background: var(--cyan);
 }
 
 .sat-filters {
@@ -695,10 +790,10 @@ h1 {
   max-width: 100%;
   min-height: 44px;
   padding: 0 12px;
-  border-radius: 22px;
-  border: 1px solid #2a3550;
-  background: #141b30;
-  color: #a9b3c7;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.2;
@@ -706,9 +801,9 @@ h1 {
 }
 
 .sat-filter[aria-pressed="true"] {
-  border-color: #f5b544;
-  background: #f5b544;
-  color: #0b1020;
+  border-color: var(--amber);
+  background: var(--amber);
+  color: var(--bg);
 }
 
 .sat-swatch {
@@ -718,38 +813,38 @@ h1 {
   border-radius: 5px;
 }
 
-.sat-swatch-stations,
+.sat-swatch-stations {
+  background: var(--cyan);
+}
+
 .sat-swatch-korea {
-  background: #6cc4ff;
+  background: var(--sat-korea);
 }
 
 .sat-swatch-starlink {
-  background: #d5ddea;
+  background: var(--sat-starlink);
 }
 
-.sat-swatch-gps-ops {
-  background: #f5b544;
-}
-
+.sat-swatch-gps-ops,
 .sat-swatch-galileo {
-  background: #ffd58a;
+  background: var(--sat-nav);
 }
 
 .sat-swatch-geo {
-  background: #a9b3c7;
+  background: var(--sat-geo);
 }
 
 .sat-swatch-weather {
-  background: #9fd4ff;
+  background: var(--cyan);
 }
 
 .sat-swatch-science {
-  background: #f2f4f8;
+  background: var(--text);
 }
 
 .catalog-status {
   margin: 0;
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
   text-align: center;
@@ -761,19 +856,29 @@ h1 {
 
 .badge {
   align-self: flex-start;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 3px 10px;
-  background: #f5b544;
-  color: #0b1020;
-  font-size: 12px;
-  font-weight: 700;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   line-height: 1.4;
 }
 
 .countdown {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 0;
+}
+
+.t-minus {
+  margin-right: 4px;
+  color: var(--amber);
+  font-size: 24px;
 }
 
 .countdown-cell {
@@ -782,10 +887,16 @@ h1 {
   align-items: center;
   gap: 2px;
   min-width: 0;
-  border-radius: 12px;
-  padding: 10px 4px;
-  background: #0b1020;
+  border-radius: 0;
+  padding: 0 6px;
+  background: transparent;
   text-align: center;
+}
+
+.countdown-cell:not(:last-child) .countdown-value::after {
+  content: ":";
+  color: var(--label);
+  font-weight: 500;
 }
 
 .countdown[hidden],
@@ -800,7 +911,7 @@ h1 {
 }
 
 .countdown-seconds {
-  color: #f5b544;
+  color: var(--amber);
 }
 
 .next-launch-head {
@@ -818,7 +929,7 @@ h1 {
 
 .next-launch-when {
   flex-shrink: 0;
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
   text-align: right;
@@ -839,7 +950,7 @@ h1 {
 }
 
 .next-launch-meta {
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 14px;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -854,8 +965,8 @@ h1 {
 
 #next-launch {
   gap: 14px;
-  border-radius: 20px;
-  padding: 20px 18px;
+  border-radius: 0;
+  padding: 16px 18px;
 }
 
 .webcast-button {
@@ -864,9 +975,9 @@ h1 {
   justify-content: center;
   gap: 8px;
   min-height: 44px;
-  border-radius: 12px;
-  background: #f5b544;
-  color: #0b1020;
+  border-radius: 8px;
+  background: var(--amber);
+  color: var(--bg);
   font-size: 15px;
   font-weight: 700;
   line-height: 1.2;
@@ -889,8 +1000,9 @@ h1 {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  border-radius: 16px;
+  border-radius: 0;
   padding: 14px 16px;
+  background: transparent;
 }
 
 .launch-when {
@@ -907,22 +1019,30 @@ h1 {
 }
 
 .launch-dday {
-  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
-  color: #6cc4ff;
+  font-family: var(--font-mono);
+  color: var(--cyan);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.2;
 }
 
+.launch-time,
+.next-launch-when {
+  font-family: var(--font-mono);
+}
+
 .section-label {
-  color: #a9b3c7;
-  font-size: 13px;
+  color: var(--label);
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .source-footer {
   margin-top: auto;
-  color: #8d97ad;
+  color: var(--label);
   font-size: 11px;
   line-height: 1.5;
   text-align: center;
@@ -930,7 +1050,7 @@ h1 {
 
 .stale-notice {
   margin: 4px 0 0;
-  color: #8d97ad;
+  color: var(--label);
   font-size: 11px;
   line-height: 1.5;
   text-align: center;
@@ -948,8 +1068,8 @@ h1 {
   z-index: 10;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid #2a3550;
-  background: #0e1428;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
   padding: 6px 8px 22px;
 }
 
@@ -963,14 +1083,14 @@ h1 {
   padding: 0 4px;
   border: 0;
   background: transparent;
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.2;
   cursor: pointer;
 }
 
 .tab-button[aria-selected="true"] {
-  color: #f5b544;
+  color: var(--amber);
   font-weight: 700;
 }
 
@@ -994,14 +1114,14 @@ h1 {
   align-items: center;
   gap: 10px;
   min-height: 44px;
-  color: #f2f4f8;
+  color: var(--text);
   text-decoration: none;
 }
 
 .brand-name {
-  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  font-family: var(--font-sans);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.3px;
   line-height: 1.2;
 }
@@ -1019,17 +1139,17 @@ h1 {
   min-height: 44px;
   padding: 0 16px;
   border: 0;
-  border-radius: 22px;
+  border-radius: 8px;
   background: transparent;
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 15px;
   line-height: 1.2;
   cursor: pointer;
 }
 
 .desktop-tab[aria-current="true"] {
-  background: #f5b54422;
-  color: #f5b544;
+  background: rgba(232, 176, 74, 0.16);
+  color: var(--amber);
   font-weight: 700;
 }
 
@@ -1042,10 +1162,10 @@ h1 {
 }
 
 .language-button {
-  border: 1px solid #2a3550;
-  background: #141b30;
-  color: #f2f4f8;
-  font-family: "Space Grotesk", "Noto Sans KR", sans-serif;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--font-mono);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1058,7 +1178,7 @@ h1 {
 }
 
 .globe-desktop-note {
-  color: #a9b3c7;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -1076,8 +1196,8 @@ h1 {
   position: sticky;
   top: 0;
   z-index: 15;
-  border-bottom: 1px solid #2a3550;
-  background: #0e1428;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
 }
 
 .is-desktop .tab-list {
@@ -1109,9 +1229,9 @@ h1 {
 }
 
 .is-desktop .eyebrow {
-  color: #f2f4f8;
+  color: var(--text);
   font-size: 34px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.5px;
   line-height: 1.2;
 }
@@ -1141,14 +1261,15 @@ h1 {
   grid-column: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto 420px auto auto auto auto;
+  grid-template-rows: auto auto 420px auto auto;
   gap: 16px;
   align-items: center;
   align-content: start;
   min-width: 0;
-  border-radius: 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
   padding: 24px;
-  background: #141b30;
+  background: var(--panel);
 }
 
 .is-desktop .globe-desktop-head {
@@ -1179,55 +1300,17 @@ h1 {
   min-height: 360px;
 }
 
-.is-desktop #sat-detail,
-.is-desktop #catalog-status {
+.is-desktop #catalog-status,
+.is-desktop #orbit-source {
   grid-column: 1 / -1;
 }
 
-.is-desktop #sat-detail {
+.is-desktop #catalog-status {
   grid-row: 4;
-  border-radius: 16px;
-  padding: 16px;
-  background: #0b1020;
 }
 
-.is-desktop #catalog-status {
+.is-desktop #orbit-source {
   grid-row: 5;
-}
-
-.is-desktop #iss-card,
-.is-desktop #orbit-source {
-  grid-column: 1 / -1;
-}
-
-.is-desktop #iss-card {
-  grid-row: 6;
-}
-
-.is-desktop #orbit-source {
-  grid-row: 7;
-}
-
-.is-desktop #iss-card {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  border: 0;
-  border-radius: 16px;
-  padding: 16px;
-  background: #0b1020;
-}
-
-.is-desktop #iss-card .iss-head {
-  display: none;
-}
-
-.is-desktop #iss-card .iss-stats {
-  display: contents;
-}
-
-.is-desktop #iss-card .iss-pass {
-  margin: 0;
 }
 
 .is-desktop #panel-launches {
@@ -1238,9 +1321,16 @@ h1 {
   align-items: stretch;
 }
 
+.is-desktop .launch-board {
+  display: contents;
+}
+
 .is-desktop #next-launch {
   grid-column: 1;
   height: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
 }
 
 .is-desktop #launch-source {
@@ -1257,9 +1347,10 @@ h1 {
   gap: 4px;
   grid-column: 2;
   min-width: 0;
-  border-radius: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
   padding: 20px;
-  background: #141b30;
+  background: var(--panel);
 }
 
 .is-desktop .later-block[hidden] {
@@ -1267,14 +1358,18 @@ h1 {
 }
 
 .is-desktop .later-block .section-label {
-  padding-bottom: 8px;
-  color: #f2f4f8;
+  border-top: 0;
+  padding: 0 0 8px;
+  color: var(--text);
+  font-family: var(--font-sans);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .is-desktop .later-block .launch-row {
-  border-top: 1px solid #2a3550;
+  border-top: 1px solid var(--line);
   border-radius: 0;
   padding: 12px 0;
   background: transparent;

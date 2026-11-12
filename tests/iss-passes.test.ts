@@ -287,13 +287,13 @@ describe("ISS pass card", () => {
     expect(document.querySelector("#iss-pass-badge")?.textContent).toBe("맨눈 관측");
     expect((document.querySelector("#iss-pass-badge") as HTMLElement | null)?.hidden).toBe(false);
     expect(getComputedStyle(document.querySelector("#iss-pass-badge") as HTMLElement).backgroundColor).toBe(
-      "rgb(245, 181, 68)",
+      "rgb(232, 176, 74)",
     );
     expect(getComputedStyle(document.querySelector("#iss-pass-card") as HTMLElement).borderTopColor).toBe(
-      "rgba(245, 181, 68, 0.333)",
+      "rgb(28, 35, 51)",
     );
     expect(getComputedStyle(document.querySelector("#iss-pass-time") as HTMLElement).fontFamily).toContain(
-      "Space Grotesk",
+      "IBM Plex Mono",
     );
     expect(getComputedStyle(document.querySelector("#iss-pass-time") as HTMLElement).fontSize).toBe("34px");
     const rows = [...document.querySelectorAll(".iss-pass-row")].map((row) => row.textContent);
