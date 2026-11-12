@@ -45,6 +45,7 @@ declare module "three" {
     g: number;
     b: number;
     constructor(color?: number | string);
+    set(color: number | string): this;
     setHex(hex: number): this;
     setRGB(red: number, green: number, blue: number): this;
     getHex(): number;
@@ -67,18 +68,44 @@ declare module "three" {
     updateWorldMatrix(updateParents: boolean, updateChildren: boolean): void;
     updateMatrixWorld(force?: boolean): void;
     getWorldQuaternion(target: Quaternion): Quaternion;
+    type: string;
+    renderOrder: number;
   }
 
-  export class Camera {
+  export class Camera extends Object3D {
     fov?: number;
+    aspect?: number;
+    near?: number;
+    far?: number;
+    matrixWorldInverse: Matrix4;
+    projectionMatrix: Matrix4;
+    updateProjectionMatrix(): void;
+    lookAt(x: number, y: number, z: number): void;
+  }
+
+  export class PerspectiveCamera extends Camera {
+    constructor(fov?: number, aspect?: number, near?: number, far?: number);
   }
 
   export class Scene {}
 
   export class Light {}
 
+  export class BufferAttribute {
+    needsUpdate: boolean;
+    constructor(array: Float32Array, itemSize: number);
+    setXYZ(index: number, x: number, y: number, z: number): void;
+    setX(index: number, x: number): void;
+    getX(index: number): number;
+    getY(index: number): number;
+    getZ(index: number): number;
+  }
+
   export class BufferGeometry {
     dispose(): void;
+    setAttribute(name: string, attribute: BufferAttribute): void;
+    getAttribute(name: string): BufferAttribute;
+    setDrawRange(start: number, count: number): void;
   }
 
   export class BoxGeometry extends BufferGeometry {
@@ -155,6 +182,23 @@ declare module "three" {
 
   export class Group extends Object3D {}
 
+  export class ShaderMaterial extends Material {
+    transparent: boolean;
+    depthTest: boolean;
+    depthWrite: boolean;
+    vertexColors: boolean;
+    uniforms: Record<string, { value: unknown }>;
+    vertexShader: string;
+    fragmentShader: string;
+    constructor(parameters?: object);
+  }
+
+  export class Points extends Object3D {
+    geometry: BufferGeometry;
+    material: Material;
+    constructor(geometry?: BufferGeometry, material?: Material);
+  }
+
   export class InstancedMesh extends Mesh {
     count: number;
     isInstancedMesh: boolean;
@@ -178,6 +222,7 @@ declare module "three" {
 
   export class WebGLRenderer {
     setPixelRatio(ratio: number): void;
+    getPixelRatio(): number;
     capabilities: {
       getMaxAnisotropy(): number;
       maxTextureSize: number;

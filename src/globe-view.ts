@@ -1,4 +1,6 @@
+import { constants } from "satellite.js";
 import {
+  Group,
   MeshPhongMaterial,
   Raycaster,
   SRGBColorSpace,
@@ -17,6 +19,23 @@ import {
   type TextureKind,
   type TextureView,
 } from "./earth-textures";
+import {
+  ATMOSPHERE_ALTITUDE,
+  ATMOSPHERE_COLOR,
+  CITY_LIGHT_COLOR,
+  ISS_ORBIT_WIDTH_PX,
+  NIGHT_VEIL_COLOR,
+  NIGHT_VEIL_MAX,
+  NIGHT_VEIL_MIN,
+  SELECTED_ORBIT_WIDTH_PX,
+  earthFrameAltitude,
+  geoFitAltitude,
+  hexToUnitRgb,
+  issOrbitColor,
+  selectedOrbitColor,
+  type HighlightKind,
+} from "./globe-style";
+import { SatelliteField, StarField } from "./satellite-field";
 import { SatelliteModels } from "./satellite-mesh";
 import {
   GLOBE_SCENE_RADIUS,
@@ -24,7 +43,7 @@ import {
   sunDirectionFromSubsolar,
   type Vec3,
 } from "./satellite-shape";
-import { ISS_COLOR, OTHER_SATELLITE_COLOR, type OrbitPath, type SatellitePoint } from "./satellites";
+import { type OrbitPath, type SatellitePoint } from "./satellites";
 
 export type GlobeMountOptions = {
   onSelect?: (point: SatellitePoint | null) => void;
@@ -43,13 +62,28 @@ export const SUNLIGHT_REFRESH_MS = 60_000;
 export const PHONG_OUTGOING_LIGHT =
   "vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;";
 
+export type GlobeFrame = {
+  highlight: HighlightKind | null;
+  selectedPaths?: OrbitPath[];
+};
+
 export type SatelliteGlobe = {
-  update(points: SatellitePoint[], paths?: OrbitPath[], focus?: { lat: number; lng: number }): void;
+  update(
+    points: SatellitePoint[],
+    paths?: OrbitPath[],
+    focus?: { lat: number; lng: number },
+    frame?: GlobeFrame,
+  ): void;
   resize(): void;
   pause(): void;
   resume(): void;
   destroy(): void;
 };
+
+type DrawnPath = OrbitPath & { role: "iss" | "selected" };
+
+const NIGHT_VEIL_RGB = hexToUnitRgb(NIGHT_VEIL_COLOR);
+const CITY_LIGHT_RGB = hexToUnitRgb(CITY_LIGHT_COLOR);
 
 export function globePixelRatio(devicePixelRatio: number, narrowScreen: boolean): number {
   const ratio = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1;
@@ -84,6 +118,11 @@ export function patchDayNightFragmentShader(fragmentShader: string): string {
         "#ifdef USE_SPECULARMAP",
         "dayColor += vec3(0.28, 0.36, 0.42) * specularStrength * pow(max(sunDot, 0.0), 36.0);",
         "#endif",
+        `float nightCover = mix(${NIGHT_VEIL_MIN.toFixed(2)}, ${NIGHT_VEIL_MAX.toFixed(2)}, smoothstep(0.2, -0.55, sunDot));`,
+        `vec3 cityLights = totalEmissiveRadiance * vec3(${CITY_LIGHT_RGB.map((channel) => channel.toFixed(6)).join(", ")});`,
+        "float cityAmount = clamp(max(cityLights.r, max(cityLights.g, cityLights.b)), 0.0, 1.0);",
+        `vec3 veiledNight = mix(cityLights, vec3(${NIGHT_VEIL_RGB.map((channel) => channel.toFixed(6)).join(", ")}), nightCover);`,
+        "totalEmissiveRadiance = mix(veiledNight, cityLights, smoothstep(0.08, 0.45, cityAmount));",
         "vec3 outgoingLight = mix(totalEmissiveRadiance, dayColor, dayFactor);",
       ].join("\n"),
     );
@@ -136,19 +175,18 @@ export async function mountSatelliteGlobe(
   globe
     .backgroundColor("rgba(0,0,0,0)")
     .showAtmosphere(true)
-    .atmosphereColor(OTHER_SATELLITE_COLOR)
-    .atmosphereAltitude(0.18)
+    .atmosphereColor(ATMOSPHERE_COLOR)
+    .atmosphereAltitude(ATMOSPHERE_ALTITUDE)
     .pathPoints("points")
     .pathPointLat("lat")
     .pathPointLng("lng")
     .pathPointAlt("alt")
-    .pathColor(() => ISS_COLOR)
-    .pathStroke(1.2)
-    .pathDashLength(0.4)
-    .pathDashGap(0.6)
+    .pathColor((item: object) => ((item as DrawnPath).role === "iss" ? issOrbitColor() : selectedOrbitColor()))
+    .pathStroke((item: object) => ((item as DrawnPath).role === "iss" ? ISS_ORBIT_WIDTH_PX : SELECTED_ORBIT_WIDTH_PX))
+    .pathDashLength((item: object) => ((item as DrawnPath).role === "iss" ? 0.02 : 1))
+    .pathDashGap((item: object) => ((item as DrawnPath).role === "iss" ? 0.016 : 0))
     .pathDashAnimateTime(0)
-    .pathTransitionDuration(0)
-    .pointOfView({ lat: 20, lng: 128, altitude: 2.5 });
+    .pathTransitionDuration(0);
 
   const material = globe.globeMaterial();
   if (!(material instanceof MeshPhongMaterial)) {
@@ -300,33 +338,91 @@ export async function mountSatelliteGlobe(
   material.needsUpdate = true;
 
   globe.renderer().setPixelRatio(globePixelRatio(window.devicePixelRatio, narrow));
+  const viewCamera = globe.camera();
+  if (typeof viewCamera.far === "number") {
+    viewCamera.far = Math.max(viewCamera.far, GLOBE_SCENE_RADIUS * 200);
+    viewCamera.updateProjectionMatrix();
+  }
   const controls = globe.controls();
   controls.autoRotate = false;
   controls.enableDamping = true;
+  const geoDistance = GLOBE_SCENE_RADIUS * (geoFitAltitude(cameraFov(globe.camera()), constants.earthRadius) + 1.2);
+  if (!(controls.maxDistance >= geoDistance)) {
+    controls.maxDistance = geoDistance;
+  }
 
   const models = new SatelliteModels(anisotropy);
+  const field = new SatelliteField();
+  const stars = new StarField(globe.renderer().getPixelRatio());
+  const layer = new Group();
+  layer.name = "satellite-layer";
+  layer.frustumCulled = false;
+  layer.add(stars.points, models.object, field.points);
+
   let latestPoints: SatellitePoint[] = [];
+  let issPaths: OrbitPath[] = [];
+  let selectedPaths: OrbitPath[] = [];
+  let highlight: HighlightKind | null = null;
+  let frameAltitude = earthFrameAltitude(cameraFov(globe.camera()), 1);
+  let userZoomed = false;
+  let framing = false;
+  let hasFrame = false;
   const markerDatum = { id: "satellites" };
-  const syncModels = () => {
+
+  const frameCamera = (lat?: number, lng?: number) => {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const aspect = width > 1 && height > 1 ? width / height : 1;
+    frameAltitude = earthFrameAltitude(cameraFov(globe.camera()), aspect);
     const pov = globe.pointOfView();
-    const altitude = typeof pov.altitude === "number" && Number.isFinite(pov.altitude) ? pov.altitude : 2.5;
+    const nextLat = lat ?? (typeof pov.lat === "number" && Number.isFinite(pov.lat) ? pov.lat : 20);
+    const nextLng = lng ?? (typeof pov.lng === "number" && Number.isFinite(pov.lng) ? pov.lng : 128);
+    framing = true;
+    globe.pointOfView({ lat: nextLat, lng: nextLng, altitude: frameAltitude }, 0);
+    framing = false;
+  };
+
+  const publishPaths = () => {
+    const drawn: DrawnPath[] = [
+      ...issPaths.map((path) => ({ ...path, role: "iss" as const })),
+      ...selectedPaths.map((path) => ({ ...path, role: "selected" as const })),
+    ];
+    globe.pathsData(drawn);
+  };
+
+  const syncScene = () => {
+    const pov = globe.pointOfView();
+    const altitude = typeof pov.altitude === "number" && Number.isFinite(pov.altitude) ? pov.altitude : frameAltitude;
     const latitude = typeof pov.lat === "number" && Number.isFinite(pov.lat) ? pov.lat : 0;
     const longitude = typeof pov.lng === "number" && Number.isFinite(pov.lng) ? pov.lng : 0;
     const height = container.clientHeight;
     if (height < 2) {
       return;
     }
+    const camera = globe.camera();
+    const cameraPosition = {
+      x: camera.position.x,
+      y: camera.position.y,
+      z: camera.position.z,
+    };
+    const fallback = globeVector(latitude, longitude, altitude, GLOBE_SCENE_RADIUS);
+    const placed =
+      Math.hypot(cameraPosition.x, cameraPosition.y, cameraPosition.z) > 1 ? cameraPosition : fallback;
     const sun: Vec3 = { x: sunDirection.x, y: sunDirection.y, z: sunDirection.z };
-    models.sync(latestPoints, {
+    const pixelRatio = globe.renderer().getPixelRatio();
+    // 28번: 화면의 위성은 작은 점이다. 3D 모형 코드는 두되 지구본에는 그리지 않는다.
+    models.sync([], {
       globeRadius: GLOBE_SCENE_RADIUS,
-      cameraPosition: globeVector(latitude, longitude, altitude, GLOBE_SCENE_RADIUS),
-      viewportHeight: height > 1 ? height : 1,
-      fovDegrees: cameraFov(globe.camera()),
+      cameraPosition: placed,
+      viewportHeight: height,
+      fovDegrees: cameraFov(camera),
       sun,
     });
+    field.sync(latestPoints, { cameraPosition: placed, pixelRatio, highlight });
+    stars.placeBeyond(Math.hypot(placed.x, placed.y, placed.z), pixelRatio);
   };
-  globe.customLayerData([markerDatum]).customThreeObject(() => models.object).customThreeObjectUpdate(() => {
-    syncModels();
+  globe.customLayerData([markerDatum]).customThreeObject(() => layer).customThreeObjectUpdate(() => {
+    syncScene();
   });
 
   const raycaster = new Raycaster();
@@ -357,13 +453,28 @@ export async function mountSatelliteGlobe(
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     raycaster.setFromCamera(pointer, globe.camera());
-    options.onSelect?.(models.pick(raycaster));
+    const near = field.nearest(
+      globe.camera(),
+      event.clientX - rect.left,
+      event.clientY - rect.top,
+      rect.width,
+      rect.height,
+    );
+    const modelHit = models.pick(raycaster);
+    if (near && near.distancePx <= 8) {
+      options.onSelect?.(near.point);
+      return;
+    }
+    options.onSelect?.(modelHit ?? near?.point ?? null);
   };
   container.addEventListener("pointerdown", onPointerDown);
   container.addEventListener("pointermove", onPointerMove);
   container.addEventListener("pointerup", onPointerUp);
 
   globe.onZoom((pov) => {
+    if (!framing && Math.abs(pov.altitude - frameAltitude) > 0.08) {
+      userZoomed = true;
+    }
     beginUpgrade(
       schedule.noteViewChange({
         narrow: isNarrowScreen(),
@@ -371,7 +482,7 @@ export async function mountSatelliteGlobe(
         altitude: pov.altitude,
       }),
     );
-    syncModels();
+    syncScene();
   });
 
   const resize = () => {
@@ -382,8 +493,16 @@ export async function mountSatelliteGlobe(
     }
     globe.width(width);
     globe.height(height);
+    if (!userZoomed) {
+      if (!hasFrame) {
+        frameCamera(20, 128);
+        hasFrame = true;
+      } else {
+        frameCamera();
+      }
+    }
     beginUpgrade(schedule.noteViewChange(currentView()));
-    syncModels();
+    syncScene();
   };
   resize();
 
@@ -392,19 +511,26 @@ export async function mountSatelliteGlobe(
 
   const sunTimer = window.setInterval(() => {
     applySun(new Date());
-    syncModels();
+    syncScene();
   }, SUNLIGHT_REFRESH_MS);
 
   return {
-    update(points, paths, focus) {
+    update(points, paths, focus, frame) {
       latestPoints = points;
       if (paths) {
-        globe.pathsData(paths);
+        issPaths = paths;
       }
+      if (frame) {
+        highlight = frame.highlight;
+        selectedPaths = frame.selectedPaths ?? [];
+      }
+      publishPaths();
       if (focus) {
-        globe.pointOfView({ lat: focus.lat, lng: focus.lng, altitude: 2.5 }, 0);
+        userZoomed = false;
+        hasFrame = true;
+        frameCamera(focus.lat, focus.lng);
       }
-      syncModels();
+      syncScene();
     },
     resize,
     pause() {
@@ -427,6 +553,8 @@ export async function mountSatelliteGlobe(
       }
       tracked.clear();
       models.dispose();
+      field.dispose();
+      stars.dispose();
       material.map = null;
       material.emissiveMap = null;
       material.bumpMap = null;
