@@ -85,6 +85,7 @@ import {
   ISS_PASS_HORIZON_MS,
   ISS_PASS_LOOKBACK_MS,
   issPassLater,
+  issPassPeakMagnitude,
   issPassRoute,
   issPassTimeRange,
   kstDayOffset,
@@ -98,13 +99,20 @@ import { createSkyMap, parseStarCatalog, type StarCatalog } from "./sky-map";
 import { formatMeteorDday, nextMeteorShower } from "./meteors";
 import { dataSourceFooter, staleDataNotice } from "./sources";
 import {
+  compassLabel,
   computeTonightSky,
   directionSkyLabel,
   formatKstTime,
+  kstDayStart,
   moonLitPath,
   moonPhaseName,
   type TonightSky,
 } from "./sky";
+import {
+  buildTonightTimeline,
+  formatTimelineCountdown,
+  type TimelineEvent,
+} from "./timeline";
 
 type TabId = "tonight" | "satellites" | "launches";
 
@@ -485,6 +493,188 @@ function clearTonightNumbers(panel: HTMLElement): void {
   if (planetTime instanceof HTMLElement) {
     planetTime.textContent = "";
   }
+  clearTimeline(panel, null);
+}
+
+function formatMagnitude(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  const digits = Math.abs(rounded).toFixed(1);
+  return rounded < 0 ? `\u2212${digits}` : digits;
+}
+
+function clearTimeline(panel: HTMLElement, messageKey: MessageKey | null): void {
+  const rows = panel.querySelector("#timeline-rows");
+  const empty = panel.querySelector("#timeline-empty");
+  const countdown = panel.querySelector("#timeline-countdown");
+  if (rows instanceof HTMLElement) {
+    rows.replaceChildren();
+  }
+  if (countdown instanceof HTMLElement) {
+    countdown.textContent = "";
+  }
+  if (empty instanceof HTMLElement) {
+    if (!messageKey) {
+      empty.hidden = true;
+      empty.textContent = "";
+      return;
+    }
+    empty.hidden = false;
+    empty.textContent = tr(messageKey);
+  }
+}
+
+function timelineNote(event: TimelineEvent): string {
+  if (event.kind === "astronomical") {
+    return tr("timelineFullNightNote");
+  }
+  if (event.kind === "planet" && event.altitude !== undefined) {
+    return tr("timelinePlanetAlt", { altitude: Math.round(event.altitude) });
+  }
+  if (event.kind === "iss" && event.from && event.to) {
+    const from = compassLabel(event.from, locale);
+    const to = compassLabel(event.to, locale);
+    if (typeof event.magnitude === "number") {
+      return tr("timelineIssDetail", {
+        from,
+        to,
+        magnitude: tr("timelineMagnitude", { value: formatMagnitude(event.magnitude) }),
+      });
+    }
+    return tr("timelineIssRoute", { from, to });
+  }
+  return "";
+}
+
+function timelineTitle(event: TimelineEvent): string {
+  switch (event.kind) {
+    case "sunset":
+      return tr("sunset");
+    case "civil":
+      return tr("timelineCivil");
+    case "nautical":
+      return tr("timelineNautical");
+    case "astronomical":
+      return tr("timelineFullNight");
+    case "moonrise":
+      return tr("timelineMoonrise");
+    case "moonset":
+      return tr("timelineMoonset");
+    case "planet": {
+      const key = event.planetId ? planetNameKey(event.planetId) : null;
+      return tr("timelinePlanet", { name: key ? tr(key) : "" });
+    }
+    case "iss":
+      return tr("timelineIss", { elevation: Math.round(event.elevation ?? 0) });
+    default:
+      return "";
+  }
+}
+
+function createTimelineRow(event: TimelineEvent): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "timeline-row";
+  row.dataset.kind = event.kind;
+  row.dataset.at = event.time.toISOString();
+  if (event.recommended) {
+    row.dataset.recommended = "true";
+  }
+
+  const time = document.createElement("span");
+  time.className = "timeline-time";
+  time.textContent = formatKstTime(event.time);
+
+  const copy = document.createElement("div");
+  copy.className = "timeline-copy";
+  const title = document.createElement("span");
+  title.className = "timeline-title";
+  title.textContent = timelineTitle(event);
+  copy.append(title);
+  const noteText = timelineNote(event);
+  if (noteText) {
+    const note = document.createElement("span");
+    note.className = "timeline-note";
+    note.textContent = noteText;
+    copy.append(note);
+  }
+  row.append(time, copy);
+  if (event.recommended) {
+    const badge = document.createElement("span");
+    badge.className = "timeline-badge";
+    badge.textContent = tr("timelineRecommend");
+    row.append(badge);
+  }
+  return row;
+}
+
+function updateTimelineClock(panel: HTMLElement, date: Date): void {
+  const countdown = panel.querySelector("#timeline-countdown");
+  let nextMs = Number.POSITIVE_INFINITY;
+  for (const node of panel.querySelectorAll<HTMLElement>(".timeline-row")) {
+    const at = Date.parse(node.dataset.at ?? "");
+    const past = Number.isFinite(at) && at <= date.getTime();
+    node.classList.toggle("is-past", past);
+    if (!past && at < nextMs) {
+      nextMs = at;
+    }
+  }
+  if (!(countdown instanceof HTMLElement)) {
+    return;
+  }
+  if (!Number.isFinite(nextMs)) {
+    countdown.textContent = "";
+    return;
+  }
+  const label = formatTimelineCountdown(new Date(nextMs), date);
+  countdown.textContent = label ? tr("timelineNext", { countdown: label }) : "";
+}
+
+function renderTonightTimeline(
+  panel: HTMLElement,
+  events: TimelineEvent[] | null,
+  date: Date,
+  emptyKey: MessageKey | null,
+): void {
+  const rows = panel.querySelector("#timeline-rows");
+  if (!(rows instanceof HTMLElement)) {
+    return;
+  }
+  rows.replaceChildren();
+  if (!events || events.length === 0) {
+    clearTimeline(panel, emptyKey);
+    return;
+  }
+  const empty = panel.querySelector("#timeline-empty");
+  if (empty instanceof HTMLElement) {
+    empty.hidden = true;
+    empty.textContent = "";
+  }
+  for (const event of events) {
+    rows.append(createTimelineRow(event));
+  }
+  updateTimelineClock(panel, date);
+}
+
+function tonightIssPasses(
+  issLoad: IssOrbitLoad,
+  place: { latitude: number; longitude: number },
+  date: Date,
+): { passes: IssPass[]; magnitude: (pass: IssPass) => number | null } {
+  if (issLoad.state !== "ready" || !issLoad.station) {
+    return { passes: [], magnitude: () => null };
+  }
+  const station = issLoad.station;
+  const observer = { latitude: place.latitude, longitude: place.longitude, heightMeters: 0 };
+  const start = new Date(kstDayStart(date).getTime() - ISS_PASS_LOOKBACK_MS);
+  const predicted = predictStationPasses(
+    station,
+    observer,
+    start,
+    new Date(start.getTime() + 36 * 60 * 60 * 1000),
+  );
+  return {
+    passes: predicted ?? [],
+    magnitude: (pass) => issPassPeakMagnitude(station, observer, pass),
+  };
 }
 
 type IssOrbitState = "loading" | "ready" | "error" | "missing";
@@ -711,6 +901,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
       dday.textContent = "—";
     }
     clearTonightNumbers(panel);
+    clearTimeline(panel, "tonightCalcError");
     setTonightStatus(panel, tr("tonightCalcError"));
     return;
   }
@@ -749,6 +940,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     planetEmpty.hidden = false;
     planetEmpty.textContent = tr("chooseLocationSky");
     planetTime.textContent = "";
+    clearTimeline(panel, "timelineChoose");
     setTonightStatus(panel, null);
     return;
   }
@@ -767,8 +959,16 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     planetEmpty.hidden = sky.planets.length > 0;
     planetEmpty.textContent = sky.planets.length > 0 ? "" : tr("noPlanets");
     setTonightStatus(panel, null);
+    try {
+      const iss = tonightIssPasses(issLoad, location, date);
+      const events = buildTonightTimeline(location, date, iss);
+      renderTonightTimeline(panel, events, date, "timelineNone");
+    } catch {
+      clearTimeline(panel, "tonightCalcError");
+    }
   } catch {
     clearTonightNumbers(panel);
+    clearTimeline(panel, "tonightCalcError");
     setTonightStatus(panel, tr("tonightCalcError"));
   }
 }
@@ -890,6 +1090,32 @@ function createTonightPanel(tab: Tab): HTMLElement {
   const skyMap = createSkyMap();
   skyMaps.set(panel, skyMap);
 
+  const timeline = document.createElement("section");
+  timeline.id = "tonight-timeline";
+  timeline.className = "card tonight-timeline";
+  bindAria(timeline, "timelineTitle");
+
+  const timelineHead = document.createElement("div");
+  timelineHead.className = "timeline-head";
+  const timelineLabel = document.createElement("span");
+  timelineLabel.className = "stat-label";
+  bindText(timelineLabel, "timelineTitle");
+  const timelineCountdown = document.createElement("span");
+  timelineCountdown.id = "timeline-countdown";
+  timelineCountdown.className = "timeline-countdown";
+  timelineHead.append(timelineLabel, timelineCountdown);
+
+  const timelineRows = document.createElement("div");
+  timelineRows.id = "timeline-rows";
+  timelineRows.className = "timeline-rows";
+
+  const timelineEmpty = document.createElement("p");
+  timelineEmpty.id = "timeline-empty";
+  timelineEmpty.className = "pending";
+  timelineEmpty.setAttribute("role", "status");
+  bindText(timelineEmpty, "timelineChoose");
+  timeline.append(timelineHead, timelineRows, timelineEmpty);
+
   const meteor = createCard("card card-row");
   const meteorCopy = document.createElement("div");
   meteorCopy.className = "card-copy";
@@ -907,7 +1133,7 @@ function createTonightPanel(tab: Tab): HTMLElement {
 
   const board = document.createElement("div");
   board.className = "board";
-  board.append(skyMap.element, stats, iss, planets, meteor);
+  board.append(skyMap.element, timeline, stats, iss, planets, meteor);
 
   panel.append(status, board);
   return panel;
@@ -2759,12 +2985,33 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   setLocationLabel();
 
   const tonightPanel = panelElements.find((panel) => panel.id === "panel-tonight");
+  let timelineMinute = Number.NaN;
   refreshTonight = () => {
+    timelineMinute = Math.floor(now().getTime() / 60_000);
     if (tonightPanel) {
       fillTonightPanel(tonightPanel, now(), issLoad);
     }
   };
   refreshTonight();
+  const timelineTimer = window.setInterval(() => {
+    if (!root.isConnected) {
+      window.clearInterval(timelineTimer);
+      return;
+    }
+    if (!tonightPanel || tonightPanel.hidden) {
+      return;
+    }
+    const date = now();
+    const minute = Math.floor(date.getTime() / 60_000);
+    if (minute !== timelineMinute) {
+      refreshTonight();
+      return;
+    }
+    const timeline = tonightPanel.querySelector("#tonight-timeline");
+    if (timeline instanceof HTMLElement) {
+      updateTimelineClock(timeline, date);
+    }
+  }, COUNTDOWN_UPDATE_MS);
   void readJson("stars.json").then((file) => {
     if (generation !== starGeneration || !root.isConnected) {
       return;
