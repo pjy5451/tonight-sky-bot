@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app";
-import { en, ko, LANGUAGE_STORAGE_KEY, resolveLanguage, type MessageKey } from "../src/i18n";
+import { en, formatDatePlace, ko, LANGUAGE_STORAGE_KEY, resolveLanguage, type MessageKey } from "../src/i18n";
 import { formatLaunchDateTime } from "../src/launches";
 import { saveLocation } from "../src/location";
 import { directionSkyLabel, moonPhaseName } from "../src/sky";
@@ -68,6 +68,13 @@ describe("dictionaries", () => {
     }
   });
 
+  it("formats the date heading as a date and place", () => {
+    const when = new Date("2026-11-12T03:00:00.000Z");
+    expect(formatDatePlace(when, "서울", "ko")).toBe("11월 12일 (목) · 서울");
+    expect(formatDatePlace(when, "Seoul", "en")).toBe("11/12 (Thu) · Seoul");
+    expect(formatDatePlace(when, "", "ko")).toBe("11월 12일 (목)");
+  });
+
   it("keeps Hangul out of the English dictionary", () => {
     for (const [key, value] of Object.entries(en)) {
       expect(value, key).not.toMatch(HANGUL);
@@ -85,20 +92,20 @@ describe("language selection", () => {
 
     renderApp("en-US");
     expect(document.documentElement.lang).toBe("en");
-    expect(document.querySelector(".eyebrow")?.textContent).toBe("Explore tonight's sky.");
+    expect(document.querySelector("h1")?.textContent).toBe("11/12 (Thu)");
     expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBeNull();
   });
 
   it("keeps a saved choice ahead of the browser language", () => {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, "en");
     renderApp("ko-KR");
-    expect(document.querySelector(".eyebrow")?.textContent).toBe("Explore tonight's sky.");
+    expect(document.querySelector("h1")?.textContent).toBe("11/12 (Thu)");
     expect(document.querySelector("#tab-tonight")?.getAttribute("aria-label")).toBe("Tonight");
   });
 
   it("switches language with the KO · EN button and stores the choice", () => {
     renderApp("ko-KR");
-    expect(document.querySelector(".eyebrow")?.textContent).toBe("오늘 밤, 하늘을 탐험하다");
+    expect(document.querySelector("h1")?.textContent).toBe("11월 12일 (목)");
     expect(document.querySelector("#language-button")?.textContent).toBe("KO · EN");
     expect(document.querySelector("#language-button [data-lang='ko']")?.classList.contains("is-current")).toBe(
       true,
@@ -108,7 +115,7 @@ describe("language selection", () => {
 
     expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("en");
     expect(document.documentElement.lang).toBe("en");
-    expect(document.querySelector(".eyebrow")?.textContent).toBe("Explore tonight's sky.");
+    expect(document.querySelector("h1")?.textContent).toBe("11/12 (Thu)");
     expect(document.querySelector("#tab-tonight span")?.textContent).toBe("Tonight");
     expect(document.querySelector("#desktop-tab-satellites")?.textContent).toBe("Satellite globe");
     expect(document.querySelector("#language-button [data-lang='en']")?.classList.contains("is-current")).toBe(
@@ -116,13 +123,13 @@ describe("language selection", () => {
     );
 
     document.body.innerHTML = "";
-    const again = createApp();
+    const again = createApp({ now: () => new Date("2026-11-12T12:00:00.000Z") });
     document.body.append(again);
-    expect(document.querySelector(".eyebrow")?.textContent).toBe("Explore tonight's sky.");
+    expect(document.querySelector("h1")?.textContent).toBe("11/12 (Thu)");
 
     document.querySelector<HTMLButtonElement>("#language-button")?.click();
     expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("ko");
-    expect(document.querySelector(".eyebrow")?.textContent).toBe("오늘 밤, 하늘을 탐험하다");
+    expect(document.querySelector("h1")?.textContent).toBe("11월 12일 (목)");
   });
 });
 

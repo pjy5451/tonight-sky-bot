@@ -8,7 +8,7 @@ declare const process: {
   cwd(): string;
 };
 
-const DESCRIPTION = "오늘 밤, 하늘을 탐험하다. 내 위치의 하늘, 실시간 위성, 로켓 발사 일정.";
+const DESCRIPTION = "선택한 위치의 밤하늘과 위성 위치, 로켓 발사 시각.";
 const SITE = "https://argonova.pages.dev";
 const STAR_PATH = "M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z";
 const ROOT = process.cwd();

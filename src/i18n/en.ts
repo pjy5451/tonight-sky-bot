@@ -2,7 +2,8 @@ import type { MessageKey } from "./ko";
 
 /** 화면 문구 영어 사전. 한국어 사전과 키가 같아야 한다. */
 export const en = {
-  brandTagline: "Explore tonight's sky.",
+  dateLine: "{month}/{day} ({weekday})",
+  datePlace: "{month}/{day} ({weekday}) · {place}",
   tabTonight: "Tonight",
   tabSatellites: "Satellite globe",
   tabLaunches: "Launches",

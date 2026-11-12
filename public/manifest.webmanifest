@@ -1,7 +1,7 @@
 {
   "name": "Argonova",
   "short_name": "Argonova",
-  "description": "오늘 밤, 하늘을 탐험하다. 내 위치의 하늘, 실시간 위성, 로켓 발사 일정.",
+  "description": "선택한 위치의 밤하늘과 위성 위치, 로켓 발사 시각.",
   "lang": "ko",
   "dir": "ltr",
   "start_url": "./",

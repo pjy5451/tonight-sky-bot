@@ -25,6 +25,7 @@ import {
   type GlobeView,
 } from "./globe-layout";
 import {
+  formatDatePlace,
   meteorNameKey,
   planetNameKey,
   regionNameKey,
@@ -2121,19 +2122,15 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const heroCopy = document.createElement("div");
   heroCopy.className = "hero-copy";
 
-  const eyebrow = document.createElement("p");
-  eyebrow.className = "eyebrow";
-  bindText(eyebrow, "brandTagline");
-
   const title = document.createElement("h1");
-  title.textContent = BRAND_NAME;
+  title.id = "date-heading";
 
   const trackedSummary = document.createElement("p");
   trackedSummary.id = "tracked-summary";
   trackedSummary.className = "tracked-summary";
   bindText(trackedSummary, "trackedPending");
 
-  heroCopy.append(eyebrow, title, trackedSummary);
+  heroCopy.append(title, trackedSummary);
 
   const heroActions = document.createElement("div");
   heroActions.className = "hero-actions";
@@ -2226,6 +2223,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const setLocationLabel = () => {
     const stored = loadLocation(localStorage);
     const label = stored ? locationDisplay(stored) : tr("locationChoose");
+    title.textContent = formatDatePlace(now(), stored ? label : "", locale);
     locationLabel.textContent = label;
     locationButton.setAttribute("aria-label", stored ? tr("locationChange", { label }) : label);
 
