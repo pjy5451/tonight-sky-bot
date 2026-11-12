@@ -335,11 +335,11 @@ describe("tonight panel", () => {
 
     const names = [...document.querySelectorAll(".planet-name")].map((node) => node.textContent);
     const details = [...document.querySelectorAll(".planet-detail")].map((node) => node.textContent);
-    expect(names).toEqual(["금성", "화성", "목성"]);
-    expect(details).toEqual(["남남서 하늘", "서쪽 하늘", "서쪽 하늘"]);
-    expect(getComputedStyle(document.querySelector(".planet-dot-jupiter") as HTMLElement).backgroundColor).toBe(
-      "rgb(232, 176, 74)",
-    );
+    const altitudes = [...document.querySelectorAll(".planet-altitude")].map((node) => node.textContent);
+    expect(names).toEqual(["토성"]);
+    expect(details).toEqual(["동남동 하늘"]);
+    expect(altitudes).toEqual(["26°"]);
+    expect(document.querySelector("#planet-time")?.textContent).toBe("17:51");
     expect(document.querySelector<HTMLElement>("#planet-empty")?.hidden).toBe(true);
     expect(document.querySelector("#panel-tonight")?.textContent).toContain("ISS 통과");
     expect(document.querySelector("#iss-pass-note")?.textContent).toBe("궤도 데이터를 불러오는 중");
@@ -377,6 +377,7 @@ describe("tonight panel", () => {
 
     expect([...document.querySelectorAll(".planet-name")].map((node) => node.textContent)).toEqual(["토성"]);
     expect(document.querySelector(".planet-detail")?.textContent).toBe("남남동 하늘");
+    expect(document.querySelector("#planet-time")?.textContent).toBe("21:00");
     expect(getComputedStyle(document.querySelector(".planet-dot-saturn") as HTMLElement).backgroundColor).toBe(
       "rgb(232, 211, 160)",
     );
@@ -400,6 +401,21 @@ describe("tonight panel", () => {
       "목성",
       "토성",
     ]);
+    expect(getComputedStyle(document.querySelector(".planet-dot-jupiter") as HTMLElement).backgroundColor).toBe(
+      "rgb(232, 176, 74)",
+    );
+    expect(document.querySelector("#planet-time")?.textContent).toBe("21:00");
+  });
+
+  it("shows 17:51 KST planets for Seoul at 2026-11-12T04:39:00Z", () => {
+    renderApp({ now: () => new Date("2026-11-12T04:39:00.000Z") });
+    document.querySelector<HTMLButtonElement>("#location-button")?.click();
+    document.querySelector<HTMLButtonElement>("#region-seoul")?.click();
+
+    expect(document.querySelector("#planet-time")?.textContent).toBe("17:51");
+    expect([...document.querySelectorAll(".planet-name")].map((node) => node.textContent)).toEqual(["토성"]);
+    expect(document.querySelector(".planet-detail")?.textContent).toBe("동남동 하늘");
+    expect(document.querySelector(".planet-altitude")?.textContent).toBe("26°");
   });
 
   it("asks for a location instead of showing sample times", () => {

@@ -589,6 +589,27 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.planet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.planet-time {
+  flex-shrink: 0;
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.planet-time:empty {
+  display: none;
+}
+
 .planet-list {
   display: flex;
   flex-direction: column;
@@ -639,6 +660,16 @@ h1 {
 .planet-detail {
   min-width: 0;
   color: var(--muted);
+}
+
+.planet-altitude {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .pending {

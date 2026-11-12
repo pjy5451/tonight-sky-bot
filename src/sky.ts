@@ -8,6 +8,7 @@ import {
   Observer,
   RotateVector,
   Rotation_EQJ_EQD,
+  SearchAltitude,
   SearchRiseSet,
   VectorObserver,
 } from "astronomy-engine";
@@ -89,6 +90,8 @@ export type TonightSky = {
   moonPhaseAngle: number;
   moonIlluminationPercent: number;
   moonPhaseName: string;
+  /** 행성 목록을 계산한 시각. 해가 떠 있으면 다음 태양 고도 −6° 시각이다. */
+  planetTime: Date;
   planets: PlanetPlacement[];
 };
 
@@ -275,7 +278,24 @@ function assertPlace(place: SkyPlace): void {
 }
 
 /**
- * 선택한 위치의 오늘(한국 날짜) 일출·일몰, 그 시각의 달, 지금 지평선 위의 행성.
+ * 행성 목록을 볼 시각.
+ * 태양 중심 고도(굴절 없음, SearchAltitude와 같은 기준)가 −6°보다 높으면
+ * 다음에 그 고도를 지나 내려가는 시각을 쓴다. 이미 −6° 이하이거나
+ * 그 시각이 없으면(극주) 지금 시각을 쓴다.
+ */
+function planetMoment(observer: Observer, date: Date): Date {
+  const sun = Equator(Body.Sun, date, observer, true, true);
+  const sunAltitude = Horizon(date, observer, sun.ra, sun.dec).altitude;
+  if (!(sunAltitude > -6)) {
+    return date;
+  }
+  const found = SearchAltitude(Body.Sun, observer, -1, date, 2, -6);
+  return found ? found.date : date;
+}
+
+/**
+ * 선택한 위치의 오늘(한국 날짜) 일출·일몰, 그 시각의 달,
+ * 오늘 밤(태양 고도 −6° 이하) 지평선 위의 행성.
  * 고도는 저장하지 않으므로 평균 해수면(0m)에서 본다.
  * 일출·일몰은 astronomy-engine `SearchRiseSet`(태양 윗가장자리와 표준 대기굴절)을 쓴다.
  */
@@ -297,10 +317,11 @@ export function computeTonightSky(place: SkyPlace, date: Date): TonightSky {
     Math.max(0, Math.round(illumination.phase_fraction * 100)),
   );
 
+  const planetTime = planetMoment(observer, date);
   const planets: PlanetPlacement[] = [];
   for (const planet of PLANETS) {
-    const equatorial = Equator(planet.body, date, observer, true, true);
-    const horizontal = Horizon(date, observer, equatorial.ra, equatorial.dec, "normal");
+    const equatorial = Equator(planet.body, planetTime, observer, true, true);
+    const horizontal = Horizon(planetTime, observer, equatorial.ra, equatorial.dec, "normal");
     if (horizontal.altitude > 0) {
       planets.push({
         id: planet.id,
@@ -318,6 +339,7 @@ export function computeTonightSky(place: SkyPlace, date: Date): TonightSky {
     moonPhaseAngle,
     moonIlluminationPercent,
     moonPhaseName: moonPhaseName(moonPhaseAngle, moonIlluminationPercent),
+    planetTime,
     planets,
   };
 }

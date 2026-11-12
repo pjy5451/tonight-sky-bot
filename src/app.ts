@@ -404,7 +404,11 @@ function renderPlanetRows(list: HTMLElement, planets: TonightSky["planets"]): vo
     detail.className = "planet-detail";
     detail.textContent = directionSkyLabel(planet.direction, locale);
 
-    row.append(dot, name, detail);
+    const altitude = document.createElement("span");
+    altitude.className = "planet-altitude";
+    altitude.textContent = `${Math.round(planet.altitude)}°`;
+
+    row.append(dot, name, detail, altitude);
     list.append(row);
   }
 }
@@ -452,6 +456,7 @@ function clearTonightNumbers(panel: HTMLElement): void {
   const moonName = panel.querySelector("#moon-phase-name");
   const planetList = panel.querySelector("#planet-list");
   const planetEmpty = panel.querySelector("#planet-empty");
+  const planetTime = panel.querySelector("#planet-time");
   if (sunset instanceof HTMLElement) {
     setClockValue(sunset, null, "—");
   }
@@ -475,6 +480,9 @@ function clearTonightNumbers(panel: HTMLElement): void {
   if (planetEmpty instanceof HTMLElement) {
     planetEmpty.hidden = true;
     planetEmpty.textContent = "";
+  }
+  if (planetTime instanceof HTMLElement) {
+    planetTime.textContent = "";
   }
 }
 
@@ -713,6 +721,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
   const moonName = panel.querySelector("#moon-phase-name");
   const planetList = panel.querySelector("#planet-list");
   const planetEmpty = panel.querySelector("#planet-empty");
+  const planetTime = panel.querySelector("#planet-time");
   if (
     !(sunset instanceof HTMLElement) ||
     !(sunrise instanceof HTMLElement) ||
@@ -720,7 +729,8 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     !(moonIcon instanceof HTMLElement) ||
     !(moonName instanceof HTMLElement) ||
     !(planetList instanceof HTMLElement) ||
-    !(planetEmpty instanceof HTMLElement)
+    !(planetEmpty instanceof HTMLElement) ||
+    !(planetTime instanceof HTMLElement)
   ) {
     return;
   }
@@ -737,6 +747,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     planetList.replaceChildren();
     planetEmpty.hidden = false;
     planetEmpty.textContent = tr("chooseLocationSky");
+    planetTime.textContent = "";
     setTonightStatus(panel, null);
     return;
   }
@@ -751,6 +762,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     moonIcon.replaceChildren(renderMoonIcon(sky.moonPhaseAngle, location.latitude));
     moonName.textContent = moonPhaseName(sky.moonPhaseAngle, sky.moonIlluminationPercent, locale);
     renderPlanetRows(planetList, sky.planets);
+    planetTime.textContent = formatKstTime(sky.planetTime);
     planetEmpty.hidden = sky.planets.length > 0;
     planetEmpty.textContent = sky.planets.length > 0 ? "" : tr("noPlanets");
     setTonightStatus(panel, null);
@@ -854,7 +866,13 @@ function createTonightPanel(tab: Tab): HTMLElement {
   iss.append(issHead, issMain, issDivider, issList, issNote);
 
   const planets = createCard("card");
-  planets.append(createBoundTitle("planetsTitle"));
+  const planetHead = document.createElement("div");
+  planetHead.className = "planet-head";
+  const planetTime = document.createElement("span");
+  planetTime.id = "planet-time";
+  planetTime.className = "planet-time";
+  planetHead.append(createBoundTitle("planetsTitle"), planetTime);
+  planets.append(planetHead);
 
   const planetList = document.createElement("div");
   planetList.id = "planet-list";
