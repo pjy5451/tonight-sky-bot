@@ -214,4 +214,12 @@ export const en = {
   skyMapSensorDenied: "The direction sensor is unavailable. Drag to turn the chart.",
   skyMapStarLoading: "Loading the star list",
   skyMapStarError: "Could not load the star list.",
+  conditionsTitle: "Conditions",
+  conditionsPlace: "Conditions · {place}",
+  conditionsIndex: "Observing index",
+  conditionsCloud: "Cloud",
+  conditionsVisibility: "Visibility",
+  conditionsHumidity: "Humidity",
+  conditionsKp: "Space weather Kp",
+  conditionsError: "Observing conditions are unavailable right now.",
 } satisfies Record<MessageKey, string>;

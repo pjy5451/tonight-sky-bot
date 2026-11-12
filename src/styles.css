@@ -728,6 +728,58 @@ h1 {
   color: var(--text);
 }
 
+.desk-stat-value.is-amber {
+  color: var(--amber);
+}
+
+.conditions-card {
+  gap: 6px;
+}
+
+.conditions-rows[hidden],
+#conditions-error[hidden] {
+  display: none;
+}
+
+.conditions-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.conditions-row-label {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.conditions-row-value {
+  flex-shrink: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.conditions-row-value.is-amber {
+  color: var(--amber);
+}
+
+.conditions-row-value.is-cyan {
+  color: var(--cyan);
+}
+
+#conditions-error {
+  overflow-wrap: anywhere;
+}
+
+.is-desktop .conditions-row-summary {
+  display: none;
+}
+
 .globe-card-head {
   display: flex;
   flex-wrap: wrap;

@@ -1,5 +1,13 @@
 import { formatShortOffset } from "./clock";
 import {
+  formatKp,
+  formatVisibilityKm,
+  loadObservingConditions,
+  nearestRegion,
+  readConditionsCache,
+  type ConditionsResult,
+} from "./conditions";
+import {
   FILTER_GROUPS,
   countryMessageKey,
   defaultGlobeFilter,
@@ -116,6 +124,8 @@ type Tab = {
 const BRAND_NAME = "Argonova";
 
 let locale: Locale = "ko";
+let conditionsGeneration = 0;
+let conditionsAbort: AbortController | null = null;
 const skyMaps = new WeakMap<HTMLElement, ReturnType<typeof createSkyMap>>();
 let starCatalog: StarCatalog | null = null;
 let starStatus: "loading" | "ready" | "error" = "loading";
@@ -449,6 +459,115 @@ function setSummaryMoon(text: string): void {
   }
 }
 
+function setSummaryConditions(index: string, cloud: string): void {
+  const indexNode = document.getElementById("summary-index");
+  const cloudNode = document.getElementById("summary-cloud");
+  if (indexNode) {
+    indexNode.textContent = index;
+  }
+  if (cloudNode) {
+    cloudNode.textContent = cloud;
+  }
+}
+
+function conditionsPlaceLabel(regionId: string): string {
+  const key = regionShortKey(regionId);
+  return key ? tr(key) : "";
+}
+
+function paintConditions(panel: HTMLElement, regionId: string | null, result: ConditionsResult | null): void {
+  const label = panel.querySelector("#conditions-label");
+  const error = panel.querySelector("#conditions-error");
+  const rows = panel.querySelector("#conditions-rows");
+  if (!(label instanceof HTMLElement) || !(error instanceof HTMLElement) || !(rows instanceof HTMLElement)) {
+    return;
+  }
+
+  if (regionId) {
+    bindText(label, "conditionsPlace", { place: conditionsPlaceLabel(regionId) });
+  } else {
+    bindText(label, "conditionsTitle");
+  }
+
+  const failed = result !== null && !result.ok && result.reason === "request";
+  if (failed) {
+    rows.hidden = true;
+    error.hidden = false;
+    bindText(error, "conditionsError");
+    setSummaryConditions("—", "—");
+    return;
+  }
+
+  rows.hidden = false;
+  error.hidden = true;
+  error.textContent = "";
+  delete error.dataset.i18n;
+
+  const success = result !== null && result.ok ? result : null;
+  setConditionsValue(panel, "#conditions-index", success ? String(success.index) : "—");
+  setConditionsValue(panel, "#conditions-cloud", success ? `${success.cloudPercent}%` : "—");
+  setConditionsValue(
+    panel,
+    "#conditions-visibility",
+    success ? `${formatVisibilityKm(success.visibilityKm)} km` : "—",
+  );
+  setConditionsValue(panel, "#conditions-humidity", success ? `${success.humidityPercent}%` : "—");
+  setConditionsValue(panel, "#conditions-kp", success ? formatKp(success.kp) : "—");
+  setSummaryConditions(
+    success ? String(success.index) : "—",
+    success ? `${success.cloudPercent}%` : "—",
+  );
+}
+
+function setConditionsValue(panel: HTMLElement, selector: string, text: string): void {
+  const node = panel.querySelector(selector);
+  if (node) {
+    node.textContent = text;
+  }
+}
+
+function clearConditions(panel: HTMLElement): void {
+  conditionsAbort?.abort();
+  conditionsGeneration += 1;
+  paintConditions(panel, null, null);
+}
+
+function refreshConditions(
+  panel: HTMLElement,
+  place: { latitude: number; longitude: number },
+  sunset: Date | null,
+  moonIllumination: number,
+  date: Date,
+): void {
+  conditionsAbort?.abort();
+  const controller = new AbortController();
+  conditionsAbort = controller;
+  const generation = ++conditionsGeneration;
+  const region = nearestRegion(place.latitude, place.longitude);
+  if (!region || !sunset) {
+    paintConditions(panel, region?.id ?? null, null);
+    return;
+  }
+
+  const cached = readConditionsCache(localStorage, region.id, date);
+  paintConditions(panel, region.id, cached);
+
+  void loadObservingConditions({
+    latitude: place.latitude,
+    longitude: place.longitude,
+    sunset,
+    moonIllumination,
+    now: date,
+    store: localStorage,
+    signal: controller.signal,
+  }).then((result) => {
+    if (generation !== conditionsGeneration || !panel.isConnected) {
+      return;
+    }
+    paintConditions(panel, result.region?.id ?? region.id, result);
+  });
+}
+
 function clearTonightNumbers(panel: HTMLElement): void {
   const sunset = panel.querySelector("#sunset-value");
   const sunrise = panel.querySelector("#sunrise-value");
@@ -711,6 +830,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
       dday.textContent = "—";
     }
     clearTonightNumbers(panel);
+    clearConditions(panel);
     setTonightStatus(panel, tr("tonightCalcError"));
     return;
   }
@@ -749,6 +869,7 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     planetEmpty.hidden = false;
     planetEmpty.textContent = tr("chooseLocationSky");
     planetTime.textContent = "";
+    clearConditions(panel);
     setTonightStatus(panel, null);
     return;
   }
@@ -766,11 +887,62 @@ function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad)
     planetTime.textContent = formatKstTime(sky.planetTime);
     planetEmpty.hidden = sky.planets.length > 0;
     planetEmpty.textContent = sky.planets.length > 0 ? "" : tr("noPlanets");
+    refreshConditions(panel, location, sky.sunset, sky.moonIllumination, date);
     setTonightStatus(panel, null);
   } catch {
     clearTonightNumbers(panel);
+    clearConditions(panel);
     setTonightStatus(panel, tr("tonightCalcError"));
   }
+}
+
+function createConditionsRow(
+  labelKey: MessageKey,
+  valueId: string,
+  valueClass: string,
+  summary: boolean,
+): HTMLElement {
+  const row = document.createElement("div");
+  row.className = summary ? "conditions-row conditions-row-summary" : "conditions-row";
+  const label = document.createElement("span");
+  label.className = "conditions-row-label";
+  bindText(label, labelKey);
+  const value = document.createElement("span");
+  value.id = valueId;
+  value.className = valueClass ? `conditions-row-value ${valueClass}` : "conditions-row-value";
+  value.textContent = "—";
+  row.append(label, value);
+  return row;
+}
+
+function createConditionsCard(): HTMLElement {
+  const card = createCard("card conditions-card");
+  card.id = "conditions-card";
+
+  const label = document.createElement("span");
+  label.id = "conditions-label";
+  label.className = "stat-label";
+  bindText(label, "conditionsTitle");
+
+  const error = document.createElement("p");
+  error.id = "conditions-error";
+  error.className = "pending";
+  error.setAttribute("role", "alert");
+  error.hidden = true;
+
+  const rows = document.createElement("div");
+  rows.id = "conditions-rows";
+  rows.append(
+    createConditionsRow("conditionsIndex", "conditions-index", "is-amber", true),
+    createConditionsRow("conditionsCloud", "conditions-cloud", "", true),
+    createConditionsRow("conditionsVisibility", "conditions-visibility", "", false),
+    createConditionsRow("conditionsHumidity", "conditions-humidity", "", false),
+    createConditionsRow("conditionsKp", "conditions-kp", "is-cyan", false),
+  );
+
+  card.append(label, error, rows);
+  card.setAttribute("aria-labelledby", "conditions-label");
+  return card;
 }
 
 function createTonightPanel(tab: Tab): HTMLElement {
@@ -905,9 +1077,11 @@ function createTonightPanel(tab: Tab): HTMLElement {
   meteorDday.textContent = "—";
   meteor.append(meteorCopy, meteorDday);
 
+  const conditions = createConditionsCard();
+
   const board = document.createElement("div");
   board.className = "board";
-  board.append(skyMap.element, stats, iss, planets, meteor);
+  board.append(skyMap.element, stats, iss, planets, meteor, conditions);
 
   panel.append(status, board);
   return panel;
@@ -2291,6 +2465,28 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   deskStats.className = "desk-stats";
   deskStats.hidden = true;
 
+  const indexStat = document.createElement("div");
+  indexStat.className = "desk-stat";
+  const indexStatLabel = document.createElement("span");
+  indexStatLabel.className = "stat-label";
+  bindText(indexStatLabel, "conditionsIndex");
+  const indexStatValue = document.createElement("span");
+  indexStatValue.id = "summary-index";
+  indexStatValue.className = "desk-stat-value is-amber";
+  indexStatValue.textContent = "—";
+  indexStat.append(indexStatLabel, indexStatValue);
+
+  const cloudStat = document.createElement("div");
+  cloudStat.className = "desk-stat";
+  const cloudStatLabel = document.createElement("span");
+  cloudStatLabel.className = "stat-label";
+  bindText(cloudStatLabel, "conditionsCloud");
+  const cloudStatValue = document.createElement("span");
+  cloudStatValue.id = "summary-cloud";
+  cloudStatValue.className = "desk-stat-value";
+  cloudStatValue.textContent = "—";
+  cloudStat.append(cloudStatLabel, cloudStatValue);
+
   const moonStat = document.createElement("div");
   moonStat.className = "desk-stat";
   const moonStatLabel = document.createElement("span");
@@ -2305,7 +2501,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   const trackedSlot = document.createElement("div");
   trackedSlot.id = "tracked-slot";
   trackedSlot.className = "desk-stat";
-  deskStats.append(moonStat, trackedSlot);
+  deskStats.append(indexStat, cloudStat, moonStat, trackedSlot);
 
   const heroActions = document.createElement("div");
   heroActions.className = "hero-actions";

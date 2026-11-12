@@ -212,6 +212,14 @@ export const ko = {
   skyMapSensorDenied: "방향 센서를 쓸 수 없습니다. 끌어 돌리세요.",
   skyMapStarLoading: "별 목록을 불러오는 중",
   skyMapStarError: "별 목록을 불러오지 못했습니다.",
+  conditionsTitle: "관측 조건",
+  conditionsPlace: "관측 조건 · {place}",
+  conditionsIndex: "관측 지수",
+  conditionsCloud: "구름",
+  conditionsVisibility: "시정",
+  conditionsHumidity: "습도",
+  conditionsKp: "우주날씨 Kp",
+  conditionsError: "관측 조건을 지금 불러올 수 없어요",
 } as const;
 
 export type MessageKey = keyof typeof ko;

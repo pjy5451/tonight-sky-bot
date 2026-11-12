@@ -16,7 +16,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src https://fonts.gstatic.com",
   "img-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' https://api.open-meteo.com https://services.swpc.noaa.gov",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -125,7 +125,7 @@ describe("security headers", () => {
     const styleSource = readText(join(ROOT, "src/styles.css"));
     expect(styleSource.includes("url(")).toBe(false);
 
-    const browserSource = ["app.ts", "globe-view.ts", "earth-textures.ts", "launches.ts", "main.ts", "sky.ts", "satellites.ts", "meteors.ts", "location.ts", "sources.ts"]
+    const browserSource = ["app.ts", "conditions.ts", "globe-view.ts", "earth-textures.ts", "launches.ts", "main.ts", "sky.ts", "satellites.ts", "meteors.ts", "location.ts", "sources.ts"]
       .map((name) => readText(join(ROOT, "src", name)))
       .join("\n");
     for (const host of ["unpkg.com", "jsdelivr.net", "cdnjs.cloudflare.com"]) {
