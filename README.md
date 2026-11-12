@@ -15,7 +15,7 @@
 | 위성 지구본 | ISS와 우주정거장 위성의 현재 위치 |
 | 발사 일정 | 다가오는 발사, 한국시간, 카운트다운, 생중계 링크 |
 
-화면 아래에는 데이터 출처와 갱신 시각이 나옵니다. 파일을 읽지 못하거나 하늘 계산이 실패하면 각 탭에 오류 문구를 보여 줍니다.
+화면 아래에는 데이터 출처와 갱신 시각이 나옵니다. 파일을 읽지 못하거나 하늘 계산이 실패하면 각 탭에 오류 문구를 보여 줍니다. 데이터가 24시간보다 오래돼도 화면을 막지 않고, `N시간 전 데이터` 안내와 함께 계속 보여 줍니다.
 
 ## 구조
 
@@ -29,9 +29,9 @@
 - `src/launches.ts` — 발사 일정 표시
 - `src/location.ts` — 시·도 좌표와 위치 저장
 - `src/sources.ts` — 화면 하단의 데이터 출처와 갱신 시각
-- `public/data/` — `tle.json`, `launches.json`. 브라우저는 이 파일만 읽습니다
+- `public/data/` — `tle.json`, `launches.json`, `catalog.json`. 브라우저는 이 파일만 읽습니다
 - `public/textures/` — 지구본 낮·밤 사진(처음 2K, 이어서 고해상도)과 지형·바다 텍스처. 출처는 `CREDITS.md`
-- `scripts/fetch-data.js` — 빌드 전에 CelesTrak과 Launch Library 2에서 JSON을 저장합니다
+- `scripts/fetch-data.js` — Cloudflare 빌드는 `data` 브랜치의 JSON을 받아 옵니다. 원본(CelesTrak, Launch Library 2)은 GitHub Actions `data-refresh`가 6시간마다 받습니다. 실패한 묶음은 이전 성공본을 덮어쓰지 않습니다
 
 ## 개발
 
@@ -40,6 +40,8 @@ npm ci
 npm run fetch-data
 npm run dev
 ```
+
+`npm run fetch-data`는 기본적으로 `data` 브랜치 JSON을 받아 옵니다. 원본을 직접 받아 이전 성공본을 유지하려면 `FETCH_DATA_MODE=refresh npm run fetch-data`를 실행합니다.
 
 ## 테스트와 빌드
 

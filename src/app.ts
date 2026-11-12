@@ -75,7 +75,7 @@ import {
   type IssPass,
 } from "./iss-passes";
 import { formatMeteorDday, nextMeteorShower } from "./meteors";
-import { dataSourceFooter } from "./sources";
+import { dataSourceFooter, staleDataNotice } from "./sources";
 import {
   computeTonightSky,
   directionSkyLabel,
@@ -2190,10 +2190,22 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const footer = document.createElement("p");
   footer.className = "source-footer";
+  const staleNotice = document.createElement("p");
+  staleNotice.id = "stale-notice";
+  staleNotice.className = "stale-notice";
+  staleNotice.hidden = true;
   let orbitFetchedAt: string | null = null;
   let launchFetchedAt: string | null = null;
   const updateFooter = () => {
     footer.textContent = dataSourceFooter(orbitFetchedAt, launchFetchedAt, locale);
+    const notice = staleDataNotice([orbitFetchedAt, launchFetchedAt], now(), locale);
+    if (notice) {
+      staleNotice.hidden = false;
+      staleNotice.textContent = notice;
+      return;
+    }
+    staleNotice.hidden = true;
+    staleNotice.textContent = "";
   };
   updateFooter();
   const issLoad: IssOrbitLoad = {
@@ -2229,7 +2241,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     refreshTonight();
   });
 
-  screen.append(header, panels, footer);
+  screen.append(header, panels, footer, staleNotice);
   root.append(desktopBar, screen, tabList, dialog);
   setActiveTab("tonight");
   setLocationLabel();

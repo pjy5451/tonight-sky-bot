@@ -114,6 +114,7 @@ export const en = {
   footerBoth: "Data: CelesTrak · The Space Devs · updated {time}",
   footerSplit: "Data: CelesTrak {orbit} · The Space Devs {launch} updated",
   footerPlain: "Data: CelesTrak · The Space Devs",
+  staleData: "Data from {hours} hours ago",
   weekdaySun: "Sun",
   weekdayMon: "Mon",
   weekdayTue: "Tue",

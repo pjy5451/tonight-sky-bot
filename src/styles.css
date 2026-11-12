@@ -928,6 +928,18 @@ h1 {
   text-align: center;
 }
 
+.stale-notice {
+  margin: 4px 0 0;
+  color: #8d97ad;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.stale-notice[hidden] {
+  display: none;
+}
+
 .tab-list {
   position: fixed;
   right: 0;
@@ -1273,6 +1285,7 @@ h1 {
   scroll-margin-top: 88px;
 }
 
-.is-desktop .source-footer {
+.is-desktop .source-footer,
+.is-desktop .stale-notice {
   font-size: 12px;
 }

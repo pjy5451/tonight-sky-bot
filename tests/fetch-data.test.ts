@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import appSource from "../src/app.ts?raw";
 import textureSource from "../src/earth-textures.ts?raw";
@@ -12,6 +13,8 @@ import {
   CATALOG_COLUMN,
   CATALOG_GROUPS,
   CELESTRAK_STATIONS_URL,
+  DATA_FILES,
+  DATA_MIRROR_BASE,
   KOREAN_NAME_QUERIES,
   KOREAN_NORAD_IDS,
   LAUNCH_LIBRARY_UPCOMING_URL,
@@ -19,6 +22,8 @@ import {
   catalogRequestPlan,
   collectData,
   compactGpItem,
+  fetchModeFromEnv,
+  mirrorFileUrl,
   runFetchData,
   serializeCatalog,
   type FetchLike,
@@ -307,6 +312,7 @@ describe("fetch-data", () => {
 
     expect(browserSource).not.toContain("celestrak.org");
     expect(browserSource).not.toContain("thespacedevs.com");
+    expect(browserSource).not.toContain("raw.githubusercontent.com");
     expect(browserSource).not.toContain("innerHTML");
     expect(browserSource).not.toContain("unpkg.com");
     expect(textureSource).toContain("textures/earth-day.jpg");
@@ -443,5 +449,266 @@ describe("fetch-data", () => {
     expect(KOREAN_NORAD_IDS).toEqual(
       expect.arrayContaining([38338, 40536, 39227, 43823, 45246, 47932]),
     );
+  });
+});
+
+function fileNameFromUrl(path: URL): string {
+  return path.pathname.split("/").pop() ?? path.href;
+}
+
+describe("data refresh preservation", () => {
+  it("does not overwrite a previous success when a bundle fails", async () => {
+    const previousStarlink = compactGpItem(
+      { ...station, OBJECT_NAME: "STARLINK-100", NORAD_CAT_ID: 50001 },
+      "starlink",
+      "US",
+      false,
+    );
+    const previousTle = `${JSON.stringify({ fetched_at: "2026-11-09T00:00:00.000Z", items: [station] }, null, 2)}\n`;
+    const previousLaunches = `${JSON.stringify(
+      {
+        fetched_at: "2026-11-09T00:00:00.000Z",
+        items: [{ id: "keep-me", name: "Kept Launch", net: "2026-12-01T00:00:00Z", webcast_urls: [] }],
+      },
+      null,
+      2,
+    )}\n`;
+    const previousCatalog = `${JSON.stringify({
+      fetched_at: "2026-11-09T00:00:00.000Z",
+      groups: { starlink: { ok: true, count: 1 } },
+      items: [previousStarlink],
+    })}\n`;
+    const files = new Map<string, string>([
+      ["tle.json", previousTle],
+      ["launches.json", previousLaunches],
+      ["catalog.json", previousCatalog],
+    ]);
+    const writes: string[] = [];
+    const gps = { ...station, OBJECT_NAME: "GPS BIIA-1", NORAD_CAT_ID: 20959 };
+    const fetchImpl: FetchLike = async (url) => {
+      if (url === CELESTRAK_STATIONS_URL) {
+        return jsonResponse({ error: "rate limited" }, 403);
+      }
+      if (url === LAUNCH_LIBRARY_UPCOMING_URL) {
+        throw new Error("network down");
+      }
+      if (url.includes("GROUP=starlink")) {
+        return jsonResponse({ error: "busy" }, 503);
+      }
+      if (url.includes("GROUP=gps-ops")) {
+        return jsonResponse([gps]);
+      }
+      if (url.includes("GROUP=") || url.includes("NAME=")) {
+        return jsonResponse([]);
+      }
+      throw new Error(`unexpected url ${url}`);
+    };
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await collectData({
+      mode: "refresh",
+      fetchImpl,
+      now: () => new Date(FETCHED_AT),
+      dataDir: new URL("file:///tmp/argonova-data/"),
+      mkdirImpl: async () => {},
+      readFileImpl: async (path) => {
+        const text = files.get(fileNameFromUrl(path));
+        if (text === undefined) {
+          throw new Error(`missing ${fileNameFromUrl(path)}`);
+        }
+        return text;
+      },
+      writeFileImpl: async (path, contents) => {
+        const name = fileNameFromUrl(path);
+        writes.push(name);
+        files.set(name, contents);
+      },
+    });
+
+    expect(writes).not.toContain("tle.json");
+    expect(writes).not.toContain("launches.json");
+    expect(files.get("tle.json")).toBe(previousTle);
+    expect(files.get("launches.json")).toBe(previousLaunches);
+    expect(writes).toContain("catalog.json");
+
+    const catalog = JSON.parse(files.get("catalog.json") ?? "") as {
+      groups: Record<string, { ok?: boolean; preserved?: boolean }>;
+      items: unknown[][];
+    };
+    const norads = catalog.items.map((row) => row[CATALOG_COLUMN.norad]);
+    expect(norads).toContain(50001);
+    expect(norads).toContain(20959);
+    expect(catalog.groups.starlink?.ok).toBe(true);
+    expect(catalog.groups.starlink?.preserved).toBe(true);
+    expect(catalog.groups["gps-ops"]?.ok).toBe(true);
+    errorLog.mockRestore();
+  });
+
+  it("keeps the whole catalog when every bundle fails", async () => {
+    const previousStarlink = compactGpItem(
+      { ...station, OBJECT_NAME: "STARLINK-100", NORAD_CAT_ID: 50001 },
+      "starlink",
+      "US",
+      false,
+    );
+    const previousCatalog = `${JSON.stringify({
+      fetched_at: "2026-11-09T00:00:00.000Z",
+      groups: { starlink: { ok: true, count: 1 } },
+      items: [previousStarlink],
+    })}\n`;
+    const files = new Map<string, string>([["catalog.json", previousCatalog]]);
+    const writes: string[] = [];
+    const fetchImpl: FetchLike = async (url) => {
+      if (url === CELESTRAK_STATIONS_URL || url === LAUNCH_LIBRARY_UPCOMING_URL) {
+        return jsonResponse({ error: "no" }, 503);
+      }
+      if (url.includes("GROUP=") || url.includes("NAME=")) {
+        return jsonResponse({ error: "no" }, 503);
+      }
+      throw new Error(`unexpected url ${url}`);
+    };
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await collectData({
+      mode: "refresh",
+      fetchImpl,
+      now: () => new Date(FETCHED_AT),
+      dataDir: new URL("file:///tmp/argonova-data/"),
+      mkdirImpl: async () => {},
+      readFileImpl: async (path) => {
+        const text = files.get(fileNameFromUrl(path));
+        if (text === undefined) {
+          throw new Error(`missing ${fileNameFromUrl(path)}`);
+        }
+        return text;
+      },
+      writeFileImpl: async (path, contents) => {
+        const name = fileNameFromUrl(path);
+        writes.push(name);
+        files.set(name, contents);
+      },
+    });
+
+    expect(writes).not.toContain("catalog.json");
+    expect(files.get("catalog.json")).toBe(previousCatalog);
+    expect(JSON.parse(previousCatalog).items[0][CATALOG_COLUMN.norad]).toBe(50001);
+    errorLog.mockRestore();
+  });
+});
+
+describe("build mirror", () => {
+  it("uses the repository file when the data-branch raw request fails", async () => {
+    const repositoryTle = {
+      fetched_at: "2026-11-01T00:00:00.000Z",
+      items: [station],
+    };
+    const repositoryLaunch = {
+      fetched_at: "2026-11-01T00:00:00.000Z",
+      items: [{ id: "repo-launch", name: "From repo", net: "2026-12-02T00:00:00Z", webcast_urls: [] }],
+    };
+    const repositoryCatalog = {
+      fetched_at: "2026-11-01T00:00:00.000Z",
+      groups: { starlink: { ok: true, count: 1 } },
+      items: [compactGpItem({ ...station, OBJECT_NAME: "STARLINK-1", NORAD_CAT_ID: 42 }, "starlink", "US", false)],
+    };
+    const original = new Map<string, string>([
+      ["tle.json", `${JSON.stringify(repositoryTle, null, 2)}\n`],
+      ["launches.json", `${JSON.stringify(repositoryLaunch, null, 2)}\n`],
+      ["catalog.json", `${JSON.stringify(repositoryCatalog)}\n`],
+    ]);
+    const files = new Map(original);
+    const writes: string[] = [];
+    const reads: string[] = [];
+    const calls: string[] = [];
+    const fetchImpl: FetchLike = async (url) => {
+      calls.push(url);
+      return jsonResponse({ error: "missing" }, 404);
+    };
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const exitCode = await runFetchData({
+      mode: "mirror",
+      fetchImpl,
+      dataDir: new URL("file:///tmp/argonova-data/"),
+      mkdirImpl: async () => {},
+      readFileImpl: async (path) => {
+        const name = fileNameFromUrl(path);
+        reads.push(name);
+        const text = files.get(name);
+        if (text === undefined) {
+          throw new Error(`missing ${name}`);
+        }
+        return text;
+      },
+      writeFileImpl: async (path, contents) => {
+        const name = fileNameFromUrl(path);
+        writes.push(name);
+        files.set(name, contents);
+      },
+    });
+
+    expect(exitCode).toBe(0);
+    expect(calls.sort()).toEqual(DATA_FILES.map((name) => mirrorFileUrl(name)).sort());
+    expect(calls.every((url) => url.startsWith(DATA_MIRROR_BASE))).toBe(true);
+    expect(calls.some((url) => url.includes("celestrak.org") || url.includes("thespacedevs.com"))).toBe(false);
+    expect(writes).toEqual([]);
+    expect(reads.sort()).toEqual([...DATA_FILES].sort());
+    for (const name of DATA_FILES) {
+      expect(files.get(name)).toBe(original.get(name));
+    }
+    expect(JSON.parse(files.get("tle.json") ?? "").items).toEqual([station]);
+    errorLog.mockRestore();
+  });
+
+  it("writes the data-branch JSON when the raw request succeeds", async () => {
+    const mirrored = {
+      fetched_at: "2026-11-11T03:00:00.000Z",
+      items: [station],
+    };
+    const files = new Map<string, string>();
+    const calls: string[] = [];
+    const fetchImpl: FetchLike = async (url) => {
+      calls.push(url);
+      if (url.endsWith("/tle.json")) {
+        return jsonResponse(mirrored);
+      }
+      if (url.endsWith("/launches.json") || url.endsWith("/catalog.json")) {
+        return jsonResponse({ fetched_at: mirrored.fetched_at, items: [] });
+      }
+      throw new Error(`unexpected url ${url}`);
+    };
+
+    await collectData({
+      mode: "mirror",
+      fetchImpl,
+      dataDir: new URL("file:///tmp/argonova-data/"),
+      mkdirImpl: async () => {},
+      readFileImpl: async () => {
+        throw new Error("should not read the repository file");
+      },
+      writeFileImpl: async (path, contents) => {
+        files.set(fileNameFromUrl(path), contents);
+      },
+    });
+
+    expect(calls.some((url) => url.includes("celestrak.org") || url.includes("thespacedevs.com"))).toBe(false);
+    expect(JSON.parse(files.get("tle.json") ?? "")).toEqual(mirrored);
+    expect(fetchModeFromEnv({})).toBe("mirror");
+    expect(fetchModeFromEnv({ FETCH_DATA_MODE: "refresh" })).toBe("refresh");
+    expect(fetchModeFromEnv({ FETCH_DATA_MODE: "upstream" })).toBe("upstream");
+    expect(fetchModeFromEnv({ FETCH_DATA_MODE: "something-else" })).toBe("mirror");
+  });
+
+  it("refreshes upstream data on a six-hour schedule and not during the site build", () => {
+    const workflow = new TextDecoder().decode(readFileSync(".github/workflows/data-refresh.yml"));
+    expect(workflow).toContain('cron: "17 */6 * * *"');
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("scripts/fetch-data.js");
+    expect(workflow).toContain(".github/workflows/data-refresh.yml");
+    expect(workflow).toContain("FETCH_DATA_MODE: refresh");
+    expect(workflow).toContain("secrets.CF_DEPLOY_HOOK");
+    expect(workflow).toContain("origin HEAD:data");
+    expect(workflow).not.toContain("celestrak.org");
+    expect(fetchModeFromEnv({})).toBe("mirror");
   });
 });

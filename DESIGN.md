@@ -22,7 +22,7 @@
 
 ## 2. 구조 원칙
 - **기본은 서버 없음.** 정적 사이트(HTML/JS)만 배포한다. 예외는 8장에서 허용한 범위뿐이다. 천문 계산은 사용자 브라우저에서 한다.
-- **외부 API는 빌드 때만 부른다.** GitHub Actions가 하루 1회 CelesTrak과 Launch Library 2에서 데이터를 받아 JSON으로 사이트에 포함한다. 방문자가 늘어도 외부 API 호출은 늘지 않는다.
+- **외부 API는 데이터 갱신 때만 부른다.** `.github/workflows/data-refresh.yml`이 6시간마다 CelesTrak과 Launch Library 2에서 받아 `data` 브랜치 JSON으로 저장한다. Cloudflare 빌드의 `fetch-data`는 그 JSON만 받고, 실패하면 저장소 파일을 쓴다. 방문자가 늘어도 외부 API 호출은 늘지 않는다.
 - **개인정보를 보내지 않는다.** 위치는 브라우저 안에서만 쓰고 localStorage에만 저장한다.
 - **로그인·DB·입력 폼은 8장 조건을 갖춘 뒤에만.** 그 전에는 공격받을 서버 부분을 만들지 않는다.
 
@@ -35,7 +35,7 @@
 | 천문 계산 | astronomy-engine (해·달·행성), satellite.js (위성 궤도) |
 | 지구본 | globe.gl (three.js) |
 | 데이터 | CelesTrak GP(stations), Launch Library 2 (The Space Devs) |
-| 배포 | Cloudflare Pages (GitHub 연결, main 변경 시 자동 빌드). 매일 데이터 갱신은 `.github/workflows/deploy-site.yml` 이 배포 훅을 호출 |
+| 배포 | Cloudflare Pages (GitHub 연결, main 변경 시 자동 빌드). 위성·발사 데이터는 `data-refresh.yml`이 6시간마다 받아 배포 훅을 호출하고, 코드 변경이 없어도 `.github/workflows/deploy-site.yml`이 매일 한 번 배포 훅을 호출 |
 
 npm 스크립트 약속: `npm ci` → `npm run fetch-data` → `npm run build` 결과가 `dist/`. Cloudflare 빌드 명령이 `npm run fetch-data && npm run build` 이므로 `fetch-data` 는 실패해도 종료 코드 0으로 끝나야 한다.
 
