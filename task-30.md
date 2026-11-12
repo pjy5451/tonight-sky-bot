@@ -1,5 +1,5 @@
 status: fix-needed
-attempts: 1
+attempts: 2
 pr: 33
 branch: task-30-tonight-timeline
 title: [task-30] 오늘 밤 타임라인
