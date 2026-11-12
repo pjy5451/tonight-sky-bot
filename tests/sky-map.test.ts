@@ -171,6 +171,166 @@ describe("all-sky projection and drag", () => {
   });
 });
 
+const SENSOR_DENIED = "방향 센서를 쓸 수 없습니다. 끌어 돌리세요.";
+
+function installCompassPermission(impl: (this: unknown, ...args: unknown[]) => Promise<string>): {
+  calls: Array<{ receiver: unknown; args: unknown[] }>;
+  restore: () => void;
+} {
+  const original = globalThis.DeviceOrientationEvent;
+  const calls: Array<{ receiver: unknown; args: unknown[] }> = [];
+  const fake = function FakeDeviceOrientationEvent(
+    this: unknown,
+    type: string,
+    init?: DeviceOrientationEventInit,
+  ) {
+    return new original(type, init);
+  };
+  Object.defineProperty(fake, "requestPermission", {
+    configurable: true,
+    writable: true,
+    value(this: unknown, ...args: unknown[]) {
+      calls.push({ receiver: this, args });
+      return impl.apply(this, args);
+    },
+  });
+  Object.defineProperty(globalThis, "DeviceOrientationEvent", {
+    configurable: true,
+    writable: true,
+    value: fake,
+  });
+  return {
+    calls,
+    restore() {
+      Object.defineProperty(globalThis, "DeviceOrientationEvent", {
+        configurable: true,
+        writable: true,
+        value: original,
+      });
+    },
+  };
+}
+
+function mountSkyMap(): { map: ReturnType<typeof createSkyMap>; button: HTMLButtonElement; svg: SVGElement } {
+  const map = createSkyMap();
+  document.body.append(map.element);
+  map.update({
+    locale: "ko",
+    place: SEOUL,
+    date: NIGHT,
+    stars: null,
+    starStatus: "ready",
+    issTrack: [],
+  });
+  const button = map.element.querySelector<HTMLButtonElement>("#sky-map-point");
+  const svg = map.element.querySelector<SVGElement>("#sky-map-svg");
+  if (!button || !svg) {
+    throw new Error("하늘 지도 버튼이나 그림을 찾지 못했습니다.");
+  }
+  return { map, button, svg };
+}
+
+function dragChart(svg: SVGElement): void {
+  svg.dispatchEvent(new PointerEvent("pointerdown", { clientX: 20, clientY: 40, pointerId: 1, bubbles: true }));
+  svg.dispatchEvent(new PointerEvent("pointermove", { clientX: 100, clientY: 40, pointerId: 1, bubbles: true }));
+}
+
+describe("iOS compass permission", () => {
+  it("calls requestPermission on the constructor with true, then follows webkitCompassHeading", async () => {
+    let resolvePermission: (value: string) => void = () => {};
+    const permission = new Promise<string>((resolve) => {
+      resolvePermission = resolve;
+    });
+    const sensor = installCompassPermission(() => permission);
+    try {
+      const { map, button } = mountSkyMap();
+      button.click();
+      expect(sensor.calls).toHaveLength(1);
+      expect(sensor.calls[0]?.receiver).toBe(globalThis.DeviceOrientationEvent);
+      expect(sensor.calls[0]?.args[0]).toBe(true);
+      expect(button.getAttribute("aria-pressed")).toBe("false");
+
+      resolvePermission("granted");
+      await permission;
+      await Promise.resolve();
+
+      const reading = new Event("deviceorientation");
+      Object.defineProperties(reading, {
+        webkitCompassHeading: { value: 90 },
+        absolute: { value: false },
+        alpha: { value: 12 },
+      });
+      window.dispatchEvent(reading);
+      expect(map.element.querySelector("#sky-map-svg")?.getAttribute("data-view-bearing")).toBe("90.0");
+    } finally {
+      sensor.restore();
+    }
+  });
+
+  it("keeps drag working when permission is denied", async () => {
+    let resolvePermission: (value: string) => void = () => {};
+    const permission = new Promise<string>((resolve) => {
+      resolvePermission = resolve;
+    });
+    const sensor = installCompassPermission(() => permission);
+    try {
+      const { map, button, svg } = mountSkyMap();
+      expect(() => button.click()).not.toThrow();
+      expect(sensor.calls[0]?.receiver).toBe(globalThis.DeviceOrientationEvent);
+      expect(sensor.calls[0]?.args[0]).toBe(true);
+      resolvePermission("denied");
+      await permission;
+      await Promise.resolve();
+      expect(button.getAttribute("aria-pressed")).toBe("false");
+      expect(map.element.querySelector("#sky-map-note")?.textContent).toBe(SENSOR_DENIED);
+      expect(svg.getAttribute("data-view-bearing")).toBe("0.0");
+      dragChart(svg);
+      expect(svg.getAttribute("data-view-bearing")).not.toBe("0.0");
+    } finally {
+      sensor.restore();
+    }
+  });
+
+  it("keeps drag working when the permission promise rejects", async () => {
+    const sensor = installCompassPermission(
+      () => Promise.reject(new Error("denied")),
+    );
+    try {
+      const { map, button, svg } = mountSkyMap();
+      expect(() => button.click()).not.toThrow();
+      expect(sensor.calls[0]?.receiver).toBe(globalThis.DeviceOrientationEvent);
+      expect(sensor.calls[0]?.args[0]).toBe(true);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(button.getAttribute("aria-pressed")).toBe("false");
+      expect(map.element.querySelector("#sky-map-note")?.textContent).toBe(SENSOR_DENIED);
+      dragChart(svg);
+      expect(svg.getAttribute("data-view-bearing")).not.toBe("0.0");
+    } finally {
+      sensor.restore();
+    }
+  });
+
+  it("shows the sensor message and still drags when requestPermission throws", () => {
+    const sensor = installCompassPermission(() => {
+      throw new Error("permission unavailable");
+    });
+    try {
+      const { map, button, svg } = mountSkyMap();
+      expect(() => button.click()).not.toThrow();
+      expect(sensor.calls[0]?.receiver).toBe(globalThis.DeviceOrientationEvent);
+      expect(sensor.calls[0]?.args[0]).toBe(true);
+      expect(button.getAttribute("aria-pressed")).toBe("false");
+      expect(map.element.querySelector("#sky-map-note")?.textContent).toBe(SENSOR_DENIED);
+      expect(svg.getAttribute("data-view-bearing")).toBe("0.0");
+      dragChart(svg);
+      expect(svg.getAttribute("data-view-bearing")).not.toBe("0.0");
+    } finally {
+      sensor.restore();
+    }
+  });
+});
+
 describe("tonight tab placement", () => {
   it("draws the round chart at the top of tonight and hides it until a place is chosen", () => {
     document.body.append(createApp({ now: () => NIGHT }));

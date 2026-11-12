@@ -420,27 +420,38 @@ export function createSkyMap(): {
       stopSensor();
       return;
     }
-    const ctor = globalThis.DeviceOrientationEvent;
+    const ctor = globalThis.DeviceOrientationEvent as
+      | (typeof DeviceOrientationEvent & {
+          requestPermission?: (enableCompass: boolean) => Promise<string>;
+        })
+      | undefined;
     if (typeof ctor !== "function") {
       denySensor();
       return;
     }
-    const request = (ctor as { requestPermission?: () => Promise<string> }).requestPermission;
-    if (typeof request === "function") {
-      void request()
-        .then((result) => {
-          if (result === "granted") {
-            startSensor();
-            return;
-          }
-          denySensor();
-        })
-        .catch(() => {
-          denySensor();
-        });
+    if (typeof ctor.requestPermission !== "function") {
+      startSensor();
       return;
     }
-    startSensor();
+    // iOS는 생성자 메서드로 바로 불러야 권한 창이 뜬다. true는 나침반(webkitCompassHeading) 권한.
+    let pending: Promise<string>;
+    try {
+      pending = ctor.requestPermission(true);
+    } catch {
+      denySensor();
+      return;
+    }
+    void Promise.resolve(pending)
+      .then((result) => {
+        if (result === "granted") {
+          startSensor();
+          return;
+        }
+        denySensor();
+      })
+      .catch(() => {
+        denySensor();
+      });
   });
 
   svg.addEventListener("pointerdown", (event) => {
