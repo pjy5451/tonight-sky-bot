@@ -4,7 +4,7 @@ import { formatKstTime } from "./sky";
 /** 이 시간 이상 지난 데이터는 오류로 막지 않고 안내만 한다. */
 export const STALE_DATA_MS = 24 * 60 * 60 * 1000;
 
-/** `fetched_at`을 한국시간 `HH:MM`으로. 없거나 해석할 수 없으면 null. */
+/** `fetched_at`을 기기 시간대 `HH:MM`으로. 없거나 해석할 수 없으면 null. */
 export function clockFromFetchedAt(fetchedAt: string | null): string | null {
   if (!fetchedAt) {
     return null;

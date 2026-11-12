@@ -254,6 +254,14 @@ describe("ISS pass prediction", () => {
     expect(kstDayOffset(now, passes[0]?.start.time ?? now)).toBe(0);
     expect(ISS_PASS_HORIZON_MS).toBe(3 * DAY_MS);
   });
+
+  it("counts the next local date as tomorrow in that zone", () => {
+    const now = new Date("2026-11-15T03:00:00.000Z");
+    const later = new Date("2026-11-15T06:00:00.000Z");
+    expect(kstDayOffset(now, later, "America/New_York")).toBe(1);
+    expect(kstDayOffset(now, later, "Asia/Seoul")).toBe(0);
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("Asia/Seoul");
+  });
 });
 
 describe("ISS pass card", () => {

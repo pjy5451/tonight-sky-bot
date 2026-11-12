@@ -13,9 +13,10 @@ import {
   twoline2satrec,
   type SatRec,
 } from "satellite.js";
+import { calendarDayIndex } from "./clock";
 import { translate, type Locale } from "./i18n";
 import type { Station } from "./satellites";
-import { compass16, compassLabel, formatKstTime, kstDayStart, type Compass16 } from "./sky";
+import { compass16, compassLabel, formatKstTime, type Compass16 } from "./sky";
 
 /** 보이는 통과로 칠 최저 고도. 백로그 05. */
 export const ISS_PASS_MIN_ELEVATION_DEG = 10;
@@ -34,7 +35,6 @@ export const ISS_PASS_LOOKBACK_MS = 15 * 60 * 1000;
 
 const COARSE_STEP_MS = 10_000;
 const PEAK_STEP_MS = 1_000;
-const DAY_MS = 24 * 60 * 60 * 1000;
 const EN_DASH = "\u2013";
 
 export type PassObserver = {
@@ -316,8 +316,9 @@ export function upcomingIssPasses(passes: readonly IssPass[], now: Date): IssPas
   );
 }
 
-export function kstDayOffset(from: Date, to: Date): number {
-  return Math.round((kstDayStart(to).getTime() - kstDayStart(from).getTime()) / DAY_MS);
+/** 기기 시간대 달력에서 `to`가 `from`보다 며칠 뒤인지. 같은 날이면 0. */
+export function kstDayOffset(from: Date, to: Date, timeZone?: string): number {
+  return calendarDayIndex(to, timeZone) - calendarDayIndex(from, timeZone);
 }
 
 export function issPassTimeRange(pass: IssPass): string {

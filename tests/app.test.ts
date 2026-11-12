@@ -199,6 +199,7 @@ describe("Argonova frame", () => {
     renderApp({ now: () => new Date("2026-11-12T03:00:00.000Z") });
     expect(document.title).toBe("Argonova");
     expect(document.querySelector("h1")?.textContent).toBe("11월 12일 (목)");
+    expect(document.querySelector("#time-zone")?.textContent).toBe("GMT+9");
     expect(document.querySelector(".eyebrow")).toBeNull();
     expect(document.querySelector("#tracked-summary")).not.toBeNull();
     expect(getComputedStyle(document.body).fontFamily).toContain("IBM Plex Sans KR");

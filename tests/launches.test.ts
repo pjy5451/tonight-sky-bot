@@ -5,6 +5,7 @@ import {
   countdownParts,
   formatCountdownUnit,
   formatKstLaunchDateTime,
+  formatLaunchDateTime,
   formatLaunchDday,
   launchOperatorPlace,
   nextLaunchTitle,
@@ -39,7 +40,7 @@ describe("Korean launch time", () => {
     expect(formatKstLaunchDateTime(new Date("2026-11-15T16:00:00Z"))).toBe("11/16 (월) 01:00");
   });
 
-  it("counts D-day by the KST calendar, not by elapsed hours", () => {
+  it("counts D-day on the device calendar, not by elapsed hours", () => {
     expect(formatLaunchDday(new Date("2026-11-16T00:30:00Z"), NOW)).toBe("D-4");
     expect(formatLaunchDday(new Date("2026-11-12T14:00:00Z"), NOW)).toBe("D-Day");
     expect(formatLaunchDday(new Date("2026-11-13T00:00:00Z"), NOW)).toBe("D-1");
@@ -139,5 +140,25 @@ describe("launch document", () => {
     });
     expect(parseLaunchDocument({ items: [{ name: "missing net" }] }).launches).toEqual([]);
     expect(LAUNCH_LOAD_ERROR).not.toContain("HTTP");
+  });
+});
+
+describe("launch times in a named zone", () => {
+  it("shows 2026-11-14T12:05:41Z as New York 07:05 and Seoul 21:05", () => {
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("Asia/Seoul");
+    const net = new Date("2026-11-14T12:05:41Z");
+    expect(formatLaunchDateTime(net, "en", "America/New_York")).toBe("11/14 (Sat) 07:05");
+    expect(formatLaunchDateTime(net, "ko", "Asia/Seoul")).toBe("11/14 (토) 21:05");
+    expect(formatLaunchDateTime(net, "en")).toBe("11/14 (Sat) 21:05");
+  });
+
+  it("counts D-1 in New York when the Korean date of both instants is the same day", () => {
+    const now = new Date("2026-11-15T03:00:00.000Z");
+    const net = new Date("2026-11-15T06:00:00.000Z");
+    expect(formatLaunchDateTime(net, "en", "America/New_York")).toBe("11/15 (Sun) 01:00");
+    expect(formatLaunchDday(net, now, "America/New_York")).toBe("D-1");
+    expect(formatLaunchDateTime(net, "ko", "Asia/Seoul")).toBe("11/15 (일) 15:00");
+    expect(formatLaunchDday(net, now, "Asia/Seoul")).toBe("D-Day");
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("Asia/Seoul");
   });
 });

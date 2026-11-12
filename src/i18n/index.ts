@@ -1,3 +1,4 @@
+import { zonedParts } from "../clock";
 import { en } from "./en";
 import { ko, type MessageKey } from "./ko";
 
@@ -50,19 +51,15 @@ export function translate(
   });
 }
 
-/** 화면의 날짜는 지금처럼 한국표준시(UTC+9, 일광절약시간 없음) 달력을 쓴다. */
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-
 /**
  * 첫 화면 제목. 장소가 있으면 `11월 12일 (목) · 서울`, 없으면 날짜만.
+ * 날짜는 기기 시간대 달력이다. Asia/Seoul에서는 한국 날짜와 같다.
  * 슬로건을 붙이지 않는다.
  */
-export function formatDatePlace(date: Date, place: string, locale: Locale): string {
-  const shifted = new Date(date.getTime() + KST_OFFSET_MS);
-  const month = shifted.getUTCMonth() + 1;
-  const day = shifted.getUTCDate();
-  const weekday = weekdayLabel(shifted.getUTCDay(), locale);
-  const values = { month, day, weekday, place };
+export function formatDatePlace(date: Date, place: string, locale: Locale, timeZone?: string): string {
+  const parts = zonedParts(date, timeZone);
+  const weekday = weekdayLabel(parts.weekday, locale);
+  const values = { month: parts.month, day: parts.day, weekday, place };
   return place ? translate(locale, "datePlace", values) : translate(locale, "dateLine", values);
 }
 
@@ -76,7 +73,7 @@ const WEEKDAY_KEYS = [
   "weekdaySat",
 ] as const satisfies readonly MessageKey[];
 
-/** 한국표준시 요일 이름. 시계 숫자는 언어와 상관없이 한국시간이다. */
+/** 요일 이름. 날짜 숫자는 기기 시간대이고, 이름만 언어를 따른다. */
 export function weekdayLabel(dayIndex: number, locale: Locale): string {
   const key = WEEKDAY_KEYS[dayIndex] ?? "weekdaySun";
   return translate(locale, key);

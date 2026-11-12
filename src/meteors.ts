@@ -1,10 +1,9 @@
-import { kstDayStart } from "./sky";
+import { zonedParts } from "./clock";
 
 /**
- * 한국표준시는 UTC+9이고 서머타임을 쓰지 않는다.
- * 극대일 비교는 이 달력 날짜로 한다.
+ * 극대 월·일은 표의 숫자 그대로다.
+ * "오늘"만 기기 시간대 달력으로 센다. Asia/Seoul이면 한국 날짜와 같다.
  */
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -34,20 +33,11 @@ export type MeteorShower = (typeof METEOR_SHOWERS)[number];
 
 export type NextMeteorShower = {
   shower: MeteorShower;
-  /** 다가오는 극대의 한국 달력 날짜. `YYYY-MM-DD`. */
+  /** 다가오는 극대의 표 월·일. `YYYY-MM-DD`. 시간대로 옮기지 않는다. */
   peakDate: string;
-  /** 오늘(한국 날짜)부터 극대일까지 남은 날. 0이면 오늘이 극대일이다. */
+  /** 오늘(기기 시간대 날짜)부터 극대일까지 남은 날. 0이면 오늘이 극대일이다. */
   daysUntil: number;
 };
-
-function kstCalendar(date: Date): { year: number; month: number; day: number } {
-  const shifted = new Date(kstDayStart(date).getTime() + KST_OFFSET_MS);
-  return {
-    year: shifted.getUTCFullYear(),
-    month: shifted.getUTCMonth() + 1,
-    day: shifted.getUTCDate(),
-  };
-}
 
 function calendarDayNumber(year: number, month: number, day: number): number {
   return Math.round(Date.UTC(year, month - 1, day) / DAY_MS);
@@ -71,15 +61,16 @@ export function formatMeteorDday(daysUntil: number): string {
 }
 
 /**
- * 한국 날짜 기준으로 아직 지나지 않은 가장 가까운 극대.
+ * 기기 시간대 날짜 기준으로 아직 지나지 않은 가장 가까운 극대.
+ * 극대 월·일은 표 그대로이고, 오늘만 그 시간대 달력이다.
  * 극대일이 오늘이면 그 유성우를 고르고, 모두 지났으면 다음 해 첫 극대로 넘어간다.
  */
-export function nextMeteorShower(date: Date): NextMeteorShower {
+export function nextMeteorShower(date: Date, timeZone?: string): NextMeteorShower {
   if (Number.isNaN(date.getTime())) {
     throw new RangeError("시각이 올바르지 않습니다.");
   }
 
-  const today = kstCalendar(date);
+  const today = zonedParts(date, timeZone);
   const todayNumber = calendarDayNumber(today.year, today.month, today.day);
   let best: NextMeteorShower | null = null;
 
