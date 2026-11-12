@@ -480,6 +480,10 @@ export function splitOrbitPaths(points: readonly OrbitPoint[]): OrbitPoint[][] {
   return paths;
 }
 
+export function orbitPathsForStation(station: Station, date: Date): OrbitPath[] {
+  return orbitPathsFor(station, date);
+}
+
 function orbitPathsFor(station: Station, date: Date): OrbitPath[] {
   const meanMotion = finiteNumber(station.omm.MEAN_MOTION);
   if (meanMotion === null || meanMotion <= 0) {
