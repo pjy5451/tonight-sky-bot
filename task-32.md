@@ -1,4 +1,4 @@
-status: fix-needed
+status: fixed
 attempts: 1
 pr: 29
 branch: task-32-desktop-layout
