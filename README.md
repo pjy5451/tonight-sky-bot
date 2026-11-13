@@ -30,15 +30,19 @@
 - `src/launches.ts` — 발사 일정 표시
 - `src/location.ts` — 시·도 좌표와 위치 저장
 - `src/sources.ts` — 화면 하단의 데이터 출처와 갱신 시각
-- `public/data/` — `tle.json`, `launches.json`, `catalog.json`, `stars.json`. 브라우저는 이 파일만 읽습니다
+- `public/data/` — `tle.json`, `launches.json`, `catalog.json`, `stars.json`, `cities.json`. 브라우저는 이 파일만 읽습니다
 - `public/textures/` — 지구본 낮·밤 사진(처음 2K, 이어서 고해상도)과 지형·바다 텍스처. 출처는 `CREDITS.md`
-- `scripts/fetch-data.js` — Cloudflare 빌드는 `data` 브랜치의 JSON을 받아 옵니다. 원본(CelesTrak, Launch Library 2)은 GitHub Actions `data-refresh`가 6시간마다 받습니다. 실패한 묶음은 이전 성공본을 덮어쓰지 않습니다. `stars.json`은 여기서 다시 받지 않습니다
+- `scripts/fetch-data.js` — Cloudflare 빌드는 `data` 브랜치의 JSON을 받아 옵니다. 원본(CelesTrak, Launch Library 2)은 GitHub Actions `data-refresh`가 6시간마다 받습니다. 실패한 묶음은 이전 성공본을 덮어쓰지 않습니다. `stars.json`과 `cities.json`은 여기서 다시 받지 않습니다
 
 ## 별 목록
 
 하늘 지도의 별 위치와 밝기는 Yale Bright Star Catalogue, 5th Revised Ed. (Hoffleit & Warren 1991)이다. NASA Astronomical Data Center가 V/50으로 배포한 자료를 썼다. 적경·적위는 J2000.0이고, 별의 위치와 시각등급은 관측된 사실 데이터라 공개 도메인으로 둔다. `public/data/stars.json`에는 시각등급 5.5보다 밝은 별만 들어 있다.
 
 별자리 선은 Marc van der Sluys의 [ConstellationLines](https://github.com/MarcvdSluys/ConstellationLines) (CC BY 4.0)이다. 원본의 BSC 번호를 이었고, 이 등급 제한에 없는 별의 연결은 빼서 선 목록을 별 쌍으로 나눴다.
+
+## 도시 목록
+
+위치 검색의 도시는 GeoNames `cities5000`와 `alternateNamesV2`이다. 라이선스는 CC BY 4.0이다. 인구 100만 이상이거나 수도(PPLC)이고, 영문 이름이 20자 이하인 도시만 `public/data/cities.json`에 두었다. 한글 이름은 alternateNamesV2에서 도시당 하나다. 이 파일은 개발 중에 한 번 만들었고, 실행 중에 GeoNames로 다시 요청하지 않는다.
 
 ## 개발
 

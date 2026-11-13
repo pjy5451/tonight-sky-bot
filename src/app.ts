@@ -1,5 +1,8 @@
 import { formatShortOffset } from "./clock";
+import { matchingCities, parseCities, type CityRecord } from "./cities";
 import {
+  FORECAST_RANGE_KM,
+  distanceKm,
   formatKp,
   formatVisibilityKm,
   loadObservingConditions,
@@ -532,6 +535,26 @@ function clearConditions(panel: HTMLElement): void {
   paintConditions(panel, null, null);
 }
 
+function paintConditionsOutOfRange(panel: HTMLElement): void {
+  const label = panel.querySelector("#conditions-label");
+  const error = panel.querySelector("#conditions-error");
+  const rows = panel.querySelector("#conditions-rows");
+  if (!(label instanceof HTMLElement) || !(error instanceof HTMLElement) || !(rows instanceof HTMLElement)) {
+    return;
+  }
+
+  bindText(label, "conditionsTitle");
+  rows.hidden = true;
+  error.hidden = false;
+  bindText(error, "conditionsOutOfRange");
+  setConditionsValue(panel, "#conditions-index", "—");
+  setConditionsValue(panel, "#conditions-cloud", "—");
+  setConditionsValue(panel, "#conditions-visibility", "—");
+  setConditionsValue(panel, "#conditions-humidity", "—");
+  setConditionsValue(panel, "#conditions-kp", "—");
+  setSummaryConditions("—", "—");
+}
+
 function refreshConditions(
   panel: HTMLElement,
   place: { latitude: number; longitude: number },
@@ -546,6 +569,11 @@ function refreshConditions(
   const region = nearestRegion(place.latitude, place.longitude);
   if (!region || !sunset) {
     paintConditions(panel, region?.id ?? null, null);
+    return;
+  }
+
+  if (distanceKm(place.latitude, place.longitude, region.latitude, region.longitude) > FORECAST_RANGE_KM) {
+    paintConditionsOutOfRange(panel);
     return;
   }
 
@@ -2429,6 +2457,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   starStatus = "loading";
 
   const now = () => options.now?.() ?? new Date();
+  const readJson = createLocalJsonReader();
   document.title = BRAND_NAME;
 
   const root = document.createElement("div");
@@ -2564,6 +2593,23 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   error.role = "alert";
   error.hidden = true;
 
+  const citySearchLabel = document.createElement("label");
+  citySearchLabel.className = "stat-label";
+  citySearchLabel.htmlFor = "city-search";
+  bindText(citySearchLabel, "citySearch");
+
+  const citySearch = document.createElement("input");
+  citySearch.id = "city-search";
+  citySearch.className = "city-search";
+  citySearch.type = "search";
+  citySearch.autocomplete = "off";
+  citySearch.spellcheck = false;
+  bindAria(citySearch, "citySearch");
+
+  const cityResults = document.createElement("ul");
+  cityResults.id = "city-results";
+  cityResults.className = "region-list";
+
   const regionList = document.createElement("ul");
   regionList.className = "region-list";
 
@@ -2588,7 +2634,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     regionButtons.set(region.id, button);
   }
 
-  dialogCard.append(dialogHeader, help, useCurrentButton, error, regionList);
+  dialogCard.append(dialogHeader, help, useCurrentButton, error, citySearchLabel, citySearch, cityResults, regionList);
   dialog.append(dialogCard);
 
   const setLocationLabel = () => {
@@ -2650,6 +2696,42 @@ export function createApp(options: AppOptions = {}): HTMLElement {
     closeDialog();
     refreshTonight();
   };
+
+  let cityCatalog: CityRecord[] = [];
+
+  const renderCityResults = () => {
+    cityResults.replaceChildren();
+    for (const city of matchingCities(cityCatalog, citySearch.value)) {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "region-button";
+      button.textContent = city.asciiname;
+      button.addEventListener("click", () => {
+        try {
+          persistLocation({
+            latitude: city.lat,
+            longitude: city.lon,
+            label: city.asciiname,
+            source: "city",
+          });
+        } catch {
+          showError("regionSaveFailed");
+        }
+      });
+      item.append(button);
+      cityResults.append(item);
+    }
+  };
+
+  citySearch.addEventListener("input", () => {
+    renderCityResults();
+  });
+
+  void readJson("cities.json").then((file) => {
+    cityCatalog = file.ok ? parseCities(file.payload) : [];
+    renderCityResults();
+  });
 
   locationButton.addEventListener("click", () => {
     openDialog();
@@ -2789,7 +2871,6 @@ export function createApp(options: AppOptions = {}): HTMLElement {
   desktopNav.append(...desktopButtons);
   panels.append(...panelElements);
 
-  const readJson = createLocalJsonReader();
   const satellitesPanel = panelElements.find((panel) => panel.id === "panel-satellites");
   const satellites = satellitesPanel ? bindSatellites(satellitesPanel, now, readJson) : null;
   const launchesPanel = panelElements.find((panel) => panel.id === "panel-launches");

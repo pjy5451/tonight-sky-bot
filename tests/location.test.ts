@@ -118,6 +118,33 @@ describe("saveLocation and loadLocation", () => {
     expect(loadLocation(store)).toBeNull();
   });
 
+  it("accepts a city source up to 20 characters and rejects a longer label", () => {
+    const store = createMemoryStore();
+    const saved = saveLocation(store, {
+      latitude: 35.6895,
+      longitude: 139.69171,
+      label: "abcdefghijklmnopqrst",
+      source: "city",
+    });
+    expect(saved).toEqual({
+      latitude: 35.7,
+      longitude: 139.7,
+      label: "abcdefghijklmnopqrst",
+      source: "city",
+    });
+    expect(loadLocation(store)).toEqual(saved);
+
+    expect(() =>
+      saveLocation(store, {
+        latitude: 35.7,
+        longitude: 139.7,
+        label: "abcdefghijklmnopqrstu",
+        source: "city",
+      }),
+    ).toThrow(RangeError);
+    expect(loadLocation(store)?.label).toBe("abcdefghijklmnopqrst");
+  });
+
   it("does not write a coordinate outside the valid range", () => {
     const store = createMemoryStore();
 

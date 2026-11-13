@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app";
+import * as conditions from "../src/conditions";
 import {
   CONDITIONS_CACHE_MS,
   CONDITIONS_STORAGE_KEY,
   SWPC_KP_URL,
+  distanceKm,
   formatKp,
   formatVisibilityKm,
   loadObservingConditions,
@@ -436,6 +438,70 @@ describe("conditions card", () => {
     expect(document.querySelector("#summary-cloud")?.textContent).toBe("—");
     expect(document.querySelector("#sunset-value")?.textContent).toBe("17:24");
     expect(document.querySelector("#moon-value")?.textContent).toMatch(/%$/);
+    expect(document.querySelector("#planet-time")?.textContent).not.toBe("");
+  });
+
+  it("skips the cache and the forecast when the nearest office is farther than 400 km", async () => {
+    const latitude = 35.7;
+    const longitude = 139.7;
+    const region = nearestRegion(latitude, longitude);
+    const seoul = nearestRegion(37.6, 127);
+    expect(region).not.toBeNull();
+    expect(seoul?.id).toBe("seoul");
+    expect(distanceKm(37.6, 127, seoul!.latitude, seoul!.longitude)).toBeLessThanOrEqual(400);
+    expect(distanceKm(latitude, longitude, region!.latitude, region!.longitude)).toBeGreaterThan(400);
+
+    localStorage.setItem(
+      CONDITIONS_STORAGE_KEY,
+      JSON.stringify({
+        regionId: region!.id,
+        savedAt: NOON.getTime(),
+        index: 61,
+        cloudPercent: 13,
+        visibilityKm: 20,
+        humidityPercent: 40,
+        kp: 1,
+      }),
+    );
+    saveLocation(localStorage, {
+      latitude,
+      longitude,
+      label: "Tokyo",
+      source: "city",
+    });
+
+    const cacheSpy = vi.spyOn(conditions, "readConditionsCache");
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return jsonResponse({ fetched_at: "2026-11-12T03:00:00.000Z", items: [] });
+    }));
+
+    document.body.innerHTML = "";
+    document.body.append(createApp({ now: () => NOON }));
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#conditions-error")?.textContent).toBe(
+        "이 위치의 관측 조건 예보는 없어요",
+      );
+    });
+
+    expect(cacheSpy).not.toHaveBeenCalled();
+    expect(calls.some((url) => url.includes("open-meteo.com") || url.includes("swpc.noaa.gov"))).toBe(false);
+    expect(document.querySelector("#conditions-index")?.textContent).toBe("—");
+    expect(document.querySelector("#conditions-cloud")?.textContent).toBe("—");
+    expect(document.querySelector("#summary-index")?.textContent).toBe("—");
+    expect(document.querySelector("#summary-cloud")?.textContent).toBe("—");
+    expect(document.querySelector("#conditions-card")?.textContent).not.toContain("61");
+    expect(document.querySelector("#conditions-card")?.textContent).not.toContain("13%");
+    expect(document.querySelector("#sunset-value")?.textContent).not.toBe("—");
+
+    document.querySelector<HTMLButtonElement>("#language-button")?.click();
+    expect(document.querySelector("#conditions-error")?.textContent).toBe(
+      "No observing forecast for this place",
+    );
+    expect(cacheSpy).not.toHaveBeenCalled();
+    expect(calls.some((url) => url.includes("open-meteo.com") || url.includes("swpc.noaa.gov"))).toBe(false);
     expect(document.querySelector("#planet-time")?.textContent).not.toBe("");
   });
 });

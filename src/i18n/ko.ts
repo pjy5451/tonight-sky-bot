@@ -112,6 +112,7 @@ export const ko = {
   close: "닫기",
   locationHelp: "좌표는 소수점 1자리로 반올림해 이 기기에만 저장합니다.",
   useCurrentLocation: "현재 위치 사용",
+  citySearch: "도시 검색",
   locationChoose: "위치 선택",
   locationChange: "위치 {label}, 변경",
   myLocation: "내 위치",
@@ -220,6 +221,7 @@ export const ko = {
   conditionsHumidity: "습도",
   conditionsKp: "우주날씨 Kp",
   conditionsError: "관측 조건을 지금 불러올 수 없어요",
+  conditionsOutOfRange: "이 위치의 관측 조건 예보는 없어요",
 } as const;
 
 export type MessageKey = keyof typeof ko;
