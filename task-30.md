@@ -1,8 +1,12 @@
-status: blocked
-attempts: 4
+status: fix-needed
+attempts: 0
 pr: 33
 branch: task-30-tonight-timeline
 title: [task-30] 오늘 밤 타임라인
+
+## 사람 메모 (2026-11-13)
+
+사람이 막힌 상태를 풀고 다시 맡긴다. 아래 "최근 피드백"의 "고칠 것" 1~3을 그대로 따른다. 핵심은 하나다: 행성 남중을 computeTonightSky 결과(그 순간 지평선 위 행성)로 거르지 말고, 금성·화성·목성·토성 네 개 모두 SearchHourAngle로 일몰~다음 일출 창 안의 남중을 직접 구한 뒤 그때 고도가 0°보다 큰 것만 넣는다. 테스트도 행성을 토성 하나로 고정하지 말고 화성·목성이 들어가는지 확인한다.
 
 ## 최근 피드백
 
