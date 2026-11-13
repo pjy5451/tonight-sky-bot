@@ -10,6 +10,9 @@ export const CONDITIONS_CACHE_MS = 30 * 60 * 1000;
 /** 예보·Kp 요청이 이 시간을 넘기면 카드만 실패로 둔다. */
 export const CONDITIONS_TIMEOUT_MS = 5000;
 
+/** 가장 가까운 시·도 청사까지 이 거리보다 멀면 예보를 받지 않는다. */
+export const FORECAST_RANGE_KM = 400;
+
 export const OPEN_METEO_ORIGIN = "https://api.open-meteo.com";
 export const SWPC_ORIGIN = "https://services.swpc.noaa.gov";
 
@@ -469,7 +472,8 @@ function mergeSignals(caller: AbortSignal | undefined, timeout: AbortSignal): Ab
   return controller.signal;
 }
 
-function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+/** 기존 관측 조건 거리. 지구 반지름 6371km. */
+export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const earthRadiusKm = 6371;
   const toRad = (degrees: number) => (degrees * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);

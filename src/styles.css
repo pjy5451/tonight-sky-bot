@@ -255,6 +255,23 @@ h1 {
   cursor: progress;
 }
 
+.city-search {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.city-search:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+
 .region-list {
   display: flex;
   flex-direction: column;

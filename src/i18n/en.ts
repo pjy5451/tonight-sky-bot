@@ -114,6 +114,7 @@ export const en = {
   close: "Close",
   locationHelp: "Coordinates are rounded to one decimal place and stored only on this device.",
   useCurrentLocation: "Use current location",
+  citySearch: "Search cities",
   locationChoose: "Choose location",
   locationChange: "Location {label}, change",
   myLocation: "My location",
@@ -222,4 +223,5 @@ export const en = {
   conditionsHumidity: "Humidity",
   conditionsKp: "Space weather Kp",
   conditionsError: "Observing conditions are unavailable right now.",
+  conditionsOutOfRange: "No observing forecast for this place",
 } satisfies Record<MessageKey, string>;

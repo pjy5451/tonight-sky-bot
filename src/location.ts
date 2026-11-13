@@ -2,7 +2,7 @@ import { translate, type Locale } from "./i18n";
 
 export const LOCATION_STORAGE_KEY = "tonight-sky-location";
 
-export type LocationSource = "geolocation" | "region";
+export type LocationSource = "geolocation" | "region" | "city";
 
 export type StoredLocation = {
   latitude: number;
@@ -125,7 +125,7 @@ export function saveLocation(store: KeyValueStore, input: LocationInput): Stored
     throw new RangeError("위치 이름이 올바르지 않습니다.");
   }
 
-  if (input.source !== "geolocation" && input.source !== "region") {
+  if (input.source !== "geolocation" && input.source !== "region" && input.source !== "city") {
     throw new RangeError("위치 출처가 올바르지 않습니다.");
   }
 
@@ -183,7 +183,7 @@ function isStoredLocation(value: unknown): value is StoredLocation {
   if (label.length === 0 || label.length > LABEL_MAX_LENGTH || label !== record.label) {
     return false;
   }
-  if (record.source !== "geolocation" && record.source !== "region") {
+  if (record.source !== "geolocation" && record.source !== "region" && record.source !== "city") {
     return false;
   }
 
