@@ -2534,10 +2534,19 @@ function locationDisplay(stored: StoredLocation): string {
   return key ? tr(key) : stored.label;
 }
 
+function syncOpenGraphLocale(next: Locale): void {
+  const tag = document.querySelector('meta[property="og:locale"]');
+  if (!(tag instanceof HTMLMetaElement)) {
+    return;
+  }
+  tag.setAttribute("content", next === "en" ? "en_US" : "ko_KR");
+}
+
 export function createApp(options: AppOptions = {}): HTMLElement {
   transitCache = { key: "", events: [] };
   locale = resolveLanguage(localStorage, navigator.language || "");
   document.documentElement.lang = locale;
+  syncOpenGraphLocale(locale);
   const generation = ++starGeneration;
   starCatalog = null;
   starStatus = "loading";
@@ -3145,6 +3154,7 @@ export function createApp(options: AppOptions = {}): HTMLElement {
 
   const applyLocale = () => {
     document.documentElement.lang = locale;
+    syncOpenGraphLocale(locale);
     applyBoundCopy(root);
     markLanguageButton(languageButton);
     setLocationLabel();

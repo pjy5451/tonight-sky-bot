@@ -102,6 +102,10 @@ describe("security headers", () => {
         expect(FONT_HOSTS.has(new URL(href).host)).toBe(true);
         continue;
       }
+      if (rel.toLowerCase() === "canonical") {
+        expect(href).toBe("https://argonova.pages.dev");
+        continue;
+      }
       expect(href.startsWith("http://") || href.startsWith("https://")).toBe(false);
     }
 
@@ -148,7 +152,15 @@ describe("security headers", () => {
       expectHeaders(builtHeaders);
 
       const builtHtml = readText(join(outDir, "index.html"));
-      const builtUrls = [...builtHtml.matchAll(/https?:\/\/[^"'>\s]+/g)].map((match) => match[0]);
+      const jsonLd = [
+        ...builtHtml.matchAll(
+          /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi,
+        ),
+      ];
+      expect(jsonLd).toHaveLength(1);
+      expect(jsonLd[0]?.[0].includes("src=")).toBe(false);
+      const pageHtml = builtHtml.replace(jsonLd[0]?.[0] ?? "", "");
+      const builtUrls = [...pageHtml.matchAll(/https?:\/\/[^"'>\s]+/g)].map((match) => match[0]);
       const builtHosts = new Set(builtUrls.map((url) => new URL(url).host));
       expect([...builtHosts].sort()).toEqual(
         ["argonova.pages.dev", "fonts.googleapis.com", "fonts.gstatic.com"].sort(),
