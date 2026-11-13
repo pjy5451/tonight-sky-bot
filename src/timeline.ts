@@ -28,6 +28,8 @@ const PLANET_BODY: Record<PlanetId, Body> = {
   saturn: Body.Saturn,
 };
 
+const CULMINATION_PLANETS: readonly PlanetId[] = ["venus", "mars", "jupiter", "saturn"];
+
 const KIND_ORDER = {
   sunset: 0,
   civil: 1,
@@ -84,8 +86,9 @@ function pushTwilight(
 
 /**
  * 선택 지역의 오늘 저녁부터 다음 일출 전까지.
- * 일몰, 시민·항해·천문 박명 끝, 맨눈 ISS 통과, 오늘 밤 행성의 남중, 달 뜸·짐.
- * 박명과 오늘 밤 행성 시각은 `sunCenterAltitudeCrossing`을 같이 쓴다.
+ * 일몰, 시민·항해·천문 박명 끝, 맨눈 ISS 통과, 금성·화성·목성·토성 남중, 달 뜸·짐.
+ * 박명 끝은 `sunCenterAltitudeCrossing`, 일몰은 `computeTonightSky`를 쓴다.
+ * 남중은 그 시각에 떠 있는 행성만 고르지 않는다.
  */
 export function buildTonightTimeline(
   place: SkyPlace,
@@ -120,8 +123,8 @@ export function buildTonightTimeline(
     events.push({ kind: "moonset", time: moonset.date });
   }
 
-  for (const planet of sky.planets) {
-    const body = PLANET_BODY[planet.id];
+  for (const planetId of CULMINATION_PLANETS) {
+    const body = PLANET_BODY[planetId];
     const culmination = SearchHourAngle(body, observer, 0, sunset, 1);
     if (!inWindow(culmination.time.date, startMs, endMs)) {
       continue;
@@ -140,7 +143,7 @@ export function buildTonightTimeline(
     events.push({
       kind: "planet",
       time: culmination.time.date,
-      planetId: planet.id,
+      planetId,
       altitude: horizontal.altitude,
     });
   }

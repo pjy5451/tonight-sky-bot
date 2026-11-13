@@ -1,4 +1,4 @@
-import { Observer } from "astronomy-engine";
+import { Body, Equator, Horizon, Observer } from "astronomy-engine";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -56,7 +56,7 @@ describe("ISS visual magnitude", () => {
 });
 
 describe("tonight timeline for Seoul on 2026-11-12", () => {
-  it("orders sunset, twilight, moonset, and Saturn, and matches the KASI twilight times", () => {
+  it("orders sunset, twilight, moonset, Saturn, Mars, and Jupiter, and matches the KASI twilight times", () => {
     const sky = computeTonightSky(SEOUL, NOON);
     const events = buildTonightTimeline(SEOUL, NOON);
     const observer = new Observer(SEOUL.latitude, SEOUL.longitude, 0);
@@ -70,6 +70,8 @@ describe("tonight timeline for Seoul on 2026-11-12", () => {
       "nautical",
       "astronomical",
       "moonset",
+      "planet",
+      "planet",
       "planet",
     ]);
     expect(events.map((event) => event.time.getTime())).toEqual(
@@ -89,8 +91,12 @@ describe("tonight timeline for Seoul on 2026-11-12", () => {
     expect(events.find((event) => event.kind === "moonrise")).toBeUndefined();
     expect(events.filter((event) => event.kind === "planet").map((event) => event.planetId)).toEqual([
       "saturn",
+      "mars",
+      "jupiter",
     ]);
     expect(Math.round(events.find((event) => event.planetId === "saturn")?.altitude ?? Number.NaN)).toBe(53);
+    expect(Math.round(events.find((event) => event.planetId === "mars")?.altitude ?? Number.NaN)).toBe(68);
+    expect(Math.round(events.find((event) => event.planetId === "jupiter")?.altitude ?? Number.NaN)).toBe(66);
     expect(nextTimelineEvent(events, NOON)?.kind).toBe("sunset");
     expect(formatTimelineCountdown(new Date("2026-11-12T08:24:00.000Z"), NOON)).toBe("T\u221205:24:00");
     expect(formatTimelineCountdown(NOON, NOON)).toBeNull();
@@ -129,6 +135,22 @@ describe("tonight timeline for Seoul on 2026-11-12", () => {
     expect(Math.abs((astronomical?.time.getTime() ?? 0) - KASI_ASTRO_END)).toBeLessThanOrEqual(
       TWO_MINUTES_MS,
     );
+  });
+});
+
+describe("planet culminations still below the horizon", () => {
+  it("includes Mars and Jupiter at 2026-11-12T14:00:00.000Z", () => {
+    const evening = new Date("2026-11-12T14:00:00.000Z");
+    const observer = new Observer(SEOUL.latitude, SEOUL.longitude, 0);
+    for (const body of [Body.Mars, Body.Jupiter]) {
+      const equatorial = Equator(body, evening, observer, true, true);
+      const altitude = Horizon(evening, observer, equatorial.ra, equatorial.dec, "normal").altitude;
+      expect(altitude).toBeLessThan(0);
+    }
+    const planets = buildTonightTimeline(SEOUL, evening)
+      .filter((event) => event.kind === "planet")
+      .map((event) => event.planetId);
+    expect(planets).toEqual(["saturn", "mars", "jupiter"]);
   });
 });
 
