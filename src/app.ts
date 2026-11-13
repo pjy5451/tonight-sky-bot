@@ -105,6 +105,7 @@ import {
   upcomingIssPasses,
   type IssPass,
 } from "./iss-passes";
+import { predictStationTransits, type IssTransit } from "./iss-transits";
 import { createSkyMap, parseStarCatalog, type StarCatalog } from "./sky-map";
 import { formatMeteorDday, nextMeteorShower } from "./meteors";
 import { dataSourceFooter, staleDataNotice } from "./sources";
@@ -811,6 +812,76 @@ function renderIssPassCard(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad
   divider.hidden = passes.length < 2;
 }
 
+type TransitCache = {
+  key: string;
+  events: IssTransit[];
+};
+
+let transitCache: TransitCache = { key: "", events: [] };
+
+function renderIssTransits(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad): void {
+  const empty = panel.querySelector("#iss-transit-empty");
+  const list = panel.querySelector("#iss-transit-list");
+  if (!(empty instanceof HTMLElement) || !(list instanceof HTMLElement)) {
+    return;
+  }
+
+  const showEmpty = () => {
+    list.replaceChildren();
+    delete empty.dataset.i18n;
+    empty.hidden = false;
+    empty.textContent = tr("issTransitNone");
+  };
+
+  if (Number.isNaN(date.getTime())) {
+    showEmpty();
+    return;
+  }
+
+  const location = loadLocation(localStorage);
+  const station = issLoad.state === "ready" ? issLoad.station : null;
+  if (!location || !station || station.noradId !== ISS_NORAD_CATALOG_ID) {
+    showEmpty();
+    return;
+  }
+
+  const minute = Math.floor(date.getTime() / 60_000);
+  const key = [station.noradId, station.omm.EPOCH, location.latitude, location.longitude, minute].join("|");
+  if (transitCache.key !== key) {
+    transitCache = {
+      key,
+      events: predictStationTransits(
+        station,
+        { latitude: location.latitude, longitude: location.longitude, heightMeters: 0 },
+        date,
+        new Date(date.getTime() + ISS_PASS_HORIZON_MS),
+      ),
+    };
+  }
+
+  if (transitCache.events.length === 0) {
+    showEmpty();
+    return;
+  }
+
+  delete empty.dataset.i18n;
+  empty.hidden = true;
+  empty.textContent = "";
+  list.replaceChildren();
+  for (const event of transitCache.events) {
+    const row = document.createElement("div");
+    row.className = "iss-transit-row";
+    const body = document.createElement("span");
+    body.className = "iss-transit-body";
+    body.textContent = tr(event.body === "sun" ? "issTransitSun" : "issTransitMoon");
+    const time = document.createElement("span");
+    time.className = "iss-transit-time";
+    time.textContent = formatKstTime(event.time);
+    row.append(body, time);
+    list.append(row);
+  }
+}
+
 function skyIssTrack(
   date: Date,
   issLoad: IssOrbitLoad,
@@ -835,6 +906,7 @@ function skyIssTrack(
 
 function fillTonightPanel(panel: HTMLElement, date: Date, issLoad: IssOrbitLoad): void {
   renderIssPassCard(panel, date, issLoad);
+  renderIssTransits(panel, date, issLoad);
   const locationForMap = loadLocation(localStorage);
   skyMaps.get(panel)?.update({
     locale,
@@ -1066,6 +1138,19 @@ function createTonightPanel(tab: Tab): HTMLElement {
 
   iss.append(issHead, issMain, issDivider, issList, issNote);
 
+  const transits = createCard("card");
+  transits.id = "iss-transit-card";
+  const transitTitle = createBoundTitle("issTransit");
+  transitTitle.id = "iss-transit-title";
+  const transitList = document.createElement("div");
+  transitList.id = "iss-transit-list";
+  transitList.className = "iss-transit-list";
+  const transitEmpty = document.createElement("p");
+  transitEmpty.id = "iss-transit-empty";
+  transitEmpty.className = "pending";
+  transitEmpty.setAttribute("role", "status");
+  transits.append(transitTitle, transitList, transitEmpty);
+
   const planets = createCard("card");
   const planetHead = document.createElement("div");
   planetHead.className = "planet-head";
@@ -1109,7 +1194,7 @@ function createTonightPanel(tab: Tab): HTMLElement {
 
   const board = document.createElement("div");
   board.className = "board";
-  board.append(skyMap.element, stats, iss, planets, meteor, conditions);
+  board.append(skyMap.element, stats, iss, transits, planets, meteor, conditions);
 
   panel.append(status, board);
   return panel;
@@ -2450,6 +2535,7 @@ function locationDisplay(stored: StoredLocation): string {
 }
 
 export function createApp(options: AppOptions = {}): HTMLElement {
+  transitCache = { key: "", events: [] };
   locale = resolveLanguage(localStorage, navigator.language || "");
   document.documentElement.lang = locale;
   const generation = ++starGeneration;

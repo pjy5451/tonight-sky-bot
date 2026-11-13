@@ -507,6 +507,53 @@ h1 {
   display: none;
 }
 
+.iss-transit-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.iss-transit-list:empty {
+  display: none;
+}
+
+.iss-transit-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.iss-transit-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.iss-transit-body {
+  min-width: 0;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.iss-transit-time {
+  flex-shrink: 0;
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#iss-transit-empty {
+  margin: 0;
+}
+
+#iss-transit-empty[hidden] {
+  display: none;
+}
+
 .iss-pass-row {
   display: flex;
   justify-content: space-between;
