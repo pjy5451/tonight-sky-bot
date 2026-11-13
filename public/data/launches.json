@@ -1,21 +1,6 @@
 {
-  "fetched_at": "2026-11-12T23:35:48.756Z",
+  "fetched_at": "2026-11-13T06:38:57.601Z",
   "items": [
-    {
-      "id": "6aa7b90b-e5ed-45d8-a52e-04fbf399d178",
-      "name": "Falcon 9 Block 5 | USSF-627",
-      "net": "2026-11-12T04:36:30Z",
-      "status": "Launch Successful",
-      "provider": "SpaceX",
-      "rocket": "Falcon 9 Block 5",
-      "pad": "Space Launch Complex 4E",
-      "location": "Vandenberg SFB, CA, USA",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=rq7SLpK5vlY",
-        "https://www.youtube.com/watch?v=tM6K9RMvx0Y",
-        "https://x.com/i/broadcasts/2brkWyolnlBbLM"
-      ]
-    },
     {
       "id": "ef9850ad-1096-425b-9d27-f7bbd186e61a",
       "name": "Vulcan VC6L | Amazon Leo (LV-01)",
@@ -58,7 +43,7 @@
       "status": "Go for Launch",
       "provider": "Rocket Lab",
       "rocket": "Electron",
-      "pad": "Unknown Pad",
+      "pad": "Rocket Lab Launch Complex 1A",
       "location": "Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand",
       "webcast_urls": [
         "https://www.youtube.com/watch?v=kyR8kZ2XlhQ"
@@ -67,7 +52,7 @@
     {
       "id": "76617033-4dc0-4448-b50c-e5b0d5a18539",
       "name": "Falcon 9 Block 5 | USSF-317",
-      "net": "2026-11-15T03:55:00Z",
+      "net": "2026-11-18T03:14:00Z",
       "status": "Go for Launch",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
@@ -236,6 +221,17 @@
       "rocket": "Kuaizhou 11",
       "pad": "Launch Area 95A",
       "location": "Jiuquan Satellite Launch Center, People's Republic of China",
+      "webcast_urls": []
+    },
+    {
+      "id": "dfac5ab7-7017-454f-b6cf-eeed277a97b5",
+      "name": "LVM-3 | Gaganyaan-1",
+      "net": "2026-11-30T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "Indian Space Research Organization",
+      "rocket": "Launch Vehicle Mark-3 (GSLV Mk III)",
+      "pad": "Satish Dhawan Space Centre Second Launch Pad",
+      "location": "Satish Dhawan Space Centre, India",
       "webcast_urls": []
     }
   ]
