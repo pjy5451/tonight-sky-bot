@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-14T06:15:24.723Z",
+  "fetched_at": "2026-11-14T13:33:34.534Z",
   "items": [
     {
       "id": "0f867f0c-5422-4d44-93b8-d7faaae7019b",
@@ -22,18 +22,20 @@
       "id": "bff2fc91-eddd-4dfc-af26-ac0674cfab4d",
       "name": "Soyuz 2.1b/Fregat-M | MKA Kinosputnik, KOEN and others",
       "net": "2026-11-14T01:16:00Z",
-      "status": "Launch in Flight",
+      "status": "Launch Successful",
       "provider": "Russian Federal Space Agency (ROSCOSMOS)",
       "rocket": "Soyuz 2.1b Fregat-M",
       "pad": "Cosmodrome Site 1S",
       "location": "Vostochny Cosmodrome, Siberia, Russian Federation",
-      "webcast_urls": []
+      "webcast_urls": [
+        "https://www.youtube.com/watch?v=ATvKzYP7CPw"
+      ]
     },
     {
       "id": "db3500ac-965b-4ad8-b417-cb8d8d005586",
       "name": "Electron | The Mountain God Rises (iQPS Launch 10)",
       "net": "2026-11-14T05:30:00Z",
-      "status": "Launch in Flight",
+      "status": "Launch Successful",
       "provider": "Rocket Lab",
       "rocket": "Electron",
       "pad": "Rocket Lab Launch Complex 1A",
@@ -184,6 +186,17 @@
       "webcast_urls": []
     },
     {
+      "id": "2093e4fc-ac8c-4296-a1b5-deececee6a72",
+      "name": "Electron | StriX Launch 14",
+      "net": "2026-11-30T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "Rocket Lab",
+      "rocket": "Electron",
+      "pad": "Unknown Pad",
+      "location": "Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand",
+      "webcast_urls": []
+    },
+    {
       "id": "56ca6058-7ccc-4ec0-b1b0-fb49f3bfee49",
       "name": "Falcon 9 Block 5 | NROL-195",
       "net": "2026-11-30T00:00:00Z",
@@ -228,17 +241,6 @@
       "rocket": "Kuaizhou 11",
       "pad": "Launch Area 95A",
       "location": "Jiuquan Satellite Launch Center, People's Republic of China",
-      "webcast_urls": []
-    },
-    {
-      "id": "dfac5ab7-7017-454f-b6cf-eeed277a97b5",
-      "name": "LVM-3 | Gaganyaan-1",
-      "net": "2026-11-30T00:00:00Z",
-      "status": "To Be Determined",
-      "provider": "Indian Space Research Organization",
-      "rocket": "Launch Vehicle Mark-3 (GSLV Mk III)",
-      "pad": "Satish Dhawan Space Centre Second Launch Pad",
-      "location": "Satish Dhawan Space Centre, India",
       "webcast_urls": []
     }
   ]
