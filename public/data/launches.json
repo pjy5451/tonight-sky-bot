@@ -1,11 +1,11 @@
 {
-  "fetched_at": "2026-11-14T13:33:34.534Z",
+  "fetched_at": "2026-11-14T22:20:30.118Z",
   "items": [
     {
       "id": "0f867f0c-5422-4d44-93b8-d7faaae7019b",
       "name": "Starship | Starlink Group 31-2 (Starship Flight 15)",
       "net": "2026-11-13T22:47:36Z",
-      "status": "Payload Deployed",
+      "status": "Launch Successful",
       "provider": "SpaceX",
       "rocket": "Starship V3",
       "pad": "Orbital Launch Pad 2",
@@ -47,7 +47,7 @@
     {
       "id": "ef9850ad-1096-425b-9d27-f7bbd186e61a",
       "name": "Vulcan VC6L | Amazon Leo (LV-01)",
-      "net": "2026-11-14T17:32:30Z",
+      "net": "2026-11-15T17:11:30Z",
       "status": "Go for Launch",
       "provider": "United Launch Alliance",
       "rocket": "Vulcan VC6L",
