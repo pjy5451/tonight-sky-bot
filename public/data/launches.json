@@ -1,22 +1,28 @@
 {
-  "fetched_at": "2026-11-13T19:38:10.261Z",
+  "fetched_at": "2026-11-14T06:15:24.723Z",
   "items": [
     {
       "id": "0f867f0c-5422-4d44-93b8-d7faaae7019b",
       "name": "Starship | Starlink Group 31-2 (Starship Flight 15)",
-      "net": "2026-11-13T22:45:00Z",
-      "status": "Go for Launch",
+      "net": "2026-11-13T22:47:36Z",
+      "status": "Payload Deployed",
       "provider": "SpaceX",
       "rocket": "Starship V3",
       "pad": "Orbital Launch Pad 2",
       "location": "SpaceX Starbase, TX, USA",
-      "webcast_urls": []
+      "webcast_urls": [
+        "https://www.youtube.com/watch?v=dl4O6RqbvOs",
+        "https://x.com/i/broadcasts/2brajgZlOKRMka",
+        "https://www.youtube.com/watch?v=QlR1agMLyMk",
+        "https://www.youtube.com/watch?v=9XM0lpVlvo0",
+        "https://www.youtube.com/watch?v=QJFdKoKNn2M"
+      ]
     },
     {
       "id": "bff2fc91-eddd-4dfc-af26-ac0674cfab4d",
       "name": "Soyuz 2.1b/Fregat-M | MKA Kinosputnik, KOEN and others",
       "net": "2026-11-14T01:16:00Z",
-      "status": "Go for Launch",
+      "status": "Launch in Flight",
       "provider": "Russian Federal Space Agency (ROSCOSMOS)",
       "rocket": "Soyuz 2.1b Fregat-M",
       "pad": "Cosmodrome Site 1S",
@@ -27,7 +33,7 @@
       "id": "db3500ac-965b-4ad8-b417-cb8d8d005586",
       "name": "Electron | The Mountain God Rises (iQPS Launch 10)",
       "net": "2026-11-14T05:30:00Z",
-      "status": "Go for Launch",
+      "status": "Launch in Flight",
       "provider": "Rocket Lab",
       "rocket": "Electron",
       "pad": "Rocket Lab Launch Complex 1A",
