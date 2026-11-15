@@ -1,11 +1,11 @@
 {
-  "fetched_at": "2026-11-15T06:23:17.568Z",
+  "fetched_at": "2026-11-15T18:49:02.173Z",
   "items": [
     {
       "id": "ef9850ad-1096-425b-9d27-f7bbd186e61a",
       "name": "Vulcan VC6L | Amazon Leo (LV-01)",
-      "net": "2026-11-15T17:11:30Z",
-      "status": "Go for Launch",
+      "net": "2026-11-15T17:40:30Z",
+      "status": "Launch Failure",
       "provider": "United Launch Alliance",
       "rocket": "Vulcan VC6L",
       "pad": "Space Launch Complex 41",
