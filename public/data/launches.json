@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-15T18:49:02.173Z",
+  "fetched_at": "2026-11-16T06:21:58.730Z",
   "items": [
     {
       "id": "ef9850ad-1096-425b-9d27-f7bbd186e61a",
@@ -16,19 +16,6 @@
       ]
     },
     {
-      "id": "76617033-4dc0-4448-b50c-e5b0d5a18539",
-      "name": "Falcon 9 Block 5 | USSF-317",
-      "net": "2026-11-18T03:14:00Z",
-      "status": "Go for Launch",
-      "provider": "SpaceX",
-      "rocket": "Falcon 9 Block 5",
-      "pad": "Space Launch Complex 4E",
-      "location": "Vandenberg SFB, CA, USA",
-      "webcast_urls": [
-        "https://x.com/i/broadcasts/2lgkMvaRVPMdYR"
-      ]
-    },
-    {
       "id": "e0a11eb1-0bda-4872-b36b-140247fd5c60",
       "name": "Long March 2D | Unknown Payload",
       "net": "2026-11-18T22:50:00Z",
@@ -38,6 +25,19 @@
       "pad": "Launch Complex 9",
       "location": "Taiyuan Satellite Launch Center, People's Republic of China",
       "webcast_urls": []
+    },
+    {
+      "id": "76617033-4dc0-4448-b50c-e5b0d5a18539",
+      "name": "Falcon 9 Block 5 | USSF-317",
+      "net": "2026-11-19T03:00:00Z",
+      "status": "Go for Launch",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 4E",
+      "location": "Vandenberg SFB, CA, USA",
+      "webcast_urls": [
+        "https://x.com/i/broadcasts/2lgkMvaRVPMdYR"
+      ]
     },
     {
       "id": "a2975167-7c6f-4403-99e1-b40df17c8140",
