@@ -1,20 +1,6 @@
 {
-  "fetched_at": "2026-11-16T06:21:58.730Z",
+  "fetched_at": "2026-11-16T21:58:13.496Z",
   "items": [
-    {
-      "id": "ef9850ad-1096-425b-9d27-f7bbd186e61a",
-      "name": "Vulcan VC6L | Amazon Leo (LV-01)",
-      "net": "2026-11-15T17:40:30Z",
-      "status": "Launch Failure",
-      "provider": "United Launch Alliance",
-      "rocket": "Vulcan VC6L",
-      "pad": "Space Launch Complex 41",
-      "location": "Cape Canaveral SFS, FL, USA",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=qM5A1ZO9oh8",
-        "https://www.youtube.com/watch?v=qcA9uMBhTmo"
-      ]
-    },
     {
       "id": "e0a11eb1-0bda-4872-b36b-140247fd5c60",
       "name": "Long March 2D | Unknown Payload",
@@ -231,6 +217,17 @@
       "rocket": "PSLV XL",
       "pad": "Satish Dhawan Space Centre First Launch Pad",
       "location": "Satish Dhawan Space Centre, India",
+      "webcast_urls": []
+    },
+    {
+      "id": "22e117bf-041c-49d5-9d09-7b180036e143",
+      "name": "Ariane 62 | Metop-SG B1",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "Arianespace",
+      "rocket": "Ariane 62",
+      "pad": "Ariane Launch Area 4",
+      "location": "Guiana Space Centre, French Guiana",
       "webcast_urls": []
     }
   ]
