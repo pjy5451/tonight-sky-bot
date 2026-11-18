@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-18T07:22:53.242Z",
+  "fetched_at": "2026-11-18T20:27:21.750Z",
   "items": [
     {
       "id": "e0a11eb1-0bda-4872-b36b-140247fd5c60",
@@ -28,12 +28,23 @@
     {
       "id": "a2975167-7c6f-4403-99e1-b40df17c8140",
       "name": "Long March 8A | SatNet LEO Group TBD?",
-      "net": "2026-11-20T11:00:00Z",
-      "status": "To Be Confirmed",
+      "net": "2026-11-20T11:59:00Z",
+      "status": "Go for Launch",
       "provider": "China Aerospace Science and Technology Corporation",
       "rocket": "Long March 8A",
       "pad": "Commercial LC-1",
       "location": "Wenchang Space Launch Site, People's Republic of China",
+      "webcast_urls": []
+    },
+    {
+      "id": "13270554-4bdb-42ae-916f-1bb54492204f",
+      "name": "Long March 6C | Unknown Payload",
+      "net": "2026-11-21T03:50:00Z",
+      "status": "Go for Launch",
+      "provider": "China Aerospace Science and Technology Corporation",
+      "rocket": "Long March 6C",
+      "pad": "Launch Complex 9A",
+      "location": "Taiyuan Satellite Launch Center, People's Republic of China",
       "webcast_urls": []
     },
     {
@@ -58,7 +69,11 @@
       "rocket": "Ariane 64 Block 2",
       "pad": "Ariane Launch Area 4",
       "location": "Guiana Space Centre, French Guiana",
-      "webcast_urls": []
+      "webcast_urls": [
+        "https://www.youtube.com/watch?v=k2adMyxSoJE",
+        "https://www.youtube.com/watch?v=w9Wokj3rBH4",
+        "https://www.youtube.com/watch?v=F4xjWb4OEs4"
+      ]
     },
     {
       "id": "460d9db7-eaf6-4cd9-b095-cff433534c09",
@@ -116,6 +131,19 @@
       "pad": "Orbital Launch Pad",
       "location": "Andøya Spaceport",
       "webcast_urls": []
+    },
+    {
+      "id": "b0d27def-0a88-44c3-a947-1fd5b8503e2c",
+      "name": "Falcon 9 Block 5 | USSF-380",
+      "net": "2026-11-28T04:53:00Z",
+      "status": "Go for Launch",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 4E",
+      "location": "Vandenberg SFB, CA, USA",
+      "webcast_urls": [
+        "https://x.com/i/broadcasts/2ybQqgpAAEJmBB"
+      ]
     },
     {
       "id": "d74afbc7-0de5-491c-be05-4e9c31f736ac",
@@ -206,28 +234,6 @@
       "rocket": "Mir",
       "pad": "ADD Offshore launch platform",
       "location": "Sea Launch",
-      "webcast_urls": []
-    },
-    {
-      "id": "b5a9bccb-30d7-4af6-8ad1-fabb563be53c",
-      "name": "PSLV-XL | TDS-01",
-      "net": "2026-11-30T00:00:00Z",
-      "status": "To Be Determined",
-      "provider": "Indian Space Research Organization",
-      "rocket": "PSLV XL",
-      "pad": "Satish Dhawan Space Centre First Launch Pad",
-      "location": "Satish Dhawan Space Centre, India",
-      "webcast_urls": []
-    },
-    {
-      "id": "22e117bf-041c-49d5-9d09-7b180036e143",
-      "name": "Ariane 62 | Metop-SG B1",
-      "net": "2026-12-31T00:00:00Z",
-      "status": "To Be Determined",
-      "provider": "Arianespace",
-      "rocket": "Ariane 62",
-      "pad": "Ariane Launch Area 4",
-      "location": "Guiana Space Centre, French Guiana",
       "webcast_urls": []
     }
   ]
