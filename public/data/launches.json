@@ -1,11 +1,11 @@
 {
-  "fetched_at": "2026-11-18T20:27:21.750Z",
+  "fetched_at": "2026-11-19T07:20:19.318Z",
   "items": [
     {
       "id": "e0a11eb1-0bda-4872-b36b-140247fd5c60",
-      "name": "Long March 2D | Unknown Payload",
-      "net": "2026-11-18T22:50:00Z",
-      "status": "Go for Launch",
+      "name": "Long March 2D | Shijian 24",
+      "net": "2026-11-18T22:51:00Z",
+      "status": "Launch Successful",
       "provider": "China Aerospace Science and Technology Corporation",
       "rocket": "Long March 2D",
       "pad": "Launch Complex 9",
@@ -15,13 +15,15 @@
     {
       "id": "76617033-4dc0-4448-b50c-e5b0d5a18539",
       "name": "Falcon 9 Block 5 | USSF-317",
-      "net": "2026-11-20T02:46:00Z",
+      "net": "2026-11-20T04:28:55Z",
       "status": "Go for Launch",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
       "pad": "Space Launch Complex 4E",
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
+        "https://www.youtube.com/watch?v=Zi7vbfr5FPI",
+        "https://www.youtube.com/watch?v=fk84K7QVWgw",
         "https://x.com/i/broadcasts/2lgkMvaRVPMdYR"
       ]
     },
