@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-20T20:10:13.091Z",
+  "fetched_at": "2026-11-21T07:00:18.493Z",
   "items": [
     {
       "id": "a2975167-7c6f-4403-99e1-b40df17c8140",
@@ -18,13 +18,13 @@
       "id": "76617033-4dc0-4448-b50c-e5b0d5a18539",
       "name": "Falcon 9 Block 5 | USSF-317",
       "net": "2026-11-21T04:20:35Z",
-      "status": "Go for Launch",
+      "status": "Launch Successful",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
       "pad": "Space Launch Complex 4E",
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
-        "https://www.youtube.com/watch?v=Zi7vbfr5FPI",
+        "https://www.youtube.com/watch?v=NejEgXnJzBM",
         "https://www.youtube.com/watch?v=fk84K7QVWgw",
         "https://x.com/i/broadcasts/2lgkMvaRVPMdYR"
       ]
