@@ -1,19 +1,6 @@
 {
-  "fetched_at": "2026-11-21T07:00:18.493Z",
+  "fetched_at": "2026-11-21T19:11:08.245Z",
   "items": [
-    {
-      "id": "a2975167-7c6f-4403-99e1-b40df17c8140",
-      "name": "Long March 8A | SatNet LEO Group 30",
-      "net": "2026-11-20T11:59:00Z",
-      "status": "Launch Successful",
-      "provider": "China Aerospace Science and Technology Corporation",
-      "rocket": "Long March 8A",
-      "pad": "Commercial LC-1",
-      "location": "Wenchang Space Launch Site, People's Republic of China",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=dUxmQvNnQEI"
-      ]
-    },
     {
       "id": "76617033-4dc0-4448-b50c-e5b0d5a18539",
       "name": "Falcon 9 Block 5 | USSF-317",
@@ -238,6 +225,17 @@
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
       "pad": "Unknown Pad",
+      "location": "Cape Canaveral SFS, FL, USA",
+      "webcast_urls": []
+    },
+    {
+      "id": "e61d353c-db55-4a57-8184-0fab187231e6",
+      "name": "Falcon 9 Block 5 | Globalstar 2-R Mission 2 (x 9)",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 40",
       "location": "Cape Canaveral SFS, FL, USA",
       "webcast_urls": []
     }
