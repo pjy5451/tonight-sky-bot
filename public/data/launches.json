@@ -1,25 +1,10 @@
 {
-  "fetched_at": "2026-11-21T19:11:08.245Z",
+  "fetched_at": "2026-11-22T06:41:49.165Z",
   "items": [
-    {
-      "id": "76617033-4dc0-4448-b50c-e5b0d5a18539",
-      "name": "Falcon 9 Block 5 | USSF-317",
-      "net": "2026-11-21T04:20:35Z",
-      "status": "Launch Successful",
-      "provider": "SpaceX",
-      "rocket": "Falcon 9 Block 5",
-      "pad": "Space Launch Complex 4E",
-      "location": "Vandenberg SFB, CA, USA",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=NejEgXnJzBM",
-        "https://www.youtube.com/watch?v=fk84K7QVWgw",
-        "https://x.com/i/broadcasts/2lgkMvaRVPMdYR"
-      ]
-    },
     {
       "id": "951a341f-236b-42fe-a667-4ab2fcf36eac",
       "name": "Falcon 9 Block 5 | NROL-136",
-      "net": "2026-11-22T12:16:00Z",
+      "net": "2026-11-22T12:23:56Z",
       "status": "Go for Launch",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
@@ -27,6 +12,7 @@
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
         "https://www.youtube.com/watch?v=CjN4lPx7mD8",
+        "https://www.youtube.com/watch?v=um48_-sSFrE",
         "https://x.com/i/broadcasts/2yboJapzrmYNbe"
       ]
     },
@@ -237,6 +223,17 @@
       "rocket": "Falcon 9 Block 5",
       "pad": "Space Launch Complex 40",
       "location": "Cape Canaveral SFS, FL, USA",
+      "webcast_urls": []
+    },
+    {
+      "id": "56ca6058-7ccc-4ec0-b1b0-fb49f3bfee49",
+      "name": "Falcon 9 Block 5 | NROL-195",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 4E",
+      "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": []
     }
   ]
