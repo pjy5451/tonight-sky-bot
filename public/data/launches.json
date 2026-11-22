@@ -1,17 +1,17 @@
 {
-  "fetched_at": "2026-11-22T06:41:49.165Z",
+  "fetched_at": "2026-11-22T19:33:26.737Z",
   "items": [
     {
       "id": "951a341f-236b-42fe-a667-4ab2fcf36eac",
       "name": "Falcon 9 Block 5 | NROL-136",
       "net": "2026-11-22T12:23:56Z",
-      "status": "Go for Launch",
+      "status": "Launch Successful",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
       "pad": "Space Launch Complex 4E",
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
-        "https://www.youtube.com/watch?v=CjN4lPx7mD8",
+        "https://www.youtube.com/watch?v=NFIjyRFTPao",
         "https://www.youtube.com/watch?v=um48_-sSFrE",
         "https://x.com/i/broadcasts/2yboJapzrmYNbe"
       ]
@@ -75,17 +75,6 @@
       "rocket": "Long March 2D",
       "pad": "Launch Complex 3 (LC-3/LA-1)",
       "location": "Xichang Satellite Launch Center, People's Republic of China",
-      "webcast_urls": []
-    },
-    {
-      "id": "dff42a2e-f047-48d7-b260-3888d3a4fe33",
-      "name": "Spectrum | AT-Astra and Others (Spectrum Flight 3)",
-      "net": "2026-11-26T20:00:00Z",
-      "status": "To Be Confirmed",
-      "provider": "Isar Aerospace",
-      "rocket": "Spectrum",
-      "pad": "Orbital Launch Pad",
-      "location": "Andøya Spaceport",
       "webcast_urls": []
     },
     {
@@ -228,6 +217,17 @@
     {
       "id": "56ca6058-7ccc-4ec0-b1b0-fb49f3bfee49",
       "name": "Falcon 9 Block 5 | NROL-195",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 4E",
+      "location": "Vandenberg SFB, CA, USA",
+      "webcast_urls": []
+    },
+    {
+      "id": "b0dc988c-ea4a-423f-81b6-6b0fbe7cc17c",
+      "name": "Falcon 9 Block 5 | OneWeb 21",
       "net": "2026-12-31T00:00:00Z",
       "status": "To Be Determined",
       "provider": "SpaceX",
