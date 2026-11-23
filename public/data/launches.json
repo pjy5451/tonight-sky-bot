@@ -1,21 +1,6 @@
 {
-  "fetched_at": "2026-11-23T07:30:32.030Z",
+  "fetched_at": "2026-11-23T23:50:31.088Z",
   "items": [
-    {
-      "id": "951a341f-236b-42fe-a667-4ab2fcf36eac",
-      "name": "Falcon 9 Block 5 | NROL-136",
-      "net": "2026-11-22T12:23:56Z",
-      "status": "Launch Successful",
-      "provider": "SpaceX",
-      "rocket": "Falcon 9 Block 5",
-      "pad": "Space Launch Complex 4E",
-      "location": "Vandenberg SFB, CA, USA",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=NFIjyRFTPao",
-        "https://www.youtube.com/watch?v=um48_-sSFrE",
-        "https://x.com/i/broadcasts/2yboJapzrmYNbe"
-      ]
-    },
     {
       "id": "8dd5de11-831b-445f-86f0-bffefe0550d9",
       "name": "Soyuz 2.1b | Progress MS-36 (97P)",
@@ -30,8 +15,8 @@
     {
       "id": "7bdc412b-c965-4517-a131-f57a01189803",
       "name": "Ariane 64 Block 2 | Amazon Leo (LE-04)",
-      "net": "2026-11-24T11:09:00Z",
-      "status": "To Be Confirmed",
+      "net": "2026-11-24T10:45:00Z",
+      "status": "Go for Launch",
       "provider": "Arianespace",
       "rocket": "Ariane 64 Block 2",
       "pad": "Ariane Launch Area 4",
@@ -102,17 +87,6 @@
       "webcast_urls": []
     },
     {
-      "id": "8b46d360-6b3b-423f-9036-d5568e485624",
-      "name": "Kinetica 1 | Unknown Payload",
-      "net": "2026-11-29T01:00:00Z",
-      "status": "To Be Confirmed",
-      "provider": "CAS Space",
-      "rocket": "Kinetica 1",
-      "pad": "South China Sea (launch location 3)",
-      "location": "Haiyang Oriental Spaceport",
-      "webcast_urls": []
-    },
-    {
       "id": "13270554-4bdb-42ae-916f-1bb54492204f",
       "name": "Long March 6C | Unknown Payload",
       "net": "2026-11-29T03:50:00Z",
@@ -170,6 +144,28 @@
       "rocket": "Mir",
       "pad": "ADD Offshore launch platform",
       "location": "Sea Launch",
+      "webcast_urls": []
+    },
+    {
+      "id": "8b46d360-6b3b-423f-9036-d5568e485624",
+      "name": "Kinetica 1 | Unknown Payload",
+      "net": "2026-12-01T01:45:00Z",
+      "status": "Go for Launch",
+      "provider": "CAS Space",
+      "rocket": "Kinetica 1",
+      "pad": "South China Sea (launch location 4)",
+      "location": "Haiyang Oriental Spaceport",
+      "webcast_urls": []
+    },
+    {
+      "id": "5591cfa3-6336-41ab-a37a-7c57aa28ab5f",
+      "name": "Falcon 9 Block 5 | NROL-132",
+      "net": "2026-12-02T20:30:00Z",
+      "status": "To Be Confirmed",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 4E",
+      "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": []
     },
     {
