@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-22T19:33:26.737Z",
+  "fetched_at": "2026-11-23T07:30:32.030Z",
   "items": [
     {
       "id": "951a341f-236b-42fe-a667-4ab2fcf36eac",
@@ -17,10 +17,21 @@
       ]
     },
     {
+      "id": "8dd5de11-831b-445f-86f0-bffefe0550d9",
+      "name": "Soyuz 2.1b | Progress MS-36 (97P)",
+      "net": "2026-11-24T10:13:00Z",
+      "status": "To Be Confirmed",
+      "provider": "Russian Federal Space Agency (ROSCOSMOS)",
+      "rocket": "Soyuz 2.1b",
+      "pad": "31/6",
+      "location": "Baikonur Cosmodrome, Republic of Kazakhstan",
+      "webcast_urls": []
+    },
+    {
       "id": "7bdc412b-c965-4517-a131-f57a01189803",
       "name": "Ariane 64 Block 2 | Amazon Leo (LE-04)",
-      "net": "2026-11-23T11:09:00Z",
-      "status": "Go for Launch",
+      "net": "2026-11-24T11:09:00Z",
+      "status": "To Be Confirmed",
       "provider": "Arianespace",
       "rocket": "Ariane 64 Block 2",
       "pad": "Ariane Launch Area 4",
@@ -32,17 +43,6 @@
       ]
     },
     {
-      "id": "8dd5de11-831b-445f-86f0-bffefe0550d9",
-      "name": "Soyuz 2.1b | Progress MS-36 (97P)",
-      "net": "2026-11-24T05:03:00Z",
-      "status": "To Be Confirmed",
-      "provider": "Russian Federal Space Agency (ROSCOSMOS)",
-      "rocket": "Soyuz 2.1b",
-      "pad": "31/6",
-      "location": "Baikonur Cosmodrome, Republic of Kazakhstan",
-      "webcast_urls": []
-    },
-    {
       "id": "460d9db7-eaf6-4cd9-b095-cff433534c09",
       "name": "Falcon 9 Block 5 | USSF-266",
       "net": "2026-11-24T15:55:00Z",
@@ -52,6 +52,8 @@
       "pad": "Space Launch Complex 4E",
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
+        "https://www.youtube.com/watch?v=oELkxR9uY8Q",
+        "https://www.youtube.com/watch?v=0HG7obl5IAo",
         "https://x.com/i/broadcasts/2JQXBjLyYOQrpX"
       ]
     },
