@@ -1,16 +1,20 @@
 {
-  "fetched_at": "2026-11-23T23:50:31.088Z",
+  "fetched_at": "2026-11-24T09:50:22.895Z",
   "items": [
     {
       "id": "8dd5de11-831b-445f-86f0-bffefe0550d9",
       "name": "Soyuz 2.1b | Progress MS-36 (97P)",
-      "net": "2026-11-24T10:13:00Z",
-      "status": "To Be Confirmed",
+      "net": "2026-11-24T10:17:00Z",
+      "status": "Go for Launch",
       "provider": "Russian Federal Space Agency (ROSCOSMOS)",
       "rocket": "Soyuz 2.1b",
       "pad": "31/6",
       "location": "Baikonur Cosmodrome, Republic of Kazakhstan",
-      "webcast_urls": []
+      "webcast_urls": [
+        "https://www.youtube.com/watch?v=LwQMevphh10",
+        "https://plus.nasa.gov/scheduled-video/progress-97-cargo-ship-launch/",
+        "https://www.youtube.com/watch?v=-UddWcF9BTM"
+      ]
     },
     {
       "id": "7bdc412b-c965-4517-a131-f57a01189803",
@@ -30,7 +34,7 @@
     {
       "id": "460d9db7-eaf6-4cd9-b095-cff433534c09",
       "name": "Falcon 9 Block 5 | USSF-266",
-      "net": "2026-11-24T15:55:00Z",
+      "net": "2026-11-24T16:08:59Z",
       "status": "Go for Launch",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
@@ -38,6 +42,7 @@
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
         "https://www.youtube.com/watch?v=oELkxR9uY8Q",
+        "https://www.youtube.com/watch?v=Mx26fq3CcnQ",
         "https://www.youtube.com/watch?v=0HG7obl5IAo",
         "https://x.com/i/broadcasts/2JQXBjLyYOQrpX"
       ]
