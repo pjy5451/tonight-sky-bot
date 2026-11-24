@@ -1,11 +1,11 @@
 {
-  "fetched_at": "2026-11-24T09:50:22.895Z",
+  "fetched_at": "2026-11-24T22:22:58.603Z",
   "items": [
     {
       "id": "8dd5de11-831b-445f-86f0-bffefe0550d9",
       "name": "Soyuz 2.1b | Progress MS-36 (97P)",
-      "net": "2026-11-24T10:17:00Z",
-      "status": "Go for Launch",
+      "net": "2026-11-24T10:17:46Z",
+      "status": "Launch Successful",
       "provider": "Russian Federal Space Agency (ROSCOSMOS)",
       "rocket": "Soyuz 2.1b",
       "pad": "31/6",
@@ -19,8 +19,8 @@
     {
       "id": "7bdc412b-c965-4517-a131-f57a01189803",
       "name": "Ariane 64 Block 2 | Amazon Leo (LE-04)",
-      "net": "2026-11-24T10:45:00Z",
-      "status": "Go for Launch",
+      "net": "2026-11-24T11:14:52Z",
+      "status": "Launch Successful",
       "provider": "Arianespace",
       "rocket": "Ariane 64 Block 2",
       "pad": "Ariane Launch Area 4",
@@ -35,13 +35,13 @@
       "id": "460d9db7-eaf6-4cd9-b095-cff433534c09",
       "name": "Falcon 9 Block 5 | USSF-266",
       "net": "2026-11-24T16:08:59Z",
-      "status": "Go for Launch",
+      "status": "Launch Successful",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
       "pad": "Space Launch Complex 4E",
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
-        "https://www.youtube.com/watch?v=oELkxR9uY8Q",
+        "https://www.youtube.com/watch?v=Fb7P2xSoF28",
         "https://www.youtube.com/watch?v=Mx26fq3CcnQ",
         "https://www.youtube.com/watch?v=0HG7obl5IAo",
         "https://x.com/i/broadcasts/2JQXBjLyYOQrpX"
@@ -118,7 +118,7 @@
     {
       "id": "d74afbc7-0de5-491c-be05-4e9c31f736ac",
       "name": "Falcon 9 Block 5 | Cygnus CRS-2 NG-25",
-      "net": "2026-11-29T15:50:00Z",
+      "net": "2026-11-29T15:47:00Z",
       "status": "Go for Launch",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
@@ -128,17 +128,6 @@
         "https://plus.nasa.gov/scheduled-video/nasas-northrop-grumman-commercial-resupply-services-25-launch/",
         "https://x.com/i/broadcasts/2gqOaJVRyzQolq"
       ]
-    },
-    {
-      "id": "e2523821-9760-4cb4-ad1f-7ce2e30419bd",
-      "name": "Kuaizhou 11 | Unknown Payload",
-      "net": "2026-11-30T00:00:00Z",
-      "status": "To Be Determined",
-      "provider": "ExPace",
-      "rocket": "Kuaizhou 11",
-      "pad": "Launch Area 95A",
-      "location": "Jiuquan Satellite Launch Center, People's Republic of China",
-      "webcast_urls": []
     },
     {
       "id": "9e27a1ed-e81a-4918-b32b-0380cf3a9f8f",
@@ -160,6 +149,17 @@
       "rocket": "Kinetica 1",
       "pad": "South China Sea (launch location 4)",
       "location": "Haiyang Oriental Spaceport",
+      "webcast_urls": []
+    },
+    {
+      "id": "e2523821-9760-4cb4-ad1f-7ce2e30419bd",
+      "name": "Kuaizhou 11 | Unknown Payload",
+      "net": "2026-12-01T08:00:00Z",
+      "status": "To Be Confirmed",
+      "provider": "ExPace",
+      "rocket": "Kuaizhou 11",
+      "pad": "Launch Area 95A",
+      "location": "Jiuquan Satellite Launch Center, People's Republic of China",
       "webcast_urls": []
     },
     {
@@ -196,6 +196,17 @@
       "webcast_urls": []
     },
     {
+      "id": "9b9db235-8ffb-4569-b09b-0e852ad231a0",
+      "name": "Falcon 9 Block 5 | Amazon Leo (LF-04)",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Unknown Pad",
+      "location": "Cape Canaveral SFS, FL, USA",
+      "webcast_urls": []
+    },
+    {
       "id": "8bf5f61e-a7e1-41e6-aede-7b87e4beebab",
       "name": "Falcon 9 Block 5 | CHORUS",
       "net": "2026-12-31T00:00:00Z",
@@ -220,17 +231,6 @@
     {
       "id": "56ca6058-7ccc-4ec0-b1b0-fb49f3bfee49",
       "name": "Falcon 9 Block 5 | NROL-195",
-      "net": "2026-12-31T00:00:00Z",
-      "status": "To Be Determined",
-      "provider": "SpaceX",
-      "rocket": "Falcon 9 Block 5",
-      "pad": "Space Launch Complex 4E",
-      "location": "Vandenberg SFB, CA, USA",
-      "webcast_urls": []
-    },
-    {
-      "id": "b0dc988c-ea4a-423f-81b6-6b0fbe7cc17c",
-      "name": "Falcon 9 Block 5 | OneWeb 21",
       "net": "2026-12-31T00:00:00Z",
       "status": "To Be Determined",
       "provider": "SpaceX",
