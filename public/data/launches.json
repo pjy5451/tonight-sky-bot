@@ -1,52 +1,6 @@
 {
-  "fetched_at": "2026-11-25T08:26:54.059Z",
+  "fetched_at": "2026-11-25T21:38:36.663Z",
   "items": [
-    {
-      "id": "8dd5de11-831b-445f-86f0-bffefe0550d9",
-      "name": "Soyuz 2.1b | Progress MS-36 (97P)",
-      "net": "2026-11-24T10:17:46Z",
-      "status": "Launch Successful",
-      "provider": "Russian Federal Space Agency (ROSCOSMOS)",
-      "rocket": "Soyuz 2.1b",
-      "pad": "31/6",
-      "location": "Baikonur Cosmodrome, Republic of Kazakhstan",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=LwQMevphh10",
-        "https://plus.nasa.gov/scheduled-video/progress-97-cargo-ship-launch/",
-        "https://www.youtube.com/watch?v=-UddWcF9BTM"
-      ]
-    },
-    {
-      "id": "7bdc412b-c965-4517-a131-f57a01189803",
-      "name": "Ariane 64 Block 2 | Amazon Leo (LE-04)",
-      "net": "2026-11-24T11:14:52Z",
-      "status": "Launch Successful",
-      "provider": "Arianespace",
-      "rocket": "Ariane 64 Block 2",
-      "pad": "Ariane Launch Area 4",
-      "location": "Guiana Space Centre, French Guiana",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=k2adMyxSoJE",
-        "https://www.youtube.com/watch?v=w9Wokj3rBH4",
-        "https://www.youtube.com/watch?v=F4xjWb4OEs4"
-      ]
-    },
-    {
-      "id": "460d9db7-eaf6-4cd9-b095-cff433534c09",
-      "name": "Falcon 9 Block 5 | USSF-266",
-      "net": "2026-11-24T16:08:59Z",
-      "status": "Launch Successful",
-      "provider": "SpaceX",
-      "rocket": "Falcon 9 Block 5",
-      "pad": "Space Launch Complex 4E",
-      "location": "Vandenberg SFB, CA, USA",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=Fb7P2xSoF28",
-        "https://www.youtube.com/watch?v=Mx26fq3CcnQ",
-        "https://www.youtube.com/watch?v=0HG7obl5IAo",
-        "https://x.com/i/broadcasts/2JQXBjLyYOQrpX"
-      ]
-    },
     {
       "id": "c9605b67-8a53-4239-a8ae-577fe3b79799",
       "name": "Long March 2F/G | Shenzhou 24",
@@ -128,6 +82,7 @@
       "pad": "Space Launch Complex 40",
       "location": "Cape Canaveral SFS, FL, USA",
       "webcast_urls": [
+        "https://www.youtube.com/watch?v=YLrybIli73I",
         "https://plus.nasa.gov/scheduled-video/nasas-northrop-grumman-commercial-resupply-services-25-launch/",
         "https://x.com/i/broadcasts/2gqOaJVRyzQolq"
       ]
@@ -177,6 +132,19 @@
       "webcast_urls": []
     },
     {
+      "id": "8bf5f61e-a7e1-41e6-aede-7b87e4beebab",
+      "name": "Falcon 9 Block 5 | CHORUS",
+      "net": "2026-12-04T12:55:00Z",
+      "status": "Go for Launch",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 40",
+      "location": "Cape Canaveral SFS, FL, USA",
+      "webcast_urls": [
+        "https://x.com/i/broadcasts/2VNlrbYvYNmMgM"
+      ]
+    },
+    {
       "id": "5ce59e3a-c343-430f-ae4e-e608ba536754",
       "name": "Long March 12 | SatNet LEO Group TBD?",
       "net": "2026-12-10T07:00:00Z",
@@ -190,8 +158,8 @@
     {
       "id": "22e117bf-041c-49d5-9d09-7b180036e143",
       "name": "Ariane 62 | Metop-SG B1",
-      "net": "2026-12-17T00:00:00Z",
-      "status": "To Be Determined",
+      "net": "2026-12-18T00:36:00Z",
+      "status": "Go for Launch",
       "provider": "Arianespace",
       "rocket": "Ariane 62",
       "pad": "Ariane Launch Area 4",
@@ -201,17 +169,6 @@
     {
       "id": "9b9db235-8ffb-4569-b09b-0e852ad231a0",
       "name": "Falcon 9 Block 5 | Amazon Leo (LF-04)",
-      "net": "2026-12-31T00:00:00Z",
-      "status": "To Be Determined",
-      "provider": "SpaceX",
-      "rocket": "Falcon 9 Block 5",
-      "pad": "Unknown Pad",
-      "location": "Cape Canaveral SFS, FL, USA",
-      "webcast_urls": []
-    },
-    {
-      "id": "8bf5f61e-a7e1-41e6-aede-7b87e4beebab",
-      "name": "Falcon 9 Block 5 | CHORUS",
       "net": "2026-12-31T00:00:00Z",
       "status": "To Be Determined",
       "provider": "SpaceX",
@@ -234,6 +191,39 @@
     {
       "id": "56ca6058-7ccc-4ec0-b1b0-fb49f3bfee49",
       "name": "Falcon 9 Block 5 | NROL-195",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 4E",
+      "location": "Vandenberg SFB, CA, USA",
+      "webcast_urls": []
+    },
+    {
+      "id": "b0dc988c-ea4a-423f-81b6-6b0fbe7cc17c",
+      "name": "Falcon 9 Block 5 | OneWeb 21",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 4E",
+      "location": "Vandenberg SFB, CA, USA",
+      "webcast_urls": []
+    },
+    {
+      "id": "71df1dd0-d658-4762-b0bc-0fca6886aea7",
+      "name": "Falcon 9 Block 5 | SDA Tranche 2 Transport Layer D",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Unknown Pad",
+      "location": "Cape Canaveral SFS, FL, USA",
+      "webcast_urls": []
+    },
+    {
+      "id": "71ed4649-8d71-42e8-8548-d42ffa2c5a6e",
+      "name": "Falcon 9 Block 5 | SDA Tranche 2 Transport Layer E",
       "net": "2026-12-31T00:00:00Z",
       "status": "To Be Determined",
       "provider": "SpaceX",
