@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-24T22:22:58.603Z",
+  "fetched_at": "2026-11-25T08:26:54.059Z",
   "items": [
     {
       "id": "8dd5de11-831b-445f-86f0-bffefe0550d9",
@@ -50,13 +50,16 @@
     {
       "id": "c9605b67-8a53-4239-a8ae-577fe3b79799",
       "name": "Long March 2F/G | Shenzhou 24",
-      "net": "2026-11-25T00:18:00Z",
-      "status": "Go for Launch",
+      "net": "2026-11-25T00:18:52Z",
+      "status": "Launch Successful",
       "provider": "China Aerospace Science and Technology Corporation",
       "rocket": "Long March 2F/G",
       "pad": "Launch Area 91 (SLS-1 / 921)",
       "location": "Jiuquan Satellite Launch Center, People's Republic of China",
-      "webcast_urls": []
+      "webcast_urls": [
+        "https://www.youtube.com/watch?v=SeWm3kfVx20",
+        "https://www.youtube.com/watch?v=Jd_rM2JlOi4"
+      ]
     },
     {
       "id": "b00f0e9a-48d6-4f26-9cb5-7d19169ff7c4",
