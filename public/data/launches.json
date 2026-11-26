@@ -1,20 +1,6 @@
 {
-  "fetched_at": "2026-11-25T21:38:36.663Z",
+  "fetched_at": "2026-11-26T08:11:05.634Z",
   "items": [
-    {
-      "id": "c9605b67-8a53-4239-a8ae-577fe3b79799",
-      "name": "Long March 2F/G | Shenzhou 24",
-      "net": "2026-11-25T00:18:52Z",
-      "status": "Launch Successful",
-      "provider": "China Aerospace Science and Technology Corporation",
-      "rocket": "Long March 2F/G",
-      "pad": "Launch Area 91 (SLS-1 / 921)",
-      "location": "Jiuquan Satellite Launch Center, People's Republic of China",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=SeWm3kfVx20",
-        "https://www.youtube.com/watch?v=Jd_rM2JlOi4"
-      ]
-    },
     {
       "id": "b00f0e9a-48d6-4f26-9cb5-7d19169ff7c4",
       "name": "Long March 2D | Unknown Payload",
@@ -33,7 +19,7 @@
       "status": "Go for Launch",
       "provider": "Rocket Lab",
       "rocket": "Electron",
-      "pad": "Unknown Pad",
+      "pad": "Rocket Lab Launch Complex 1B",
       "location": "Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand",
       "webcast_urls": []
     },
@@ -231,6 +217,20 @@
       "pad": "Space Launch Complex 4E",
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": []
+    },
+    {
+      "id": "3cdb9dee-b5cb-406c-bbd1-06a219930fb7",
+      "name": "Falcon 9 Block 5 | Starlink Group 15-21",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "SpaceX",
+      "rocket": "Falcon 9 Block 5",
+      "pad": "Space Launch Complex 4E",
+      "location": "Vandenberg SFB, CA, USA",
+      "webcast_urls": [
+        "https://www.youtube.com/watch?v=z9uME3O2xHk",
+        "https://x.com/i/broadcasts/1aJbdEgvmWaKX"
+      ]
     }
   ]
 }
