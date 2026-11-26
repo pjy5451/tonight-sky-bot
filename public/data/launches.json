@@ -1,11 +1,11 @@
 {
-  "fetched_at": "2026-11-26T08:11:05.634Z",
+  "fetched_at": "2026-11-26T21:27:48.141Z",
   "items": [
     {
       "id": "b00f0e9a-48d6-4f26-9cb5-7d19169ff7c4",
-      "name": "Long March 2D | Unknown Payload",
-      "net": "2026-11-26T09:35:00Z",
-      "status": "Go for Launch",
+      "name": "Long March 2D | Yaogan 49 Group 01",
+      "net": "2026-11-26T09:38:00Z",
+      "status": "Launch Successful",
       "provider": "China Aerospace Science and Technology Corporation",
       "rocket": "Long March 2D",
       "pad": "Launch Complex 3 (LC-3/LA-1)",
@@ -21,7 +21,9 @@
       "rocket": "Electron",
       "pad": "Rocket Lab Launch Complex 1B",
       "location": "Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand",
-      "webcast_urls": []
+      "webcast_urls": [
+        "https://www.youtube.com/watch?v=p75NOkFoyXs"
+      ]
     },
     {
       "id": "a6421db3-7c8a-4cf7-a659-cec195140f7f",
@@ -55,6 +57,8 @@
       "pad": "Space Launch Complex 4E",
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
+        "https://www.youtube.com/watch?v=xpfmP-4EGIw",
+        "https://www.youtube.com/watch?v=CLULlErcxF4",
         "https://x.com/i/broadcasts/2ybQqgpAAEJmBB"
       ]
     },
@@ -70,7 +74,8 @@
       "webcast_urls": [
         "https://www.youtube.com/watch?v=YLrybIli73I",
         "https://plus.nasa.gov/scheduled-video/nasas-northrop-grumman-commercial-resupply-services-25-launch/",
-        "https://x.com/i/broadcasts/2gqOaJVRyzQolq"
+        "https://x.com/i/broadcasts/2gqOaJVRyzQolq",
+        "https://www.youtube.com/watch?v=wp27QzrSj1s"
       ]
     },
     {
