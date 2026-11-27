@@ -1,17 +1,6 @@
 {
-  "fetched_at": "2026-11-27T08:22:08.410Z",
+  "fetched_at": "2026-11-27T21:13:10.124Z",
   "items": [
-    {
-      "id": "b00f0e9a-48d6-4f26-9cb5-7d19169ff7c4",
-      "name": "Long March 2D | Yaogan 49 Group 01",
-      "net": "2026-11-26T09:38:00Z",
-      "status": "Launch Successful",
-      "provider": "China Aerospace Science and Technology Corporation",
-      "rocket": "Long March 2D",
-      "pad": "Launch Complex 3 (LC-3/LA-1)",
-      "location": "Xichang Satellite Launch Center, People's Republic of China",
-      "webcast_urls": []
-    },
     {
       "id": "2093e4fc-ac8c-4296-a1b5-deececee6a72",
       "name": "Electron | Night Owls Never Sleep (StriX Launch 14)",
@@ -27,9 +16,9 @@
     },
     {
       "id": "a6421db3-7c8a-4cf7-a659-cec195140f7f",
-      "name": "Long March 6A | Unknown Payload",
-      "net": "2026-11-27T13:00:00Z",
-      "status": "Go for Launch",
+      "name": "Long March 6A | Yaogan 50-04",
+      "net": "2026-11-27T13:05:00Z",
+      "status": "Launch Successful",
       "provider": "China Aerospace Science and Technology Corporation",
       "rocket": "Long March 6A",
       "pad": "Launch Complex 9A",
@@ -58,6 +47,7 @@
       "location": "Vandenberg SFB, CA, USA",
       "webcast_urls": [
         "https://www.youtube.com/watch?v=xpfmP-4EGIw",
+        "https://www.youtube.com/watch?v=IwYSJ4ne7GM",
         "https://www.youtube.com/watch?v=CLULlErcxF4",
         "https://x.com/i/broadcasts/2ybQqgpAAEJmBB"
       ]
@@ -235,6 +225,17 @@
       "rocket": "Vega-C",
       "pad": "Ariane Launch Area 1 (ELV)",
       "location": "Guiana Space Centre, French Guiana",
+      "webcast_urls": []
+    },
+    {
+      "id": "548df42c-ae26-4cc9-921a-f0042941911a",
+      "name": "Electron | BlackSky Gen-3 6",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "Rocket Lab",
+      "rocket": "Electron",
+      "pad": "Unknown Pad",
+      "location": "Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand",
       "webcast_urls": []
     }
   ]
