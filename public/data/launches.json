@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-26T21:27:48.141Z",
+  "fetched_at": "2026-11-27T08:22:08.410Z",
   "items": [
     {
       "id": "b00f0e9a-48d6-4f26-9cb5-7d19169ff7c4",
@@ -15,8 +15,8 @@
     {
       "id": "2093e4fc-ac8c-4296-a1b5-deececee6a72",
       "name": "Electron | Night Owls Never Sleep (StriX Launch 14)",
-      "net": "2026-11-27T00:05:00Z",
-      "status": "Go for Launch",
+      "net": "2026-11-27T00:15:00Z",
+      "status": "Launch Successful",
       "provider": "Rocket Lab",
       "rocket": "Electron",
       "pad": "Rocket Lab Launch Complex 1B",
@@ -79,17 +79,6 @@
       ]
     },
     {
-      "id": "9e27a1ed-e81a-4918-b32b-0380cf3a9f8f",
-      "name": "Mir | Demo Flight",
-      "net": "2026-11-30T00:00:00Z",
-      "status": "To Be Determined",
-      "provider": "Agency for Defense Development",
-      "rocket": "Mir",
-      "pad": "ADD Offshore launch platform",
-      "location": "Sea Launch",
-      "webcast_urls": []
-    },
-    {
       "id": "8b46d360-6b3b-423f-9036-d5568e485624",
       "name": "Kinetica 1 | Unknown Payload",
       "net": "2026-12-01T01:45:00Z",
@@ -103,8 +92,8 @@
     {
       "id": "e2523821-9760-4cb4-ad1f-7ce2e30419bd",
       "name": "Kuaizhou 11 | Unknown Payload",
-      "net": "2026-12-01T08:00:00Z",
-      "status": "To Be Confirmed",
+      "net": "2026-12-02T11:55:00Z",
+      "status": "Go for Launch",
       "provider": "ExPace",
       "rocket": "Kuaizhou 11",
       "pad": "Launch Area 95A",
@@ -236,6 +225,17 @@
         "https://www.youtube.com/watch?v=z9uME3O2xHk",
         "https://x.com/i/broadcasts/1aJbdEgvmWaKX"
       ]
+    },
+    {
+      "id": "912a8aee-8fc2-47b4-81a5-040fa0e0a36f",
+      "name": "Vega-C | IRIDE 1",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "Avio S.p.A",
+      "rocket": "Vega-C",
+      "pad": "Ariane Launch Area 1 (ELV)",
+      "location": "Guiana Space Centre, French Guiana",
+      "webcast_urls": []
     }
   ]
 }
