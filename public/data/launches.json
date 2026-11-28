@@ -1,19 +1,6 @@
 {
-  "fetched_at": "2026-11-27T21:13:10.124Z",
+  "fetched_at": "2026-11-28T07:42:06.648Z",
   "items": [
-    {
-      "id": "2093e4fc-ac8c-4296-a1b5-deececee6a72",
-      "name": "Electron | Night Owls Never Sleep (StriX Launch 14)",
-      "net": "2026-11-27T00:15:00Z",
-      "status": "Launch Successful",
-      "provider": "Rocket Lab",
-      "rocket": "Electron",
-      "pad": "Rocket Lab Launch Complex 1B",
-      "location": "Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand",
-      "webcast_urls": [
-        "https://www.youtube.com/watch?v=p75NOkFoyXs"
-      ]
-    },
     {
       "id": "a6421db3-7c8a-4cf7-a659-cec195140f7f",
       "name": "Long March 6A | Yaogan 50-04",
@@ -39,7 +26,7 @@
     {
       "id": "b0d27def-0a88-44c3-a947-1fd5b8503e2c",
       "name": "Falcon 9 Block 5 | USSF-380",
-      "net": "2026-11-29T04:39:00Z",
+      "net": "2026-11-29T04:39:03Z",
       "status": "Go for Launch",
       "provider": "SpaceX",
       "rocket": "Falcon 9 Block 5",
@@ -230,6 +217,17 @@
     {
       "id": "548df42c-ae26-4cc9-921a-f0042941911a",
       "name": "Electron | BlackSky Gen-3 6",
+      "net": "2026-12-31T00:00:00Z",
+      "status": "To Be Determined",
+      "provider": "Rocket Lab",
+      "rocket": "Electron",
+      "pad": "Unknown Pad",
+      "location": "Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand",
+      "webcast_urls": []
+    },
+    {
+      "id": "5aa3575e-f3ff-48ec-969f-e7e4c669f866",
+      "name": "Electron | BlackSky Gen-3 7",
       "net": "2026-12-31T00:00:00Z",
       "status": "To Be Determined",
       "provider": "Rocket Lab",
